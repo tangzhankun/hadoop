@@ -698,12 +698,19 @@ public class ContainerLaunch implements Callable<Integer> {
     public UnixShellScriptBuilder(){
       line("#!/bin/bash");
       line();
+      line("user=`whoami`");
+      line("if [ \"$#\" -eq 2 ]; then");
+      line("usermod -o -u $1 $2");
+      line("user=$2");
+      line("fi");
+      line("sudo -u $user bash << EOF");
     }
 
     @Override
     public void command(List<String> command) {
       line("exec /bin/bash -c \"", StringUtils.join(" ", command), "\"");
       errorCheck();
+      line("EOF");
     }
 
     @Override

@@ -1391,7 +1391,7 @@ int launch_docker_container_as_user(const char * user, const char *app_id,
 
 cleanup:
   //clean up docker command file
-  unlink(command_file);
+  //unlink(command_file);
 
   if (exit_code_file != NULL && write_exit_code_file(exit_code_file, exit_code) < 0) {
     fprintf (ERRORFILE,

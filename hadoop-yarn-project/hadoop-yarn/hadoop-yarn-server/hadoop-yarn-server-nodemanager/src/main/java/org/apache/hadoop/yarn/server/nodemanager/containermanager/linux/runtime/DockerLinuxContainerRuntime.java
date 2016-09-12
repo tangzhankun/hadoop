@@ -236,7 +236,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
 
     @SuppressWarnings("unchecked")
     DockerRunCommand runCommand = new DockerRunCommand(containerIdStr,
-        runAsUser, imageName)
+        "root", imageName)
         .detachOnRun()
         .setContainerWorkDir(containerWorkDir.toString())
         .setNetworkType("host")
@@ -279,6 +279,8 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
 
       overrideCommands.add("bash");
       overrideCommands.add(launchDst.toUri().getPath());
+      overrideCommands.add("1001");
+      overrideCommands.add("testuser1");
       runCommand.setOverrideCommandWithArgs(overrideCommands);
     }
 
