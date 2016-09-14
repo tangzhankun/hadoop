@@ -28,6 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authorize.AccessControlList;
+import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
@@ -39,12 +40,14 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerModule;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.docker.DockerClient;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.docker.DockerInspectCommand;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.docker.DockerRunCommand;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerExecutionException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeContext;
 
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -77,6 +80,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
   private DockerClient dockerClient;
   private PrivilegedOperationExecutor privilegedOperationExecutor;
   private AccessControlList privilegedContainersAcl;
+  private AccessControlList disableUserRemappingAcl;
 
   public static boolean isDockerContainerRequested(
       Map<String, String> env) {
@@ -102,6 +106,8 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
     privilegedContainersAcl = new AccessControlList(conf.get(
         YarnConfiguration.NM_DOCKER_PRIVILEGED_CONTAINERS_ACL,
         YarnConfiguration.DEFAULT_NM_DOCKER_PRIVILEGED_CONTAINERS_ACL));
+    disableUserRemappingAcl = new AccessControlList(conf.get(
+        YarnConfiguration.NM_DOCKER_DISABLE_USERREMAPPING_ACL, ""));
   }
 
   @Override
@@ -207,6 +213,37 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
     return true;
   }
 
+  private String getLocalUid(String username) {
+    String UID = "";
+    Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(
+        new String[]{"id", "-u", username});
+    try {
+      shexec.execute();
+      UID = shexec.getOutput().replaceAll("[^0-9]", "");
+    } catch (Exception e) {
+      LOG.warn("Could not run id command: " + e);
+    }
+    return UID;
+  }
+
+  private String getDockerImageInfo(String format, String imageName, String containerIdStr)
+      throws ContainerExecutionException {
+    String info = "";
+    DockerInspectCommand inspc= new DockerInspectCommand(format, imageName);
+    String insCF = dockerClient.writeCommandToTempFile(inspc, containerIdStr);
+    PrivilegedOperation insOp = new PrivilegedOperation(
+        PrivilegedOperation.OperationType.RUN_DOCKER_CMD);
+    insOp.appendArgs(insCF);
+    try {
+      info = privilegedOperationExecutor.executePrivilegedOperation(null,
+          insOp, null, null, true, false).replaceAll("[\\r\\n\"]","");
+    } catch (PrivilegedOperationException e) {
+      LOG.warn("Docker inspect operation failed. Exception: ", e);
+      throw new ContainerExecutionException("Docker inspect operation failed", e
+          .getExitCode(), e.getOutput(), e.getErrorOutput());
+    }
+    return info;
+  }
 
   @Override
   public void launchContainer(ContainerRuntimeContext ctx)
@@ -223,6 +260,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
 
     String containerIdStr = container.getContainerId().toString();
     String runAsUser = ctx.getExecutionAttribute(RUN_AS_USER);
+    String containerRunAsUser = runAsUser;
     Path containerWorkDir = ctx.getExecutionAttribute(CONTAINER_WORK_DIR);
     //List<String> -> stored as List -> fetched/converted to List<String>
     //we can't do better here thanks to type-erasure
@@ -230,13 +268,34 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
     List<String> localDirs = ctx.getExecutionAttribute(LOCAL_DIRS);
     @SuppressWarnings("unchecked")
     List<String> logDirs = ctx.getExecutionAttribute(LOG_DIRS);
+    Path nmPrivateContainerScriptPath = ctx.getExecutionAttribute(
+        NM_PRIVATE_CONTAINER_SCRIPT_PATH);
+
     Set<String> capabilities = new HashSet<>(Arrays.asList(conf.getStrings(
         YarnConfiguration.NM_DOCKER_CONTAINER_CAPABILITIES,
         YarnConfiguration.DEFAULT_NM_DOCKER_CONTAINER_CAPABILITIES)));
 
+    //check if user need disable user re-mapping for docker container
+    UserGroupInformation runAsUgi = UserGroupInformation
+        .createRemoteUser(runAsUser);
+    boolean disableUserRemapping = disableUserRemappingAcl.isUserAllowed(runAsUgi);
+    String targetUID = null;
+    String containerPredefinedUser = "";
+    if (disableUserRemapping) {
+      //get predefined username in Docker image
+      containerPredefinedUser = getDockerImageInfo("{{.Config.User}}", imageName, containerIdStr);
+      //get runAsUser's UID for container to usermod when init
+      if (!containerPredefinedUser.equals("root")) {
+        targetUID = getLocalUid(runAsUser);
+      }
+      //we'll use root to run the container, so that usermod will works at the beginning
+      //TODO: but we still need to discuss whether we allow a root user container
+      containerRunAsUser = "root";
+    }
+
     @SuppressWarnings("unchecked")
     DockerRunCommand runCommand = new DockerRunCommand(containerIdStr,
-        "root", imageName)
+        containerRunAsUser, imageName)
         .detachOnRun()
         .setContainerWorkDir(containerWorkDir.toString())
         .setNetworkType("host")
@@ -262,8 +321,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
      */
     //addCGroupParentIfRequired(resourcesOpts, containerIdStr, runCommand);
 
-   Path nmPrivateContainerScriptPath = ctx.getExecutionAttribute(
-        NM_PRIVATE_CONTAINER_SCRIPT_PATH);
+
 
     String disableOverride = environment.get(
         ENV_DOCKER_CONTAINER_RUN_OVERRIDE_DISABLE);
@@ -278,9 +336,18 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
           new Path(containerWorkDir, ContainerLaunch.CONTAINER_SCRIPT);
 
       overrideCommands.add("bash");
-      overrideCommands.add(launchDst.toUri().getPath());
-      overrideCommands.add("1001");
-      overrideCommands.add("testuser1");
+      //execute usermod before the container script
+      if (disableUserRemapping && targetUID != null) {
+        runCommand.useHostPIDNS();
+        overrideCommands.add("-c");
+        String cmd = "\"usermod -o -u " + targetUID + " " + containerPredefinedUser
+            + " && su " + containerPredefinedUser + " bash -c '"
+            + launchDst.toUri().getPath()
+            + "'\"";
+        overrideCommands.add(cmd);
+      } else {
+        overrideCommands.add(launchDst.toUri().getPath());
+      }
       runCommand.setOverrideCommandWithArgs(overrideCommands);
     }
 

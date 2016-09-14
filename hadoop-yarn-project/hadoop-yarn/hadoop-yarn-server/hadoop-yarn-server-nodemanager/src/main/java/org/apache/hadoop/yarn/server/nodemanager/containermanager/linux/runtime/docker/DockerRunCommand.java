@@ -43,6 +43,11 @@ public class DockerRunCommand extends DockerCommand {
     return this;
   }
 
+  public DockerRunCommand useHostPIDNS() {
+    super.addCommandArguments("--pid=host");
+    return this;
+  }
+
   public DockerRunCommand detachOnRun() {
     super.addCommandArguments("-d");
     return this;

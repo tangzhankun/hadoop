@@ -1214,6 +1214,10 @@ public class YarnConfiguration extends Configuration {
   public static final String NM_DOCKER_PRIVILEGED_CONTAINERS_ACL =
       DOCKER_CONTAINER_RUNTIME_PREFIX + "privileged-containers.acl";
 
+  /** ACL list for users allowed to run containers without "--user" option */
+  public static final String NM_DOCKER_DISABLE_USERREMAPPING_ACL=
+      DOCKER_CONTAINER_RUNTIME_PREFIX + "disable-userremapping.acl";
+
   /** Default list for users allowed to run privileged containers is empty. */
   public static final String DEFAULT_NM_DOCKER_PRIVILEGED_CONTAINERS_ACL = "";
 
