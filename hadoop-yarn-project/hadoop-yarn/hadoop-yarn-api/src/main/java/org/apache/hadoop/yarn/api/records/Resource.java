@@ -71,6 +71,26 @@ public abstract class Resource implements Comparable<Resource> {
     return resource;
   }
 
+  @Public
+  @Stable
+  public static Resource newInstance(int memory, int vCores, FPGAResource fpgaResource) {
+    Resource resource = Records.newRecord(Resource.class);
+    resource.setMemorySize(memory);
+    resource.setVirtualCores(vCores);
+    resource.setFPGAResource(fpgaResource);
+    return resource;
+  }
+
+  @Public
+  @Stable
+  public static Resource newInstance(long memory, int vCores, FPGAResource fpgaResource) {
+    Resource resource = Records.newRecord(Resource.class);
+    resource.setMemorySize(memory);
+    resource.setVirtualCores(vCores);
+    resource.setFPGAResource(fpgaResource);
+    return resource;
+  }
+
   /**
    * This method is DEPRECATED:
    * Use {@link Resource#getMemorySize()} instead
@@ -137,9 +157,18 @@ public abstract class Resource implements Comparable<Resource> {
    *    
    * @param vCores <em>number of virtual cpu cores</em> of the resource
    */
+
   @Public
   @Evolving
   public abstract void setVirtualCores(int vCores);
+
+  @Public
+  @Evolving
+  public abstract FPGAResource getFPGAResource();
+
+  @Public
+  @Evolving
+  public abstract void setFPGAResource(FPGAResource resource);
 
   @Override
   public int hashCode() {
@@ -169,6 +198,6 @@ public abstract class Resource implements Comparable<Resource> {
 
   @Override
   public String toString() {
-    return "<memory:" + getMemorySize() + ", vCores:" + getVirtualCores() + ">";
+    return "<memory:" + getMemorySize() + ", vCores:" + getVirtualCores() + ", fpga:" + getFPGAResource() +">";
   }
 }

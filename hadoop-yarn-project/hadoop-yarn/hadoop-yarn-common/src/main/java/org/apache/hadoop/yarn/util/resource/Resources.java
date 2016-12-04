@@ -20,6 +20,7 @@ package org.apache.hadoop.yarn.util.resource;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.yarn.api.records.FPGAResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
 
@@ -59,6 +60,16 @@ public class Resources {
 
     @Override
     public void setVirtualCores(int cores) {
+      throw new RuntimeException("NONE cannot be modified!");
+    }
+
+    @Override
+    public FPGAResource getFPGAResource() {
+      return null;
+    }
+
+    @Override
+    public void setFPGAResource(FPGAResource resource) {
       throw new RuntimeException("NONE cannot be modified!");
     }
 
@@ -104,6 +115,18 @@ public class Resources {
 
     @Override
     public void setVirtualCores(int cores) {
+      throw new RuntimeException("UNBOUNDED cannot be modified!");
+    }
+
+    @Override
+    public FPGAResource getFPGAResource() {
+      FPGAResource.Builder builder = new FPGAResource.Builder();
+      FPGAResource fpgaResource = builder.type("MCP").accelerator("100").build();
+      return fpgaResource;
+    }
+
+    @Override
+    public void setFPGAResource(FPGAResource resource) {
       throw new RuntimeException("UNBOUNDED cannot be modified!");
     }
 
