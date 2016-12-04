@@ -56,12 +56,18 @@ message ContainerIdProto {
 message ResourceProto {
   optional int64 memory = 1;
   optional int32 virtual_cores = 2;
+  optional FPGAResourceProto FPGA_resource_proto = 3;
 }
 
 message ResourceUtilizationProto {
   optional int32 pmem = 1;
   optional int32 vmem = 2;
   optional float cpu = 3;
+}
+
+message FPGAResourceProto {
+  optional string type = 1;
+  optional string accelerator = 2;
 }
 
 message ResourceOptionProto {

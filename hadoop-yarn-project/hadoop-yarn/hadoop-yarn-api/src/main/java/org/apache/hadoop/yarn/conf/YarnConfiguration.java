@@ -1122,6 +1122,11 @@ public class YarnConfiguration extends Configuration {
   public static final String NM_VCORES = NM_PREFIX + "resource.cpu-vcores";
   public static final int DEFAULT_NM_VCORES = 8;
 
+  public static final String NM_FPGA_TYPE = NM_PREFIX + "resource.fpga-type";
+  public static final String DEFAULT_NM_FPGA_TYPE = "MCP";
+  public static final String NM_FPGA_ACCELERATOR = NM_PREFIX + "resource.fpga-accelerator";
+  public static final String DEFAULT_NM_FPGA_ACCELERATOR = "3";
+
   /** Count logical processors(like hyperthreads) as cores. */
   public static final String NM_COUNT_LOGICAL_PROCESSORS_AS_CORES = NM_PREFIX
       + "resource.count-logical-processors-as-cores";

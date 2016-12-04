@@ -21,8 +21,10 @@ package org.apache.hadoop.yarn.api.records.impl.pb;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.yarn.api.records.FPGAResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.proto.YarnProtos.ResourceProto;
+import org.apache.hadoop.yarn.proto.YarnProtos.FPGAResourceProto;
 import org.apache.hadoop.yarn.proto.YarnProtos.ResourceProtoOrBuilder;
 
 @Private
@@ -89,6 +91,27 @@ public class ResourcePBImpl extends Resource {
     maybeInitBuilder();
     builder.setVirtualCores(vCores);
   }
+
+  @Override
+  public FPGAResource getFPGAResource() {
+    ResourceProtoOrBuilder p = viaProto ? proto : builder;
+    FPGAResourceProto fpgaResourceProto = p.getFPGAResourceProto();
+    String fpgaType = fpgaResourceProto.getType();
+    String fpgaAccelerator = fpgaResourceProto.getAccelerator();
+    FPGAResource.Builder builder = new FPGAResource.Builder();
+    return builder.type(fpgaType).accelerator(fpgaAccelerator).build();
+  }
+
+  @Override
+  public void setFPGAResource(FPGAResource fpgaResource) {
+    maybeInitBuilder();
+    FPGAResourceProto.Builder fpgaBuilder = FPGAResourceProto.newBuilder();
+    fpgaBuilder.setType(fpgaResource.getType());
+    fpgaBuilder.setAccelerator(fpgaResource.getAccelerator());
+    FPGAResourceProto fpgaResourceProto = fpgaBuilder.build();
+    builder.setFPGAResourceProto(fpgaResourceProto);
+  }
+
 
   @Override
   public int compareTo(Resource other) {

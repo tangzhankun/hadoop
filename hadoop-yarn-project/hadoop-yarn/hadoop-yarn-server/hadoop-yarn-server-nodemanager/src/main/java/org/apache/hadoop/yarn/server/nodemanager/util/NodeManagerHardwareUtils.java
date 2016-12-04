@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.FPGAResource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ResourceCalculatorPlugin;
 
@@ -179,6 +180,26 @@ public class NodeManagerHardwareUtils {
       return getConfiguredVCores(conf);
     }
     return getVCoresInternal(plugin, conf);
+  }
+
+  public static FPGAResource getFPGAResource(Configuration conf) {
+    ResourceCalculatorPlugin plugin = ResourceCalculatorPlugin.getResourceCalculatorPlugin(null, conf);
+    return getFPGAResource(plugin, conf);
+  }
+
+  public static FPGAResource getFPGAResource(ResourceCalculatorPlugin plugin, Configuration conf) {
+
+    FPGAResource fpgaResource = null;
+    boolean hardwareDetectionEnabled = isHardwareDetectionEnabled(conf);
+    if (!hardwareDetectionEnabled || plugin == null) {
+      String fpgaType = conf.get(YarnConfiguration.NM_FPGA_TYPE, YarnConfiguration.DEFAULT_NM_FPGA_TYPE);
+      String fpgaAccelerator = conf.get(YarnConfiguration.NM_FPGA_ACCELERATOR, YarnConfiguration.DEFAULT_NM_FPGA_ACCELERATOR);
+      FPGAResource.Builder builder = new FPGAResource.Builder();
+      fpgaResource = builder.type(fpgaType).accelerator(fpgaAccelerator).build();
+    } else {
+      //TODO: detect the fpga resource
+    }
+    return fpgaResource;
   }
 
   /**
