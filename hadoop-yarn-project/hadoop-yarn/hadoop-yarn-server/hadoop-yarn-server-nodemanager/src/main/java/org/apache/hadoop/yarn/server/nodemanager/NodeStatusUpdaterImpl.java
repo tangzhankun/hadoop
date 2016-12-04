@@ -46,14 +46,7 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.VersionUtil;
 import org.apache.hadoop.yarn.api.protocolrecords.SignalContainerRequest;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerState;
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.hadoop.yarn.api.records.NodeLabel;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceUtilization;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -181,10 +174,13 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     int virtualMemoryMb = (int)Math.ceil(memoryMb * vMemToPMem);
     
     int virtualCores = NodeManagerHardwareUtils.getVCores(conf);
+    FPGAResource fpgaResource = NodeManagerHardwareUtils.getFPGAResource(conf);
+
     LOG.info("Nodemanager resources: memory set to " + memoryMb + "MB.");
     LOG.info("Nodemanager resources: vcores set to " + virtualCores + ".");
+    LOG.info("Nodemanager resources: fpga set to " + fpgaResource + ".");
 
-    this.totalResource = Resource.newInstance(memoryMb, virtualCores);
+    this.totalResource = Resource.newInstance(memoryMb, virtualCores, fpgaResource);
     metrics.addResource(totalResource);
 
     // Get actual node physical resources
@@ -229,7 +225,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     super.serviceInit(conf);
     LOG.info("Initialized nodemanager with :" +
         " physical-memory=" + memoryMb + " virtual-memory=" + virtualMemoryMb +
-        " virtual-cores=" + virtualCores);
+        " virtual-cores=" + virtualCores + " fpga=" + fpgaResource);
 
     this.logAggregationEnabled =
         conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED,
