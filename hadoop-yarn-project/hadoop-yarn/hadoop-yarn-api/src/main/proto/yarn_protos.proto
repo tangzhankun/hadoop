@@ -56,7 +56,21 @@ message ContainerIdProto {
 message ResourceProto {
   optional int64 memory = 1;
   optional int32 virtual_cores = 2;
-  optional FPGAResourceProto FPGA_resource_proto = 3;
+  repeated FPGAOptionProto fpga_slots = 3;
+}
+
+enum FPGATypeProto {
+  DSC = 1;
+  MCP = 2;
+  RSD = 3;
+  PHI = 4;
+}
+
+message FPGAOptionProto {
+  optional FPGATypeProto fpga_type = 1;
+  optional string socket_id = 2;
+  optional string slot_id = 3;
+  optional string afu_id = 4;
 }
 
 message ResourceUtilizationProto {

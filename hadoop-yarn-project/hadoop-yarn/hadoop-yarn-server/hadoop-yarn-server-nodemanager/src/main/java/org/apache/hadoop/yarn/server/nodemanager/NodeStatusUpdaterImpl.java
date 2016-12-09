@@ -174,13 +174,15 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     int virtualMemoryMb = (int)Math.ceil(memoryMb * vMemToPMem);
     
     int virtualCores = NodeManagerHardwareUtils.getVCores(conf);
-    FPGAResource fpgaResource = NodeManagerHardwareUtils.getFPGAResource(conf);
+    List<FPGASlot> fpgaslots = NodeManagerHardwareUtils.getFPGASlots(conf);
 
     LOG.info("Nodemanager resources: memory set to " + memoryMb + "MB.");
     LOG.info("Nodemanager resources: vcores set to " + virtualCores + ".");
-    LOG.info("Nodemanager resources: fpga set to " + fpgaResource + ".");
+    for(FPGASlot fpgaSlot : fpgaslots) {
+      LOG.info("Nodemanager resources: fpga set to " + fpgaSlot + ".");
+    }
 
-    this.totalResource = Resource.newInstance(memoryMb, virtualCores, fpgaResource);
+    this.totalResource = Resource.newInstance(memoryMb, virtualCores, fpgaslots);
     metrics.addResource(totalResource);
 
     // Get actual node physical resources
@@ -225,7 +227,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     super.serviceInit(conf);
     LOG.info("Initialized nodemanager with :" +
         " physical-memory=" + memoryMb + " virtual-memory=" + virtualMemoryMb +
-        " virtual-cores=" + virtualCores + " fpga=" + fpgaResource);
+        " virtual-cores=" + virtualCores);
 
     this.logAggregationEnabled =
         conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED,

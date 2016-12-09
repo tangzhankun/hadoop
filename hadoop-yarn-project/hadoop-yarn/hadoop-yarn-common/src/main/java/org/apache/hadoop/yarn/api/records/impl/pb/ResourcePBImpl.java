@@ -21,11 +21,16 @@ package org.apache.hadoop.yarn.api.records.impl.pb;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.hadoop.yarn.api.records.FPGAResource;
+import org.apache.hadoop.yarn.api.records.FPGASlot;
+import org.apache.hadoop.yarn.api.records.FPGAType;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.proto.YarnProtos.ResourceProto;
-import org.apache.hadoop.yarn.proto.YarnProtos.FPGAResourceProto;
+import org.apache.hadoop.yarn.proto.YarnProtos.FPGAOptionProto;
+import org.apache.hadoop.yarn.proto.YarnProtos.FPGATypeProto;
 import org.apache.hadoop.yarn.proto.YarnProtos.ResourceProtoOrBuilder;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Private
 @Unstable
@@ -93,23 +98,43 @@ public class ResourcePBImpl extends Resource {
   }
 
   @Override
-  public FPGAResource getFPGAResource() {
+  public List<FPGASlot> getFPGASlots() {
     ResourceProtoOrBuilder p = viaProto ? proto : builder;
-    FPGAResourceProto fpgaResourceProto = p.getFPGAResourceProto();
-    String fpgaType = fpgaResourceProto.getType();
-    String fpgaAccelerator = fpgaResourceProto.getAccelerator();
-    FPGAResource.Builder builder = new FPGAResource.Builder();
-    return builder.type(fpgaType).accelerator(fpgaAccelerator).build();
+    List<FPGAOptionProto> fpgaSlotsProtoList = p.getFpgaSlotsList();
+    return convertToFPGASlotList(fpgaSlotsProtoList);
   }
 
   @Override
-  public void setFPGAResource(FPGAResource fpgaResource) {
+  public void setFPGASlots(List<FPGASlot> fpgaSlots) {
     maybeInitBuilder();
-    FPGAResourceProto.Builder fpgaBuilder = FPGAResourceProto.newBuilder();
-    fpgaBuilder.setType(fpgaResource.getType());
-    fpgaBuilder.setAccelerator(fpgaResource.getAccelerator());
-    FPGAResourceProto fpgaResourceProto = fpgaBuilder.build();
-    builder.setFPGAResourceProto(fpgaResourceProto);
+    builder.addAllFpgaSlots(convertToFPGAProtoList(fpgaSlots));
+  }
+
+  private List<FPGAOptionProto> convertToFPGAProtoList(List<FPGASlot> fpgaSlots) {
+    List<FPGAOptionProto> fpgaProtos = new ArrayList<FPGAOptionProto>();
+    FPGAOptionProto.Builder fpgaProtoBuilder = FPGAOptionProto.newBuilder();
+    for(FPGASlot fpgaSlot : fpgaSlots) {
+      fpgaProtoBuilder.setFpgaType(FPGATypeProto.valueOf(fpgaSlot.getFpgaType().name()));
+      fpgaProtoBuilder.setSocketId(fpgaSlot.getSlotId());
+      fpgaProtoBuilder.setSlotId(fpgaSlot.getSlotId());
+      fpgaProtoBuilder.setAfuId(fpgaSlot.getAfuId());
+      FPGAOptionProto fpgaProto = fpgaProtoBuilder.build();
+      fpgaProtos.add(fpgaProto);
+    }
+    return fpgaProtos;
+  }
+
+  private List<FPGASlot> convertToFPGASlotList(List<FPGAOptionProto> fpgaSlotsProtoList) {
+    List<FPGASlot> fpgaSlotList = new ArrayList<FPGASlot>();
+    FPGASlot.Builder builder = new FPGASlot.Builder();
+    for(FPGAOptionProto proto : fpgaSlotsProtoList) {
+      FPGASlot fpgaSlot = builder.fpgaType(FPGAType.valueOf(proto.getFpgaType().name()))
+              .socketId(proto.getSocketId())
+              .slotId(proto.getSlotId())
+              .afuId(proto.getAfuId()).build();
+      fpgaSlotList.add(fpgaSlot);
+    }
+    return fpgaSlotList;
   }
 
 

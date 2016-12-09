@@ -20,9 +20,11 @@ package org.apache.hadoop.yarn.util.resource;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-import org.apache.hadoop.yarn.api.records.FPGAResource;
+import org.apache.hadoop.yarn.api.records.FPGASlot;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
+
+import java.util.List;
 
 @InterfaceAudience.LimitedPrivate({"YARN", "MapReduce"})
 @Unstable
@@ -64,12 +66,12 @@ public class Resources {
     }
 
     @Override
-    public FPGAResource getFPGAResource() {
+    public List<FPGASlot> getFPGASlots() {
       return null;
     }
 
     @Override
-    public void setFPGAResource(FPGAResource resource) {
+    public void setFPGASlots(List<FPGASlot> fpgaSlots) {
       throw new RuntimeException("NONE cannot be modified!");
     }
 
@@ -119,14 +121,12 @@ public class Resources {
     }
 
     @Override
-    public FPGAResource getFPGAResource() {
-      FPGAResource.Builder builder = new FPGAResource.Builder();
-      FPGAResource fpgaResource = builder.type("MCP").accelerator("100").build();
-      return fpgaResource;
+    public List<FPGASlot> getFPGASlots() {
+      return null;
     }
 
     @Override
-    public void setFPGAResource(FPGAResource resource) {
+    public void setFPGASlots(List<FPGASlot> fpgaSlots) {
       throw new RuntimeException("UNBOUNDED cannot be modified!");
     }
 
