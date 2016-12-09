@@ -23,9 +23,13 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.api.records.FPGAResource;
+import org.apache.hadoop.yarn.api.records.FPGASlot;
+import org.apache.hadoop.yarn.api.records.FPGAType;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ResourceCalculatorPlugin;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Helper class to determine hardware related characteristics such as the
@@ -182,24 +186,37 @@ public class NodeManagerHardwareUtils {
     return getVCoresInternal(plugin, conf);
   }
 
-  public static FPGAResource getFPGAResource(Configuration conf) {
+  public static List<FPGASlot> getFPGASlots(Configuration conf) {
     ResourceCalculatorPlugin plugin = ResourceCalculatorPlugin.getResourceCalculatorPlugin(null, conf);
-    return getFPGAResource(plugin, conf);
+    return getFPGASlots(plugin, conf);
   }
 
-  public static FPGAResource getFPGAResource(ResourceCalculatorPlugin plugin, Configuration conf) {
-
-    FPGAResource fpgaResource = null;
+  public static List<FPGASlot> getFPGASlots(ResourceCalculatorPlugin plugin, Configuration conf) {
+    List<FPGASlot> fpgaSlots = new ArrayList<FPGASlot>();
     boolean hardwareDetectionEnabled = isHardwareDetectionEnabled(conf);
     if (!hardwareDetectionEnabled || plugin == null) {
-      String fpgaType = conf.get(YarnConfiguration.NM_FPGA_TYPE, YarnConfiguration.DEFAULT_NM_FPGA_TYPE);
-      String fpgaAccelerator = conf.get(YarnConfiguration.NM_FPGA_ACCELERATOR, YarnConfiguration.DEFAULT_NM_FPGA_ACCELERATOR);
-      FPGAResource.Builder builder = new FPGAResource.Builder();
-      fpgaResource = builder.type(fpgaType).accelerator(fpgaAccelerator).build();
+      String fpgaInfo = conf.get(YarnConfiguration.NM_FPGA, YarnConfiguration.DEFAULT_NM_FPGA);
+      fpgaSlots = parseStringFpgaInfo(fpgaInfo);
     } else {
       //TODO: detect the fpga resource
     }
-    return fpgaResource;
+    return fpgaSlots;
+  }
+
+  private  static List<FPGASlot> parseStringFpgaInfo(String fpgaInfo) {
+    List<FPGASlot> fpgaSlots = new ArrayList<FPGASlot>();
+
+    FPGASlot.Builder builder = new FPGASlot.Builder();
+    String[] fpgaSlotArray = fpgaInfo.split(",");
+    for(String fpgaSlotWholeStr : fpgaSlotArray) {
+      String[] fpgaSlotStr = fpgaSlotWholeStr.split(":");
+      builder.fpgaType(FPGAType.valueOf(fpgaSlotStr[0]))
+              .socketId(fpgaSlotStr[1])
+              .slotId(fpgaSlotStr[2])
+              .afuId(fpgaSlotStr[3]);
+      fpgaSlots.add(builder.build());
+    }
+    return fpgaSlots;
   }
 
   /**

@@ -24,7 +24,7 @@ import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.classification.InterfaceStability.Stable;
 import org.apache.hadoop.yarn.api.ApplicationMasterProtocol;
 import org.apache.hadoop.yarn.util.Records;
-
+import java.util.List;
 
 /**
  * <p><code>Resource</code> models a set of computer resources in the 
@@ -73,21 +73,21 @@ public abstract class Resource implements Comparable<Resource> {
 
   @Public
   @Stable
-  public static Resource newInstance(int memory, int vCores, FPGAResource fpgaResource) {
+  public static Resource newInstance(int memory, int vCores, List<FPGASlot> fpgaSlots) {
     Resource resource = Records.newRecord(Resource.class);
     resource.setMemorySize(memory);
     resource.setVirtualCores(vCores);
-    resource.setFPGAResource(fpgaResource);
+    resource.setFPGASlots(fpgaSlots);
     return resource;
   }
 
   @Public
   @Stable
-  public static Resource newInstance(long memory, int vCores, FPGAResource fpgaResource) {
+  public static Resource newInstance(long memory, int vCores, List<FPGASlot> fpgaSlots) {
     Resource resource = Records.newRecord(Resource.class);
     resource.setMemorySize(memory);
     resource.setVirtualCores(vCores);
-    resource.setFPGAResource(fpgaResource);
+    resource.setFPGASlots(fpgaSlots);
     return resource;
   }
 
@@ -164,11 +164,11 @@ public abstract class Resource implements Comparable<Resource> {
 
   @Public
   @Evolving
-  public abstract FPGAResource getFPGAResource();
+  public abstract List<FPGASlot> getFPGASlots();
 
   @Public
   @Evolving
-  public abstract void setFPGAResource(FPGAResource resource);
+  public abstract void setFPGASlots(List<FPGASlot> fpgaSlots);
 
   @Override
   public int hashCode() {
@@ -198,6 +198,15 @@ public abstract class Resource implements Comparable<Resource> {
 
   @Override
   public String toString() {
-    return "<memory:" + getMemorySize() + ", vCores:" + getVirtualCores() + ", fpga:" + getFPGAResource() +">";
+    StringBuilder fpgaInfo = new StringBuilder();
+
+    List<FPGASlot> fpgaSlots = getFPGASlots();
+    fpgaInfo.append("\t\t\t\tFPGA accelerator number:" + fpgaSlots.size() + "\n");
+
+    fpgaInfo.append("\t\t\t\tFPGA accelerator details: \n");
+    for(FPGASlot fpgaSlot : fpgaSlots) {
+      fpgaInfo.append("\t\t\t\t     fpga type:" + fpgaSlot.getFpgaType() + ", socket id:" + fpgaSlot.getSocketId() + ", slot id:" + fpgaSlot.getSlotId() + ", afu id:" + fpgaSlot.getAfuId() + "\n");
+    }
+    return "<memory:" + getMemorySize() + ", vCores:" + getVirtualCores() + ">\n" + fpgaInfo ;
   }
 }
