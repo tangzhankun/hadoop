@@ -115,7 +115,7 @@ public class ResourcePBImpl extends Resource {
     FPGAOptionProto.Builder fpgaProtoBuilder = FPGAOptionProto.newBuilder();
     for(FPGASlot fpgaSlot : fpgaSlots) {
       fpgaProtoBuilder.setFpgaType(FPGATypeProto.valueOf(fpgaSlot.getFpgaType().name()));
-      fpgaProtoBuilder.setSocketId(fpgaSlot.getSlotId());
+      fpgaProtoBuilder.setSocketId(fpgaSlot.getSocketId());
       fpgaProtoBuilder.setSlotId(fpgaSlot.getSlotId());
       fpgaProtoBuilder.setAfuId(fpgaSlot.getAfuId());
       FPGAOptionProto fpgaProto = fpgaProtoBuilder.build();
