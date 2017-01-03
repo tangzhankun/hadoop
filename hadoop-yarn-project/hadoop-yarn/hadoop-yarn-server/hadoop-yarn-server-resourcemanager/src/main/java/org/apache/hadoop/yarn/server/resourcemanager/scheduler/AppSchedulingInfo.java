@@ -398,7 +398,8 @@ public class AppSchedulingInfo {
       for (ResourceRequest request : requests) {
         SchedulerRequestKey schedulerKey = SchedulerRequestKey.create(request);
         String resourceName = request.getResourceName();
-
+        LOG.info("yuqiang: request.getCapability " + request.getCapability());
+        LOG.info("yuqiang: request.getResourceName " + request.getResourceName());
         // Update node labels if required
         updateNodeLabels(request);
 

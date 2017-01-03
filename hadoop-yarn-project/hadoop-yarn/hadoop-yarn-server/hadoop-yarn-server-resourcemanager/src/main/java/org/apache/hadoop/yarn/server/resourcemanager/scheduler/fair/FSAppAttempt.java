@@ -443,6 +443,7 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
 
       container = reservedContainer;
       if (container == null) {
+        LOG.info("yuqiang: request.getCapability " + request.getCapability());
         container = createContainer(node, request.getCapability(),
             schedulerKey);
       }

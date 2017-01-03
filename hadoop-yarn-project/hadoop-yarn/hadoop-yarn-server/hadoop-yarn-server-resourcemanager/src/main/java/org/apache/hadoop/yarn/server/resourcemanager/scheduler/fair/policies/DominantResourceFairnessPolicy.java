@@ -188,6 +188,7 @@ public class DominantResourceFairnessPolicy extends SchedulingPolicy {
           resourceOrder[0] = CPU;
           resourceOrder[1] = MEMORY;
         }
+        resourceOrder[2] = FPGA;
       }
     }
     

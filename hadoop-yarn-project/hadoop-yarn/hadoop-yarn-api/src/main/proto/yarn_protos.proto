@@ -64,6 +64,7 @@ enum FPGATypeProto {
   MCP = 2;
   RSD = 3;
   PHI = 4;
+  ANY = 5;
 }
 
 message FPGAOptionProto {
@@ -77,6 +78,7 @@ message ResourceUtilizationProto {
   optional int32 pmem = 1;
   optional int32 vmem = 2;
   optional float cpu = 3;
+  repeated FPGAOptionProto fpga_slots = 4;
 }
 
 message FPGAResourceProto {

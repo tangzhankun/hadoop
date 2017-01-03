@@ -72,25 +72,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.ContainerRetryContext;
-import org.apache.hadoop.yarn.api.records.ContainerRetryPolicy;
-import org.apache.hadoop.yarn.api.records.ContainerState;
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.NodeReport;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceRequest;
-import org.apache.hadoop.yarn.api.records.URL;
-import org.apache.hadoop.yarn.api.records.UpdatedContainer;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntityGroupId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
@@ -230,6 +212,11 @@ public class ApplicationMaster {
   // VirtualCores to request for the container on which the shell command will run
   private int containerVirtualCores = 1;
   // Priority of the request
+
+  private String containerFpgaType = "ANY";
+  private String containerFpgaIps = "0:0:00000000-0000-0000-0000-000000000000";
+  private boolean containerFpgaShare = false;
+
   private int requestPriority;
 
   // Counter for completed containers ( complete denotes successful or failed )
@@ -387,6 +374,11 @@ public class ApplicationMaster {
         "Amount of memory in MB to be requested to run the shell command");
     opts.addOption("container_vcores", true,
         "Amount of virtual cores to be requested to run the shell command");
+
+    opts.addOption("container_fpga_type", true, "indicate the FPGA device type");
+    opts.addOption("container_fpga_ips", true, "ndicate AFU type and slots an executor needs");
+    opts.addOption("container_fpga_share", true, "indicate whether YARN should isolate FPGA to the executor");
+
     opts.addOption("num_containers", true,
         "No. of containers on which the shell command needs to be executed");
     opts.addOption("priority", true, "Application Priority. Default 0");
@@ -531,6 +523,11 @@ public class ApplicationMaster {
         "container_memory", "10"));
     containerVirtualCores = Integer.parseInt(cliParser.getOptionValue(
         "container_vcores", "1"));
+
+    containerFpgaType = cliParser.getOptionValue("container_fpga_type", "ANY");
+    containerFpgaIps = cliParser.getOptionValue("container_fpga_ips", "0:0:00000000-0000-0000-0000-000000000000");
+    containerFpgaShare = Boolean.parseBoolean(cliParser.getOptionValue("container_fpga_share", "false"));
+
     numTotalContainers = Integer.parseInt(cliParser.getOptionValue(
         "num_containers", "1"));
     if (numTotalContainers == 0) {
@@ -896,7 +893,9 @@ public class ApplicationMaster {
             + ", containerResourceMemory"
             + allocatedContainer.getResource().getMemorySize()
             + ", containerResourceVirtualCores"
-            + allocatedContainer.getResource().getVirtualCores());
+            + allocatedContainer.getResource().getVirtualCores()
+            + ", containerResourceFpgaSlotsNum"
+            + allocatedContainer.getResource().getFPGASlots().size());
         // + ", containerToken"
         // +allocatedContainer.getContainerToken().getIdentifier().toString());
 
@@ -1184,10 +1183,15 @@ public class ApplicationMaster {
     // TODO - what is the range for priority? how to decide?
     Priority pri = Priority.newInstance(requestPriority);
 
+    List<FPGASlot> fpgaSlots = new ArrayList<FPGASlot>();
+    FPGASlot.Builder builder = new FPGASlot.Builder();
+    String[] fpgaIpsStr = containerFpgaIps.split(":");
+    fpgaSlots.add(builder.fpgaType(FPGAType.valueOf(containerFpgaType)).socketId(fpgaIpsStr[0]).slotId(fpgaIpsStr[1]).afuId(fpgaIpsStr[2]).build());
+
     // Set up resource type requirements
     // For now, memory and CPU are supported so we set memory and cpu requirements
     Resource capability = Resource.newInstance(containerMemory,
-      containerVirtualCores);
+      containerVirtualCores, fpgaSlots);
 
     ContainerRequest request = new ContainerRequest(capability, null, null,
         pri);

@@ -55,24 +55,7 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.NodeReport;
-import org.apache.hadoop.yarn.api.records.NodeState;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.QueueACL;
-import org.apache.hadoop.yarn.api.records.QueueInfo;
-import org.apache.hadoop.yarn.api.records.QueueUserACLInfo;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.URL;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.api.records.YarnClusterMetrics;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineDomain;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.client.api.YarnClient;
@@ -155,6 +138,11 @@ public class Client {
   // Amt. of virtual cores to request for container in which shell script will be executed
   private int containerVirtualCores = 1;
   // No. of containers in which the shell script needs to be executed
+
+  private String containerFpgaType = "ANY";
+  private String containerFpgaIps = "0:0:00000000-0000-0000-0000-000000000000";
+  private boolean containerFpgaShare = false;
+
   private int numContainers = 1;
   private String nodeLabelExpression = null;
 
@@ -269,6 +257,9 @@ public class Client {
     opts.addOption("shell_cmd_priority", true, "Priority for the shell command containers");
     opts.addOption("container_memory", true, "Amount of memory in MB to be requested to run the shell command");
     opts.addOption("container_vcores", true, "Amount of virtual cores to be requested to run the shell command");
+    opts.addOption("container_fpga_type", true, "indicate the FPGA device type");
+    opts.addOption("container_fpga_ips", true, "ndicate AFU type and slots an executor needs");
+    opts.addOption("container_fpga_share", true, "indicate whether YARN should isolate FPGA to the executor");
     opts.addOption("num_containers", true, "No. of containers on which the shell command needs to be executed");
     opts.addOption("log_properties", true, "log4j.properties file");
     opts.addOption("keep_containers_across_application_attempts", false,
@@ -425,8 +416,10 @@ public class Client {
 
     containerMemory = Integer.parseInt(cliParser.getOptionValue("container_memory", "10"));
     containerVirtualCores = Integer.parseInt(cliParser.getOptionValue("container_vcores", "1"));
+    containerFpgaType = cliParser.getOptionValue("container_fpga_type", "ANY");
+    containerFpgaIps = cliParser.getOptionValue("container_fpga_ips", "0:0:00000000-0000-0000-0000-000000000000");
+    containerFpgaShare = Boolean.parseBoolean(cliParser.getOptionValue("container_fpga_share", "false"));
     numContainers = Integer.parseInt(cliParser.getOptionValue("num_containers", "1"));
-    
 
     if (containerMemory < 0 || containerVirtualCores < 0 || numContainers < 1) {
       throw new IllegalArgumentException("Invalid no. of containers or container memory/vcores specified,"
@@ -698,6 +691,9 @@ public class Client {
     // Set params for Application Master
     vargs.add("--container_memory " + String.valueOf(containerMemory));
     vargs.add("--container_vcores " + String.valueOf(containerVirtualCores));
+    vargs.add("--container_fpga_type " + String.valueOf(containerFpgaType));
+    vargs.add("--container_fpga_ips " + String.valueOf(containerFpgaIps));
+    vargs.add("--container_fpga_share " + String.valueOf(containerFpgaShare));
     vargs.add("--num_containers " + String.valueOf(numContainers));
     if (null != nodeLabelExpression) {
       appContext.setNodeLabelExpression(nodeLabelExpression);

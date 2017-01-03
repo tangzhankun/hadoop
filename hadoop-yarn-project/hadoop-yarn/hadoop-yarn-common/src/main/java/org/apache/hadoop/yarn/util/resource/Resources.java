@@ -24,6 +24,7 @@ import org.apache.hadoop.yarn.api.records.FPGASlot;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @InterfaceAudience.LimitedPrivate({"YARN", "MapReduce"})
@@ -67,7 +68,7 @@ public class Resources {
 
     @Override
     public List<FPGASlot> getFPGASlots() {
-      return null;
+      return new ArrayList<FPGASlot>();
     }
 
     @Override
@@ -163,6 +164,12 @@ public class Resources {
     return resource;
   }
 
+  public static Resource createResource(long memory, int cores, List<FPGASlot> fpgaSlots) {
+    Resource resource = createResource(memory, cores);
+    resource.setFPGASlots(fpgaSlots);
+    return resource;
+  }
+
   public static Resource none() {
     return NONE;
   }
@@ -176,12 +183,16 @@ public class Resources {
   }
 
   public static Resource clone(Resource res) {
-    return createResource(res.getMemorySize(), res.getVirtualCores());
+    return createResource(res.getMemorySize(), res.getVirtualCores(), res.getFPGASlots());
   }
 
   public static Resource addTo(Resource lhs, Resource rhs) {
     lhs.setMemorySize(lhs.getMemorySize() + rhs.getMemorySize());
     lhs.setVirtualCores(lhs.getVirtualCores() + rhs.getVirtualCores());
+    List<FPGASlot> fpgaSlots = new ArrayList<FPGASlot>();
+    fpgaSlots.addAll(lhs.getFPGASlots());
+    fpgaSlots.addAll(rhs.getFPGASlots());
+    lhs.setFPGASlots(fpgaSlots);
     return lhs;
   }
 
@@ -192,6 +203,8 @@ public class Resources {
   public static Resource subtractFrom(Resource lhs, Resource rhs) {
     lhs.setMemorySize(lhs.getMemorySize() - rhs.getMemorySize());
     lhs.setVirtualCores(lhs.getVirtualCores() - rhs.getVirtualCores());
+    lhs.getFPGASlots().removeAll(rhs.getFPGASlots());
+    lhs.setFPGASlots(lhs.getFPGASlots());
     return lhs;
   }
 

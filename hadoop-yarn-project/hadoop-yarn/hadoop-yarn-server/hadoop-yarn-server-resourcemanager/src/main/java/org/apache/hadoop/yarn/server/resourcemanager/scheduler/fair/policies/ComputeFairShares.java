@@ -17,13 +17,15 @@
  */
 package org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.policies;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
+import org.apache.hadoop.yarn.api.records.FPGASlot;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.server.resourcemanager.resource.ResourceType;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FSQueue;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.Schedulable;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Contains logic for computing the fair shares. A {@link Schedulable}'s fair
@@ -254,25 +256,36 @@ public class ComputeFairShares {
 
   private static long getResourceValue(Resource resource, ResourceType type) {
     switch (type) {
-    case MEMORY:
-      return resource.getMemorySize();
-    case CPU:
-      return resource.getVirtualCores();
-    default:
-      throw new IllegalArgumentException("Invalid resource");
+      case MEMORY:
+        return resource.getMemorySize();
+      case CPU:
+        return resource.getVirtualCores();
+      case FPGA:
+        return resource.getFPGASlots().size();
+      default:
+        throw new IllegalArgumentException("Invalid resource");
     }
   }
   
   private static void setResourceValue(long val, Resource resource, ResourceType type) {
     switch (type) {
-    case MEMORY:
-      resource.setMemorySize(val);
-      break;
-    case CPU:
-      resource.setVirtualCores((int)val);
-      break;
-    default:
-      throw new IllegalArgumentException("Invalid resource");
+      case MEMORY:
+        resource.setMemorySize(val);
+        break;
+      case CPU:
+        resource.setVirtualCores((int) val);
+        break;
+      case FPGA:
+        List<FPGASlot> fpgas = new ArrayList<FPGASlot>();
+        FPGASlot.Builder b = new FPGASlot.Builder();
+        while (val > 0) {
+          fpgas.add(b.build());
+          val--;
+        }
+        resource.setFPGASlots(fpgas);
+        break;
+      default:
+        throw new IllegalArgumentException("Invalid resource");
     }
   }
 }

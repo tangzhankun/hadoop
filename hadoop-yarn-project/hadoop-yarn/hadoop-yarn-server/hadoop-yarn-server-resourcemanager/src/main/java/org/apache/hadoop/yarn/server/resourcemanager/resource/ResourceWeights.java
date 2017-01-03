@@ -34,6 +34,12 @@ public class ResourceWeights {
     weights[ResourceType.CPU.ordinal()] = cpuWeight;
   }
 
+  public ResourceWeights(float memoryWeight, float cpuWeight, float fpgaWeight) {
+    weights[ResourceType.MEMORY.ordinal()] = memoryWeight;
+    weights[ResourceType.CPU.ordinal()] = cpuWeight;
+    weights[ResourceType.FPGA.ordinal()] = fpgaWeight;
+  }
+
   public ResourceWeights(float weight) {
     setWeight(weight);
   }

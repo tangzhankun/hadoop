@@ -201,11 +201,12 @@ public abstract class Resource implements Comparable<Resource> {
     StringBuilder fpgaInfo = new StringBuilder();
 
     List<FPGASlot> fpgaSlots = getFPGASlots();
-    fpgaInfo.append("\t\t\t\tFPGA accelerator number:" + fpgaSlots.size() + "\n");
-
-    fpgaInfo.append("\t\t\t\tFPGA accelerator details: \n");
-    for(FPGASlot fpgaSlot : fpgaSlots) {
-      fpgaInfo.append("\t\t\t\t     fpga type:" + fpgaSlot.getFpgaType() + ", socket id:" + fpgaSlot.getSocketId() + ", slot id:" + fpgaSlot.getSlotId() + ", afu id:" + fpgaSlot.getAfuId() + "\n");
+    if(fpgaSlots != null && fpgaSlots.size() > 0) {
+      fpgaInfo.append("\t\t\t\tFPGA accelerator number:" + fpgaSlots.size() + "\n");
+      fpgaInfo.append("\t\t\t\tFPGA accelerator details: \n");
+      for (FPGASlot fpgaSlot : fpgaSlots) {
+        fpgaInfo.append("\t\t\t\t     fpga type:" + fpgaSlot.getFpgaType() + ", socket id:" + fpgaSlot.getSocketId() + ", slot id:" + fpgaSlot.getSlotId() + ", afu id:" + fpgaSlot.getAfuId() + "\n");
+      }
     }
     return "<memory:" + getMemorySize() + ", vCores:" + getVirtualCores() + ">\n" + fpgaInfo ;
   }

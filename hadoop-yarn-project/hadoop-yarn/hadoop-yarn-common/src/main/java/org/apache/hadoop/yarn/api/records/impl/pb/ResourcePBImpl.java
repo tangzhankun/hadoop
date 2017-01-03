@@ -38,14 +38,17 @@ public class ResourcePBImpl extends Resource {
   ResourceProto proto = ResourceProto.getDefaultInstance();
   ResourceProto.Builder builder = null;
   boolean viaProto = false;
+  List<FPGASlot> fpgaSlots = null;
   
   public ResourcePBImpl() {
     builder = ResourceProto.newBuilder();
+    initFpgaSlots();
   }
 
   public ResourcePBImpl(ResourceProto proto) {
     this.proto = proto;
     viaProto = true;
+    initFpgaSlots();
   }
   
   public ResourceProto getProto() {
@@ -59,6 +62,14 @@ public class ResourcePBImpl extends Resource {
       builder = ResourceProto.newBuilder(proto);
     }
     viaProto = false;
+  }
+
+  private void initFpgaSlots() {
+    if(this.fpgaSlots == null) {
+      fpgaSlots = new ArrayList<FPGASlot>();
+      FPGASlot.Builder builder = new FPGASlot.Builder();
+      fpgaSlots.add(builder.fpgaType(FPGAType.ANY).socketId("0").slotId("0").afuId("00000000-0000-0000-0000-000000000000").build());
+    }
   }
 
   @Override
@@ -107,6 +118,9 @@ public class ResourcePBImpl extends Resource {
   @Override
   public void setFPGASlots(List<FPGASlot> fpgaSlots) {
     maybeInitBuilder();
+    if(fpgaSlots == null) {
+      fpgaSlots = this.fpgaSlots;
+    }
     builder.addAllFpgaSlots(convertToFPGAProtoList(fpgaSlots));
   }
 

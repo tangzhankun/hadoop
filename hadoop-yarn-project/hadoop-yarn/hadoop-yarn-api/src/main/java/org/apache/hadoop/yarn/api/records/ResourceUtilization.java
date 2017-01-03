@@ -22,6 +22,8 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.util.Records;
 
+import java.util.List;
+
 /**
  * <p>
  * <code>ResourceUtilization</code> models the utilization of a set of computer
@@ -41,6 +43,14 @@ public abstract class ResourceUtilization implements
     utilization.setPhysicalMemory(pmem);
     utilization.setVirtualMemory(vmem);
     utilization.setCPU(cpu);
+    return utilization;
+  }
+
+  @Public
+  @Unstable
+  public static ResourceUtilization newInstance(int pmem, int vmem, float cpu, List<FPGASlot> fpgaSlots) {
+    ResourceUtilization utilization = newInstance(pmem, vmem, cpu);
+    utilization.setFPGASlots(fpgaSlots);
     return utilization;
   }
 
@@ -105,6 +115,14 @@ public abstract class ResourceUtilization implements
   @Public
   @Unstable
   public abstract void setCPU(float cpu);
+
+  @Public
+  @Unstable
+  public abstract List<FPGASlot> getFPGASlots();
+
+  @Public
+  @Unstable
+  public abstract void setFPGASlots(List<FPGASlot> fpgaSlots);
 
   @Override
   public int hashCode() {

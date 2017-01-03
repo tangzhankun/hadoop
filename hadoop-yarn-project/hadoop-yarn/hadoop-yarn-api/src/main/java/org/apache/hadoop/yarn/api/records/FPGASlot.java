@@ -31,6 +31,33 @@ public class FPGASlot {
   }
 
   @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof FPGASlot))
+      return false;
+    FPGASlot other = (FPGASlot) obj;
+    if (getFpgaType() != other.getFpgaType() || getAfuId() != other.getAfuId() || getSocketId() != other.getSocketId() || getSlotId() != other.getSlotId())
+      return false;
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 263167;
+
+    int deviceNumPlus = Integer.parseInt(getSlotId()) + Integer.parseInt(getSocketId());
+    int deviceNumMinus = Integer.parseInt(getSlotId()) - Integer.parseInt(getSocketId());
+
+    int result = (int) (939769357
+            + deviceNumPlus); // prime * result = 939769357 initially
+    result = prime * result + deviceNumPlus;
+    return result;
+  }
+
+  @Override
   public String toString() {
     return "fpga type: " + fpgaType + " socket id: " + socketId + " slot id: " + slotId + " afu id: " + afuId + ".";
   }
