@@ -25,7 +25,9 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @InterfaceAudience.LimitedPrivate({"YARN", "MapReduce"})
 @Unstable
@@ -67,12 +69,12 @@ public class Resources {
     }
 
     @Override
-    public List<FPGASlot> getFPGASlots() {
-      return new ArrayList<FPGASlot>();
+    public Set<FPGASlot> getFPGASlots() {
+      return new HashSet<FPGASlot>();
     }
 
     @Override
-    public void setFPGASlots(List<FPGASlot> fpgaSlots) {
+    public void setFPGASlots(Set<FPGASlot> fpgaSlots) {
       throw new RuntimeException("NONE cannot be modified!");
     }
 
@@ -122,12 +124,12 @@ public class Resources {
     }
 
     @Override
-    public List<FPGASlot> getFPGASlots() {
-      return null;
+    public Set<FPGASlot> getFPGASlots() {
+      return new HashSet<FPGASlot>();
     }
 
     @Override
-    public void setFPGASlots(List<FPGASlot> fpgaSlots) {
+    public void setFPGASlots(Set<FPGASlot> fpgaSlots) {
       throw new RuntimeException("UNBOUNDED cannot be modified!");
     }
 
@@ -164,7 +166,7 @@ public class Resources {
     return resource;
   }
 
-  public static Resource createResource(long memory, int cores, List<FPGASlot> fpgaSlots) {
+  public static Resource createResource(long memory, int cores, Set<FPGASlot> fpgaSlots) {
     Resource resource = createResource(memory, cores);
     resource.setFPGASlots(fpgaSlots);
     return resource;
@@ -189,7 +191,7 @@ public class Resources {
   public static Resource addTo(Resource lhs, Resource rhs) {
     lhs.setMemorySize(lhs.getMemorySize() + rhs.getMemorySize());
     lhs.setVirtualCores(lhs.getVirtualCores() + rhs.getVirtualCores());
-    List<FPGASlot> fpgaSlots = new ArrayList<FPGASlot>();
+    Set<FPGASlot> fpgaSlots = new HashSet<FPGASlot>();
     fpgaSlots.addAll(lhs.getFPGASlots());
     fpgaSlots.addAll(rhs.getFPGASlots());
     lhs.setFPGASlots(fpgaSlots);

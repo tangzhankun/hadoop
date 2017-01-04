@@ -24,7 +24,7 @@ import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.classification.InterfaceStability.Stable;
 import org.apache.hadoop.yarn.api.ApplicationMasterProtocol;
 import org.apache.hadoop.yarn.util.Records;
-import java.util.List;
+import java.util.Set;
 
 /**
  * <p><code>Resource</code> models a set of computer resources in the 
@@ -73,7 +73,7 @@ public abstract class Resource implements Comparable<Resource> {
 
   @Public
   @Stable
-  public static Resource newInstance(int memory, int vCores, List<FPGASlot> fpgaSlots) {
+  public static Resource newInstance(int memory, int vCores, Set<FPGASlot> fpgaSlots) {
     Resource resource = Records.newRecord(Resource.class);
     resource.setMemorySize(memory);
     resource.setVirtualCores(vCores);
@@ -83,7 +83,7 @@ public abstract class Resource implements Comparable<Resource> {
 
   @Public
   @Stable
-  public static Resource newInstance(long memory, int vCores, List<FPGASlot> fpgaSlots) {
+  public static Resource newInstance(long memory, int vCores, Set<FPGASlot> fpgaSlots) {
     Resource resource = Records.newRecord(Resource.class);
     resource.setMemorySize(memory);
     resource.setVirtualCores(vCores);
@@ -164,11 +164,11 @@ public abstract class Resource implements Comparable<Resource> {
 
   @Public
   @Evolving
-  public abstract List<FPGASlot> getFPGASlots();
+  public abstract Set<FPGASlot> getFPGASlots();
 
   @Public
   @Evolving
-  public abstract void setFPGASlots(List<FPGASlot> fpgaSlots);
+  public abstract void setFPGASlots(Set<FPGASlot> fpgaSlots);
 
   @Override
   public int hashCode() {
@@ -200,7 +200,7 @@ public abstract class Resource implements Comparable<Resource> {
   public String toString() {
     StringBuilder fpgaInfo = new StringBuilder();
 
-    List<FPGASlot> fpgaSlots = getFPGASlots();
+    Set<FPGASlot> fpgaSlots = getFPGASlots();
     if(fpgaSlots != null && fpgaSlots.size() > 0) {
       fpgaInfo.append("\t\t\t\tFPGA accelerator number:" + fpgaSlots.size() + "\n");
       fpgaInfo.append("\t\t\t\tFPGA accelerator details: \n");

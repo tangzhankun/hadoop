@@ -28,8 +28,8 @@ import org.apache.hadoop.yarn.api.records.FPGAType;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ResourceCalculatorPlugin;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Helper class to determine hardware related characteristics such as the
@@ -186,13 +186,13 @@ public class NodeManagerHardwareUtils {
     return getVCoresInternal(plugin, conf);
   }
 
-  public static List<FPGASlot> getFPGASlots(Configuration conf) {
+  public static Set<FPGASlot> getFPGASlots(Configuration conf) {
     ResourceCalculatorPlugin plugin = ResourceCalculatorPlugin.getResourceCalculatorPlugin(null, conf);
     return getFPGASlots(plugin, conf);
   }
 
-  public static List<FPGASlot> getFPGASlots(ResourceCalculatorPlugin plugin, Configuration conf) {
-    List<FPGASlot> fpgaSlots = new ArrayList<FPGASlot>();
+  public static Set<FPGASlot> getFPGASlots(ResourceCalculatorPlugin plugin, Configuration conf) {
+    Set<FPGASlot> fpgaSlots = new HashSet<FPGASlot>();
     boolean hardwareDetectionEnabled = isHardwareDetectionEnabled(conf);
     if (!hardwareDetectionEnabled || plugin == null) {
       String fpgaInfo = conf.get(YarnConfiguration.NM_FPGA, YarnConfiguration.DEFAULT_NM_FPGA);
@@ -203,8 +203,8 @@ public class NodeManagerHardwareUtils {
     return fpgaSlots;
   }
 
-  private  static List<FPGASlot> parseStringFpgaInfo(String fpgaInfo) {
-    List<FPGASlot> fpgaSlots = new ArrayList<FPGASlot>();
+  private static Set<FPGASlot> parseStringFpgaInfo(String fpgaInfo) {
+    Set<FPGASlot> fpgaSlots = new HashSet<FPGASlot>();
 
     FPGASlot.Builder builder = new FPGASlot.Builder();
     String[] fpgaSlotArray = fpgaInfo.split(",");

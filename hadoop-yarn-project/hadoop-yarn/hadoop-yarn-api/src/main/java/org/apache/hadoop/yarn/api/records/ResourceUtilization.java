@@ -23,6 +23,7 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.util.Records;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -118,11 +119,11 @@ public abstract class ResourceUtilization implements
 
   @Public
   @Unstable
-  public abstract List<FPGASlot> getFPGASlots();
+  public abstract Set<FPGASlot> getFPGASlots();
 
   @Public
   @Unstable
-  public abstract void setFPGASlots(List<FPGASlot> fpgaSlots);
+  public abstract void setFPGASlots(Set<FPGASlot> fpgaSlots);
 
   @Override
   public int hashCode() {

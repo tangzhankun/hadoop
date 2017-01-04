@@ -182,7 +182,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     int virtualMemoryMb = (int)Math.ceil(memoryMb * vMemToPMem);
     
     int virtualCores = NodeManagerHardwareUtils.getVCores(conf);
-    List<FPGASlot> fpgaslots = NodeManagerHardwareUtils.getFPGASlots(conf);
+    Set<FPGASlot> fpgaslots = NodeManagerHardwareUtils.getFPGASlots(conf);
 
     LOG.info("Nodemanager resources: memory set to " + memoryMb + "MB.");
     LOG.info("Nodemanager resources: vcores set to " + virtualCores + ".");

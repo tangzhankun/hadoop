@@ -1183,7 +1183,7 @@ public class ApplicationMaster {
     // TODO - what is the range for priority? how to decide?
     Priority pri = Priority.newInstance(requestPriority);
 
-    List<FPGASlot> fpgaSlots = new ArrayList<FPGASlot>();
+    Set<FPGASlot> fpgaSlots = new HashSet<FPGASlot>();
     FPGASlot.Builder builder = new FPGASlot.Builder();
     String[] fpgaIpsStr = containerFpgaIps.split(":");
     fpgaSlots.add(builder.fpgaType(FPGAType.valueOf(containerFpgaType)).socketId(fpgaIpsStr[0]).slotId(fpgaIpsStr[1]).afuId(fpgaIpsStr[2]).build());

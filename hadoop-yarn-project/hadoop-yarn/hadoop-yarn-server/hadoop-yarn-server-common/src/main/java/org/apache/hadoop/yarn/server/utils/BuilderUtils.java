@@ -440,7 +440,7 @@ public class BuilderUtils {
     return resource;
   }
 
-  public static Resource newResource(long memory, int vCores, List<FPGASlot> fpgaSlots) {
+  public static Resource newResource(long memory, int vCores, Set<FPGASlot> fpgaSlots) {
     Resource resource = recordFactory.newRecordInstance(Resource.class);
     resource.setMemorySize(memory);
     resource.setVirtualCores(vCores);

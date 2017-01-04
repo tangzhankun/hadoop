@@ -39,7 +39,7 @@ public class FPGASlot {
     if (!(obj instanceof FPGASlot))
       return false;
     FPGASlot other = (FPGASlot) obj;
-    if (getFpgaType() != other.getFpgaType() || getAfuId() != other.getAfuId() || getSocketId() != other.getSocketId() || getSlotId() != other.getSlotId())
+    if (getFpgaType() != other.getFpgaType() || !getAfuId().equals(other.getAfuId()) || !getSocketId().equals(other.getSocketId()) || !getSlotId().equals(other.getSlotId()))
       return false;
     return true;
   }
@@ -51,11 +51,13 @@ public class FPGASlot {
     int deviceNumPlus = Integer.parseInt(getSlotId()) + Integer.parseInt(getSocketId());
     int deviceNumMinus = Integer.parseInt(getSlotId()) - Integer.parseInt(getSocketId());
 
-    int result = (int) (939769357
-            + deviceNumPlus); // prime * result = 939769357 initially
-    result = prime * result + deviceNumPlus;
+    int result = (int) (939769357 + deviceNumMinus);
+    result = prime * result + deviceNumPlus * getFpgaType().ordinal();
+
+    System.out.println("AfuId " + getAfuId() + " result : " + result);
     return result;
   }
+
 
   @Override
   public String toString() {

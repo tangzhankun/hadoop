@@ -23,9 +23,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.resource.ResourceType;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FSQueue;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.Schedulable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * Contains logic for computing the fair shares. A {@link Schedulable}'s fair
@@ -276,7 +274,7 @@ public class ComputeFairShares {
         resource.setVirtualCores((int) val);
         break;
       case FPGA:
-        List<FPGASlot> fpgas = new ArrayList<FPGASlot>();
+        Set<FPGASlot> fpgas = new HashSet<FPGASlot>();
         FPGASlot.Builder b = new FPGASlot.Builder();
         while (val > 0) {
           fpgas.add(b.build());
