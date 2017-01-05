@@ -22,7 +22,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.util.Records;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -49,7 +48,7 @@ public abstract class ResourceUtilization implements
 
   @Public
   @Unstable
-  public static ResourceUtilization newInstance(int pmem, int vmem, float cpu, List<FPGASlot> fpgaSlots) {
+  public static ResourceUtilization newInstance(int pmem, int vmem, float cpu, Set<FPGASlot> fpgaSlots) {
     ResourceUtilization utilization = newInstance(pmem, vmem, cpu);
     utilization.setFPGASlots(fpgaSlots);
     return utilization;

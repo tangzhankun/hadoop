@@ -1123,7 +1123,7 @@ public class YarnConfiguration extends Configuration {
   public static final int DEFAULT_NM_VCORES = 8;
 
   public static final String NM_FPGA = NM_PREFIX + "resource.fpga";
-  public static final String DEFAULT_NM_FPGA = "MCP:0:1:88f2b0e6-b3d0-4b18-a7e1-0b53eaaf74e1,DSC:0:1:50d64a0f-da0d-4057-ba94-67290d25eeee";
+  public static final String DEFAULT_NM_FPGA = "MCP:0:1:88f2b0e6-b3d0-4b18-a7e1-0b53eaaf74e1,DSC:0:1:50d64a0f-da0d-4057-ba94-67290d25eeee,ANY:0:0:00000000-0000-0000-0000-000000000000";
 
   /** Count logical processors(like hyperthreads) as cores. */
   public static final String NM_COUNT_LOGICAL_PROCESSORS_AS_CORES = NM_PREFIX

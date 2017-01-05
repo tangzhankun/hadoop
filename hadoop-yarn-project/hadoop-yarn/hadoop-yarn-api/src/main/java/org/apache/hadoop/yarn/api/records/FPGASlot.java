@@ -54,7 +54,6 @@ public class FPGASlot {
     int result = (int) (939769357 + deviceNumMinus);
     result = prime * result + deviceNumPlus * getFpgaType().ordinal();
 
-    System.out.println("AfuId " + getAfuId() + " result : " + result);
     return result;
   }
 

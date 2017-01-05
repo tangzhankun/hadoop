@@ -123,6 +123,7 @@ public class ResourcePBImpl extends Resource {
     if(fpgaSlots == null) {
       fpgaSlots = this.fpgaSlots;
     }
+    builder.clearFpgaSlots();
     builder.addAllFpgaSlots(convertToFPGAProtos(fpgaSlots));
   }
 
