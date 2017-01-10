@@ -205,16 +205,15 @@ public class NodeManagerHardwareUtils {
 
   private static Set<FPGASlot> parseStringFpgaInfo(String fpgaInfo) {
     Set<FPGASlot> fpgaSlots = new HashSet<FPGASlot>();
-
-    FPGASlot.Builder builder = new FPGASlot.Builder();
+    FPGASlot fpga;
     String[] fpgaSlotArray = fpgaInfo.split(",");
     for(String fpgaSlotWholeStr : fpgaSlotArray) {
       String[] fpgaSlotStr = fpgaSlotWholeStr.split(":");
-      builder.fpgaType(FPGAType.valueOf(fpgaSlotStr[0]))
-              .socketId(fpgaSlotStr[1])
-              .slotId(fpgaSlotStr[2])
-              .afuId(fpgaSlotStr[3]);
-      fpgaSlots.add(builder.build());
+      fpga = FPGASlot.newInstance(
+          FPGAType.valueOf(fpgaSlotStr[0]),
+          fpgaSlotStr[1],
+          fpgaSlotStr[2]);
+      fpgaSlots.add(fpga);
     }
     return fpgaSlots;
   }

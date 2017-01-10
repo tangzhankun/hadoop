@@ -782,7 +782,7 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
 
     // How much does this request need?
     Resource capability = request.getCapability();
-
+    LOG.info("zhankun, ready to allocate container :" + capability);
     // How much does the node have?
     Resource available = node.getUnallocatedResource();
 
@@ -792,8 +792,11 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
     }
 
     // Can we allocate a container on this node?
+    LOG.info("zhankun requested capacity:" + capability);
+    LOG.info("zhankun available:" + available);
     if (Resources.fitsIn(capability, available)) {
       // Inform the application of the new container for this request
+      LOG.info("zhankun, pass fits in and allocate container :" + capability);
       RMContainer allocatedContainer =
           allocate(type, node, schedulerKey, request,
               reservedContainer);
@@ -804,7 +807,7 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
         }
         return Resources.none();
       }
-
+      LOG.info("zhankun, pass fits in and allocate container :" + allocatedContainer.getContainerId());
       // If we had previously made a reservation, delete it
       if (reserved) {
         unreserve(schedulerKey, node);
@@ -824,7 +827,7 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
 
       return capability;
     }
-
+    LOG.info("zhankun, don't pass fits in and reserved");
     // The desired container won't fit here, so reserve
     if (isReservable(capability) &&
         reserve(request, node, reservedContainer, type, schedulerKey)) {
@@ -891,6 +894,7 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
         // Skip it for reserved container, since
         // we already check it in isValidReservation.
         if (!reserved && !hasContainerForNode(schedulerKey, node)) {
+          LOG.info("zhankun, failed to pass hasContainerForNode");
           continue;
         }
 
@@ -947,7 +951,6 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
           return assignContainer(node, rackLocalRequest, NodeType.RACK_LOCAL,
               reserved, schedulerKey);
         }
-
         ResourceRequest offSwitchRequest = getResourceRequest(schedulerKey,
             ResourceRequest.ANY);
         if (offSwitchRequest != null && !offSwitchRequest.getRelaxLocality()) {

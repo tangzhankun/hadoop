@@ -25,6 +25,7 @@ import org.apache.hadoop.classification.InterfaceStability.Stable;
 import org.apache.hadoop.yarn.api.ApplicationMasterProtocol;
 import org.apache.hadoop.yarn.util.Records;
 
+import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -178,6 +179,9 @@ public abstract class Resource implements Comparable<Resource> {
     int result = (int) (939769357
             + getMemorySize()); // prime * result = 939769357 initially
     result = prime * result + getVirtualCores();
+    for (FPGASlot fpgaSlot : getFPGASlots()) {
+      result = prime * result + fpgaSlot.hashCode();
+    }
     return result;
   }
 
@@ -194,7 +198,7 @@ public abstract class Resource implements Comparable<Resource> {
             getVirtualCores() != other.getVirtualCores()) {
       return false;
     }
-    return true;
+    return this.getFPGASlots().equals(other.getFPGASlots());
   }
 
   @Override
@@ -206,11 +210,33 @@ public abstract class Resource implements Comparable<Resource> {
       return "<memory:" + getMemorySize() + ", vCores:" + getVirtualCores() + ">";
     }
     fpgaInfo.append("\t\t\t\tFPGA accelerator number:" + fpgaSlots.size() + "\n");
-    fpgaInfo.append("\t\t\t\tFPGA accelerator details: \n");
-    for (FPGASlot fpgaSlot : fpgaSlots) {
-      fpgaInfo.append("\t\t\t\t     fpga type:" + fpgaSlot.getFpgaType() + ", socket id:" + fpgaSlot.getSocketId() + ", slot id:" + fpgaSlot.getSlotId() + ", afu id:" + fpgaSlot.getAfuId() + "\n");
+    if (fpgaSlots.size() > 0) {
+      fpgaInfo.append("\t\t\t\tFPGA accelerator details: \n");
+      for (FPGASlot fpgaSlot : fpgaSlots) {
+        fpgaInfo.append("\t\t\t\t     fpga type:" + fpgaSlot.getFpgaType() + ", slot id:" + fpgaSlot.getSlotId() + ", afu id:" + fpgaSlot.getAfuId() + "\n");
+      }
     }
-
     return "<memory:" + getMemorySize() + ", vCores:" + getVirtualCores() + ">\n" + fpgaInfo;
+  }
+
+  @Override
+  public int compareTo(Resource o) {
+    Set<FPGASlot> thisFPGA = this.getFPGASlots();
+    Set<FPGASlot> otherFPGA = o.getFPGASlots();
+    int diff = thisFPGA.size() - otherFPGA.size();
+    if (diff == 0) {
+      diff = this.getVirtualCores() - o.getVirtualCores();
+      if (diff == 0) {
+        diff = this.getMemory() - o.getMemory();
+        if (diff == 0) {
+          Iterator<FPGASlot> it1 = thisFPGA.iterator();
+          Iterator<FPGASlot> it2 = otherFPGA.iterator();
+          for (; it1.hasNext();) {
+            diff = it1.next().compareTo(it2.next());
+          }
+        }
+      }
+    }
+    return diff;
   }
 }

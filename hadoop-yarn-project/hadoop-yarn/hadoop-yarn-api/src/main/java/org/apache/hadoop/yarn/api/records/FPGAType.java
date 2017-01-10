@@ -10,5 +10,5 @@ public enum FPGAType {
 
   PHI,
 
-  ANY
+  UNKNOWN,
 }

@@ -264,10 +264,8 @@ public class AMRMClientImpl<T extends ContainerRequest> extends AMRMClient<T> {
     try {
       synchronized (this) {
         askList = cloneAsks();
-        if(askList.size() == 0) {
-          LOG.info("yuqiang: askList size is zero ");
-        } else {
-          LOG.info("yuqiang: askList " + askList.get(0).getCapability());
+        if(askList.size() > 0) {
+          LOG.info("yuqiang: check ask list:" + askList.toString());
         }
         // Save the current change for recovery
         oldChange.putAll(change);

@@ -818,7 +818,7 @@ public class FairScheduler extends
     }
 
     // Sanity check
-    //normalizeRequests(ask);
+    normalizeRequests(ask);
 
     // Record container allocation start time
     application.recordContainerRequestTime(getClock().getTime());

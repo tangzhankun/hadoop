@@ -24,10 +24,7 @@ import org.apache.hadoop.yarn.api.records.FPGASlot;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @InterfaceAudience.LimitedPrivate({"YARN", "MapReduce"})
 @Unstable
@@ -185,7 +182,8 @@ public class Resources {
   }
 
   public static Resource clone(Resource res) {
-    return createResource(res.getMemorySize(), res.getVirtualCores(), res.getFPGASlots());
+    Set<FPGASlot> dupFPGAs = new HashSet<>(res.getFPGASlots());
+    return createResource(res.getMemorySize(), res.getVirtualCores(), dupFPGAs);
   }
 
   public static Resource addTo(Resource lhs, Resource rhs) {
@@ -221,6 +219,22 @@ public class Resources {
   public static Resource multiplyTo(Resource lhs, double by) {
     lhs.setMemorySize((long)(lhs.getMemorySize() * by));
     lhs.setVirtualCores((int)(lhs.getVirtualCores() * by));
+    Set<FPGASlot> t = null;
+    int i = (int)Math.ceil(by);
+    if (i > 0) {
+      t = new HashSet<>();
+    }
+    while (i > 0) {
+      for (FPGASlot f : lhs.getFPGASlots() ) {
+        FPGASlot temp = FPGASlot.newInstance(f);
+        //generate random slotID to make each FPGASlot different
+        temp.setSlotId(UUID.randomUUID().toString());
+        t.add(temp);
+      }
+      i--;
+    }
+
+    lhs.setFPGASlots(t);
     return lhs;
   }
 
@@ -341,8 +355,60 @@ public class Resources {
   }
   
   public static boolean fitsIn(Resource smaller, Resource bigger) {
-    return smaller.getMemorySize() <= bigger.getMemorySize() &&
-        smaller.getVirtualCores() <= bigger.getVirtualCores();
+    if (bigger.equals(unbounded())){
+      return true;
+    }
+    Set<FPGASlot> adoptedFPGA = checkFPGAAndAdopt(bigger.getFPGASlots(),smaller.getFPGASlots());
+    if(adoptedFPGA != null) {
+      //change original resource with real fpga
+      smaller.setFPGASlots(adoptedFPGA);
+      return smaller.getMemorySize() <= bigger.getMemorySize() &&
+          smaller.getVirtualCores() <= bigger.getVirtualCores();
+    }
+    return false;
+  }
+
+  private static Set<FPGASlot> checkFPGAAndAdopt(Set<FPGASlot> large, Set<FPGASlot> small) {
+    int found = 0;
+    if (small == null || small.size() == 0) {
+      return small;
+    }
+    Set<FPGASlot> adoptedFPGA = new HashSet<>();
+    for (FPGASlot neededFPGA : small) {
+      for (FPGASlot t : large) {
+        if (isSimilarFPGA(neededFPGA, t)) {
+          adoptedFPGA.add(t);
+          found++;
+          break;
+        }
+      }
+    }
+    if (found == small.size()){
+      return adoptedFPGA;
+    }
+    return null;
+  }
+
+  //check if b can be used by a request
+  private static boolean isSimilarFPGA(FPGASlot a, FPGASlot b) {
+    boolean typeMatch = false;
+    boolean afuIDMatch = false;
+    //check type
+    if (a.getFpgaType() == null) {
+      typeMatch = true;
+    } else if (a.getFpgaType().equals(b.getFpgaType())){
+      typeMatch = true;
+    }
+    //check afuID
+    if (a.getAfuId() == "") {
+      afuIDMatch = true;
+    } else if (a.getAfuId().equals(b.getAfuId())) {
+      afuIDMatch = true;
+    }
+    if (typeMatch && afuIDMatch) {
+      return true;
+    }
+    return false;
   }
 
   public static boolean fitsIn(ResourceCalculator rc, Resource cluster,

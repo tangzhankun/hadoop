@@ -275,9 +275,8 @@ public class ComputeFairShares {
         break;
       case FPGA:
         Set<FPGASlot> fpgas = new HashSet<FPGASlot>();
-        FPGASlot.Builder b = new FPGASlot.Builder();
         while (val > 0) {
-          fpgas.add(b.build());
+          fpgas.add(FPGASlot.newInstance());
           val--;
         }
         resource.setFPGASlots(fpgas);

@@ -40,17 +40,14 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
       .getDefaultInstance();
   private ResourceUtilizationProto.Builder builder = null;
   private boolean viaProto = false;
-  Set<FPGASlot> fpgaSlots = null;
 
   public ResourceUtilizationPBImpl() {
     builder = ResourceUtilizationProto.newBuilder();
-    initFpgaSlots();
   }
 
   public ResourceUtilizationPBImpl(ResourceUtilizationProto proto) {
     this.proto = proto;
     viaProto = true;
-    initFpgaSlots();
   }
 
   public ResourceUtilizationProto getProto() {
@@ -64,14 +61,6 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
       builder = ResourceUtilizationProto.newBuilder(proto);
     }
     viaProto = false;
-  }
-
-  private void initFpgaSlots() {
-    if(this.fpgaSlots == null) {
-      fpgaSlots = new HashSet<FPGASlot>();
-      FPGASlot.Builder builder = new FPGASlot.Builder();
-      fpgaSlots.add(builder.fpgaType(FPGAType.ANY).socketId("0").slotId("0").afuId("00000000-0000-0000-0000-000000000000").build());
-    }
   }
 
   @Override
@@ -109,47 +98,6 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     maybeInitBuilder();
     builder.setCpu(cpu);
   }
-
-  @Override
-  public Set<FPGASlot> getFPGASlots() {
-        ResourceUtilizationProtoOrBuilder p = viaProto ? proto : builder;
-        List<FPGAOptionProto> fpgaSlotsProtoList = p.getFpgaSlotsList();
-        return convertToFPGASlots(fpgaSlotsProtoList);
-      }
-
-  @Override
-  public void setFPGASlots(Set<FPGASlot> fpgaSlots) {
-    maybeInitBuilder();
-    builder.addAllFpgaSlots(convertToFPGAProtos(fpgaSlots));
-  }
-
-  private List<FPGAOptionProto> convertToFPGAProtos(Set<FPGASlot> fpgaSlots) {
-    List<FPGAOptionProto> fpgaProtos = new ArrayList<FPGAOptionProto>();
-    FPGAOptionProto.Builder fpgaProtoBuilder = FPGAOptionProto.newBuilder();
-    for(FPGASlot fpgaSlot : fpgaSlots) {
-      fpgaProtoBuilder.setFpgaType(FPGATypeProto.valueOf(fpgaSlot.getFpgaType().name()));
-      fpgaProtoBuilder.setSocketId(fpgaSlot.getSocketId());
-      fpgaProtoBuilder.setSlotId(fpgaSlot.getSlotId());
-      fpgaProtoBuilder.setAfuId(fpgaSlot.getAfuId());
-      FPGAOptionProto fpgaProto = fpgaProtoBuilder.build();
-      fpgaProtos.add(fpgaProto);
-    }
-    return fpgaProtos;
-  }
-
-  private Set<FPGASlot> convertToFPGASlots(List<FPGAOptionProto> fpgaSlotsProtoList) {
-    Set<FPGASlot> fpgaSlots = new HashSet<FPGASlot>();
-    FPGASlot.Builder builder = new FPGASlot.Builder();
-    for(FPGAOptionProto proto : fpgaSlotsProtoList) {
-      FPGASlot fpgaSlot = builder.fpgaType(FPGAType.valueOf(proto.getFpgaType().name()))
-              .socketId(proto.getSocketId())
-              .slotId(proto.getSlotId())
-              .afuId(proto.getAfuId()).build();
-      fpgaSlots.add(fpgaSlot);
-    }
-    return fpgaSlots;
-  }
-
 
   @Override
   public int compareTo(ResourceUtilization other) {

@@ -18,14 +18,7 @@
 package org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceRequest;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
@@ -54,6 +47,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class FairSchedulerTestBase {
   public final static String TEST_DIR =
@@ -104,15 +98,15 @@ public class FairSchedulerTestBase {
   protected ResourceRequest createResourceRequest(
       int memory, String host, int priority, int numContainers,
       boolean relaxLocality) {
-    return createResourceRequest(memory, 1, host, priority, numContainers,
+    return createResourceRequest(memory, 1, null, host, priority, numContainers,
         relaxLocality);
   }
 
   protected ResourceRequest createResourceRequest(
-      int memory, int vcores, String host, int priority, int numContainers,
+      int memory, int vcores, Set<FPGASlot> fpgaSlots, String host, int priority, int numContainers,
       boolean relaxLocality) {
     ResourceRequest request = recordFactory.newRecordInstance(ResourceRequest.class);
-    request.setCapability(BuilderUtils.newResource(memory, vcores));
+    request.setCapability(BuilderUtils.newResource(memory, vcores, fpgaSlots));
     request.setResourceName(host);
     request.setNumContainers(numContainers);
     Priority prio = recordFactory.newRecordInstance(Priority.class);
@@ -144,17 +138,22 @@ public class FairSchedulerTestBase {
 
   protected ApplicationAttemptId createSchedulingRequest(
       int memory, int vcores, String queueId, String userId, int numContainers) {
-    return createSchedulingRequest(memory, vcores, queueId, userId, numContainers, 1);
+    return createSchedulingRequest(memory, vcores, null, queueId, userId, numContainers, 1);
+  }
+
+  protected ApplicationAttemptId createSchedulingRequest(
+      int memory, int vcores, Set<FPGASlot> fpgas, String queueId, String userId, int numContainers) {
+    return createSchedulingRequest(memory, vcores, fpgas, queueId, userId, numContainers, 1);
   }
 
   protected ApplicationAttemptId createSchedulingRequest(
       int memory, String queueId, String userId, int numContainers, int priority) {
-    return createSchedulingRequest(memory, 1, queueId, userId, numContainers,
+    return createSchedulingRequest(memory, 1, null, queueId, userId, numContainers,
         priority);
   }
 
   protected ApplicationAttemptId createSchedulingRequest(
-      int memory, int vcores, String queueId, String userId, int numContainers,
+      int memory, int vcores, Set<FPGASlot>fpgas, String queueId, String userId, int numContainers,
       int priority) {
     ApplicationAttemptId id = createAppAttemptId(this.APP_ID++, this.ATTEMPT_ID++);
     scheduler.addApplication(id.getApplicationId(), queueId, userId, false);
@@ -164,7 +163,7 @@ public class FairSchedulerTestBase {
       scheduler.addApplicationAttempt(id, false, false);
     }
     List<ResourceRequest> ask = new ArrayList<ResourceRequest>();
-    ResourceRequest request = createResourceRequest(memory, vcores, ResourceRequest.ANY,
+    ResourceRequest request = createResourceRequest(memory, vcores, fpgas, ResourceRequest.ANY,
         priority, numContainers, true);
     ask.add(request);
 
@@ -220,7 +219,7 @@ public class FairSchedulerTestBase {
 
   protected void createSchedulingRequestExistingApplication(
       int memory, int vcores, int priority, ApplicationAttemptId attId) {
-    ResourceRequest request = createResourceRequest(memory, vcores, ResourceRequest.ANY,
+    ResourceRequest request = createResourceRequest(memory, vcores, null, ResourceRequest.ANY,
         priority, 1, true);
     createSchedulingRequestExistingApplication(request, attId);
   }

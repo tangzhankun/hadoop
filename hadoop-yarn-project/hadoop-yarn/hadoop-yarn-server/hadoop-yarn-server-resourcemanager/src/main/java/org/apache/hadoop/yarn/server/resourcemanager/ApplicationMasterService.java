@@ -528,10 +528,8 @@ public class ApplicationMasterService extends AbstractService implements
                  " state, ignore container allocate request.");
         allocation = EMPTY_ALLOCATION;
       } else {
-        if(ask.size() == 0) {
-          LOG.info("yuqiang: ask size is zero");
-        } else {
-          LOG.info("yuqiang: ask in #allocate " + ask.get(0).getCapability());
+        if(ask.size() > 0) {
+          LOG.info("yuqiang: check ask list:" + ask.toString());
         }
         allocation =
             this.rScheduler.allocate(appAttemptId, ask, release,
