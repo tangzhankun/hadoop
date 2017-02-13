@@ -64,11 +64,11 @@ enum FPGATypeProto {
   MCP = 2;
   RSD = 3;
   PHI = 4;
+  UNKNOWN = 5;
 }
 
 message FPGAOptionProto {
   optional FPGATypeProto fpga_type = 1;
-  optional string socket_id = 2;
   optional string slot_id = 3;
   optional string afu_id = 4;
 }
@@ -79,10 +79,6 @@ message ResourceUtilizationProto {
   optional float cpu = 3;
 }
 
-message FPGAResourceProto {
-  optional string type = 1;
-  optional string accelerator = 2;
-}
 
 message ResourceOptionProto {
   optional ResourceProto resource = 1;

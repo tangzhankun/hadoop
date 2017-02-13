@@ -23,6 +23,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Resource;
 
+
 /**
  * A {@link ResourceCalculator} which uses the concept of  
  * <em>dominant resource</em> to compare multi-dimensional resources.
@@ -186,7 +187,7 @@ public class DominantResourceCalculator extends ResourceCalculator {
         stepFactor.getVirtualCores()),
       maximumResource.getVirtualCores());
     return Resources.createResource(normalizedMemory,
-      normalizedCores);
+      normalizedCores,r.getFPGASlots());
   }
 
   @Override

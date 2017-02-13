@@ -1,25 +1,34 @@
 package org.apache.hadoop.yarn.api.records;
 
-public class FPGASlot {
+public class FPGASlot implements Comparable<FPGASlot>{
 
-  private final FPGAType fpgaType;
-  private final String socketId;
-  private final String slotId;
-  private final String afuId;
+  private FPGAType fpgaType;
+  private String slotId;
+  private String afuId;
 
-  private FPGASlot(Builder builder) {
-    this.fpgaType = builder.fpgaType;
-    this.socketId = builder.socketId;
-    this.slotId = builder.slotId;
-    this.afuId = builder.afuId;
+  public static FPGASlot newInstance(FPGAType type, String slotId, String afuId) {
+    FPGASlot fpgaSlot = new FPGASlot();
+    fpgaSlot.setFpgaType(type);
+    fpgaSlot.setSlotId(slotId);
+    fpgaSlot.setAfuId(afuId);
+    return fpgaSlot;
+  }
+
+  public static FPGASlot newInstance(FPGASlot a) {
+    FPGASlot fpgaSlot = new FPGASlot();
+    fpgaSlot.setSlotId(a.getSlotId());
+    fpgaSlot.setFpgaType(a.getFpgaType());
+    fpgaSlot.setAfuId(a.getAfuId());
+    return fpgaSlot;
+  }
+
+  public static FPGASlot newInstance() {
+    FPGASlot fpgaSlot = new FPGASlot();
+    return fpgaSlot;
   }
 
   public FPGAType getFpgaType() {
     return fpgaType;
-  }
-
-  public String getSocketId() {
-    return socketId;
   }
 
   public String getSlotId() {
@@ -31,41 +40,54 @@ public class FPGASlot {
   }
 
   @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof FPGASlot))
+      return false;
+    FPGASlot other = (FPGASlot) obj;
+    return !(getFpgaType() != other.getFpgaType()
+        || !getAfuId().equals(other.getAfuId())
+        || !getSlotId().equals(other.getSlotId()));
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 263167;
+    int result = 939769357 + fpgaType.hashCode();
+    result = prime * result + slotId.hashCode();
+    result = prime * result + afuId.hashCode();
+    return result;
+  }
+
+  @Override
   public String toString() {
-    return "fpga type: " + fpgaType + " socket id: " + socketId + " slot id: " + slotId + " afu id: " + afuId + ".";
+    return "fpga type: " + fpgaType + " slot id: " + slotId + " afu id: " + afuId + ".";
   }
 
-  public static class Builder {
-
-    private FPGAType fpgaType;
-    private String socketId;
-    private String slotId;
-    private String afuId;
-
-    public Builder fpgaType(FPGAType fpgaType) {
-      this.fpgaType = fpgaType;
-      return this;
+  @Override
+  public int compareTo(FPGASlot o) {
+    int diff = this.fpgaType.compareTo(o.fpgaType);
+    if (diff == 0) {
+      diff = this.slotId.compareTo(o.slotId);
+      if (diff == 0) {
+        diff = this.afuId.compareTo(o.afuId);
+      }
     }
-
-    public Builder socketId(String socketId) {
-      this.socketId = socketId;
-      return this;
-    }
-
-    public Builder slotId(String slotId) {
-      this.slotId = slotId;
-      return this;
-    }
-
-    public Builder afuId(String afuId) {
-      this.afuId = afuId;
-      return this;
-    }
-
-    synchronized public FPGASlot build() {
-      return new FPGASlot(this);
-    }
-
+    return diff;
   }
 
+  public void setFpgaType(FPGAType fpgaType) {
+    this.fpgaType = fpgaType;
+  }
+
+  public void setSlotId(String slotId) {
+    this.slotId = slotId;
+  }
+
+  public void setAfuId(String afuId) {
+    this.afuId = afuId;
+  }
 }

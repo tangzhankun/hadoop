@@ -30,7 +30,9 @@ import org.apache.hadoop.yarn.proto.YarnProtos.FPGATypeProto;
 import org.apache.hadoop.yarn.proto.YarnProtos.ResourceProtoOrBuilder;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Private
 @Unstable
@@ -38,6 +40,7 @@ public class ResourcePBImpl extends Resource {
   ResourceProto proto = ResourceProto.getDefaultInstance();
   ResourceProto.Builder builder = null;
   boolean viaProto = false;
+  Set<FPGASlot> fpgaSlots;
   
   public ResourcePBImpl() {
     builder = ResourceProto.newBuilder();
@@ -46,12 +49,39 @@ public class ResourcePBImpl extends Resource {
   public ResourcePBImpl(ResourceProto proto) {
     this.proto = proto;
     viaProto = true;
+    this.fpgaSlots = null;
+    initFpgaSlots();
   }
   
   public ResourceProto getProto() {
+    mergeLocalToProto();
     proto = viaProto ? proto : builder.build();
     viaProto = true;
     return proto;
+  }
+
+  private void mergeLocalToProto() {
+    if (viaProto) {
+      maybeInitBuilder();
+    }
+    mergeLocalToBuilder();
+    proto = builder.build();
+    viaProto = true;
+  }
+
+  synchronized private void mergeLocalToBuilder() {
+    builder.clearFpgaSlots();
+    if (fpgaSlots != null && !fpgaSlots.isEmpty()) {
+      for (FPGASlot fpgaSlot : fpgaSlots) {
+        FPGAOptionProto.Builder b = FPGAOptionProto.newBuilder();
+        b.setFpgaType(FPGATypeProto.valueOf(fpgaSlot.getFpgaType().name()));
+        b.setSlotId(fpgaSlot.getSlotId());
+        b.setAfuId(fpgaSlot.getAfuId());
+        builder.addFpgaSlots(b);
+      }
+    }
+    builder.setMemory(this.getMemorySize());
+    builder.setVirtualCores(this.getVirtualCores());
   }
 
   private void maybeInitBuilder() {
@@ -59,6 +89,27 @@ public class ResourcePBImpl extends Resource {
       builder = ResourceProto.newBuilder(proto);
     }
     viaProto = false;
+  }
+
+  private void initFpgaSlots() {
+    if (this.fpgaSlots != null) {
+      return;
+    }
+    ResourceProtoOrBuilder p = viaProto ? proto : builder;
+    fpgaSlots = new HashSet<FPGASlot>();
+    for (FPGAOptionProto fpgaProto : p.getFpgaSlotsList()) {
+      this.fpgaSlots.add(FPGASlot.newInstance(
+          FPGAType.valueOf(fpgaProto.getFpgaType().name()),
+          fpgaProto.getSlotId(),
+          fpgaProto.getAfuId()));
+    }
+    if (this.getMemory() != p.getMemory()) {
+      setMemorySize(p.getMemory());
+    }
+    if (this.getVirtualCores() != p.getVirtualCores()) {
+      setVirtualCores(p.getVirtualCores());
+    }
+
   }
 
   @Override
@@ -98,45 +149,19 @@ public class ResourcePBImpl extends Resource {
   }
 
   @Override
-  public List<FPGASlot> getFPGASlots() {
-    ResourceProtoOrBuilder p = viaProto ? proto : builder;
-    List<FPGAOptionProto> fpgaSlotsProtoList = p.getFpgaSlotsList();
-    return convertToFPGASlotList(fpgaSlotsProtoList);
+  public Set<FPGASlot> getFPGASlots() {
+    initFpgaSlots();
+    return this.fpgaSlots;
   }
 
   @Override
-  public void setFPGASlots(List<FPGASlot> fpgaSlots) {
+  public void setFPGASlots(Set<FPGASlot> fpgaSlots) {
     maybeInitBuilder();
-    builder.addAllFpgaSlots(convertToFPGAProtoList(fpgaSlots));
-  }
-
-  private List<FPGAOptionProto> convertToFPGAProtoList(List<FPGASlot> fpgaSlots) {
-    List<FPGAOptionProto> fpgaProtos = new ArrayList<FPGAOptionProto>();
-    FPGAOptionProto.Builder fpgaProtoBuilder = FPGAOptionProto.newBuilder();
-    for(FPGASlot fpgaSlot : fpgaSlots) {
-      fpgaProtoBuilder.setFpgaType(FPGATypeProto.valueOf(fpgaSlot.getFpgaType().name()));
-      fpgaProtoBuilder.setSocketId(fpgaSlot.getSocketId());
-      fpgaProtoBuilder.setSlotId(fpgaSlot.getSlotId());
-      fpgaProtoBuilder.setAfuId(fpgaSlot.getAfuId());
-      FPGAOptionProto fpgaProto = fpgaProtoBuilder.build();
-      fpgaProtos.add(fpgaProto);
+    if (fpgaSlots == null || fpgaSlots.isEmpty()) {
+      builder.clearFpgaSlots();
     }
-    return fpgaProtos;
+    this.fpgaSlots = fpgaSlots;
   }
-
-  private List<FPGASlot> convertToFPGASlotList(List<FPGAOptionProto> fpgaSlotsProtoList) {
-    List<FPGASlot> fpgaSlotList = new ArrayList<FPGASlot>();
-    FPGASlot.Builder builder = new FPGASlot.Builder();
-    for(FPGAOptionProto proto : fpgaSlotsProtoList) {
-      FPGASlot fpgaSlot = builder.fpgaType(FPGAType.valueOf(proto.getFpgaType().name()))
-              .socketId(proto.getSocketId())
-              .slotId(proto.getSlotId())
-              .afuId(proto.getAfuId()).build();
-      fpgaSlotList.add(fpgaSlot);
-    }
-    return fpgaSlotList;
-  }
-
 
   @Override
   public int compareTo(Resource other) {

@@ -55,24 +55,7 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.NodeReport;
-import org.apache.hadoop.yarn.api.records.NodeState;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.QueueACL;
-import org.apache.hadoop.yarn.api.records.QueueInfo;
-import org.apache.hadoop.yarn.api.records.QueueUserACLInfo;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.URL;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.api.records.YarnClusterMetrics;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineDomain;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.client.api.YarnClient;
@@ -85,29 +68,29 @@ import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 
 /**
  * Client for Distributed Shell application submission to YARN.
- * 
+ *
  * <p> The distributed shell client allows an application master to be launched that in turn would run 
  * the provided shell command on a set of containers. </p>
- * 
+ *
  * <p>This client is meant to act as an example on how to write yarn-based applications. </p>
- * 
+ *
  * <p> To submit an application, a client first needs to connect to the <code>ResourceManager</code> 
- * aka ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The {@link ApplicationClientProtocol} 
+ * aka ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The {@link ApplicationClientProtocol}
  * provides a way for the client to get access to cluster information and to request for a
  * new {@link ApplicationId}. <p>
- * 
+ *
  * <p> For the actual job submission, the client first has to create an {@link ApplicationSubmissionContext}. 
- * The {@link ApplicationSubmissionContext} defines the application details such as {@link ApplicationId} 
+ * The {@link ApplicationSubmissionContext} defines the application details such as {@link ApplicationId}
  * and application name, the priority assigned to the application and the queue
  * to which this application needs to be assigned. In addition to this, the {@link ApplicationSubmissionContext}
  * also defines the {@link ContainerLaunchContext} which describes the <code>Container</code> with which 
  * the {@link ApplicationMaster} is launched. </p>
- * 
+ *
  * <p> The {@link ContainerLaunchContext} in this scenario defines the resources to be allocated for the 
  * {@link ApplicationMaster}'s container, the local resources (jars, configuration files) to be made available 
  * and the environment to be set for the {@link ApplicationMaster} and the commands to be executed to run the 
  * {@link ApplicationMaster}. <p>
- * 
+ *
  * <p> Using the {@link ApplicationSubmissionContext}, the client submits the application to the 
  * <code>ResourceManager</code> and then monitors the application by requesting the <code>ResourceManager</code> 
  * for an {@link ApplicationReport} at regular time intervals. In case of the application taking too long, the client 
@@ -119,7 +102,7 @@ import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 public class Client {
 
   private static final Log LOG = LogFactory.getLog(Client.class);
-  
+
   // Configuration
   private Configuration conf;
   private YarnClient yarnClient;
@@ -135,14 +118,14 @@ public class Client {
   private int amVCores = 1;
 
   // Application master jar file
-  private String appMasterJar = ""; 
+  private String appMasterJar = "";
   // Main class to invoke application master
   private final String appMasterMainClass;
 
   // Shell command to be executed 
-  private String shellCommand = ""; 
+  private String shellCommand = "";
   // Location of shell script 
-  private String shellScriptPath = ""; 
+  private String shellScriptPath = "";
   // Args to be passed to the shell command
   private String[] shellArgs = new String[] {};
   // Env variables to be setup for the shell command 
@@ -151,16 +134,21 @@ public class Client {
   private int shellCmdPriority = 0;
 
   // Amt of memory to request for container in which shell script will be executed
-  private int containerMemory = 10; 
+  private int containerMemory = 10;
   // Amt. of virtual cores to request for container in which shell script will be executed
   private int containerVirtualCores = 1;
   // No. of containers in which the shell script needs to be executed
+
+  private String containerFpgaType = "MCP";
+  private String[] containerFpgaIps = {"00000000-0000-0000-0000-000000000000:0"};
+  private boolean containerFpgaShare = false;
+
   private int numContainers = 1;
   private String nodeLabelExpression = null;
 
-  // log4j.properties file 
-  // if available, add to local resources and set into classpath 
-  private String log4jPropFile = "";	
+  // log4j.properties file
+  // if available, add to local resources and set into classpath
+  private String log4jPropFile = "";
 
   // Start time for client
   private final long clientStartTime = System.currentTimeMillis();
@@ -205,7 +193,7 @@ public class Client {
   public static final String SCRIPT_PATH = "ExecScript";
 
   /**
-   * @param args Command line arguments 
+   * @param args Command line arguments
    */
   public static void main(String[] args) {
     boolean result = false;
@@ -229,8 +217,8 @@ public class Client {
     }
     if (result) {
       LOG.info("Application completed successfully");
-      System.exit(0);			
-    } 
+      System.exit(0);
+    }
     LOG.error("Application failed to complete successfully");
     System.exit(2);
   }
@@ -239,8 +227,8 @@ public class Client {
    */
   public Client(Configuration conf) throws Exception  {
     this(
-      "org.apache.hadoop.yarn.applications.distributedshell.ApplicationMaster",
-      conf);
+        "org.apache.hadoop.yarn.applications.distributedshell.ApplicationMaster",
+        conf);
   }
 
   Client(String appMasterMainClass, Configuration conf) {
@@ -269,19 +257,22 @@ public class Client {
     opts.addOption("shell_cmd_priority", true, "Priority for the shell command containers");
     opts.addOption("container_memory", true, "Amount of memory in MB to be requested to run the shell command");
     opts.addOption("container_vcores", true, "Amount of virtual cores to be requested to run the shell command");
+    opts.addOption("fpga_type", true, "indicate the FPGA device type");
+    opts.addOption("fpga_ip", true, "indicate AFU type and slots an executor needs");
+    opts.addOption("fpga_share", true, "indicate whether YARN should isolate FPGA to the executor");
     opts.addOption("num_containers", true, "No. of containers on which the shell command needs to be executed");
     opts.addOption("log_properties", true, "log4j.properties file");
     opts.addOption("keep_containers_across_application_attempts", false,
-      "Flag to indicate whether to keep containers across application attempts." +
-      " If the flag is true, running containers will not be killed when" +
-      " application attempt fails and these containers will be retrieved by" +
-      " the new application attempt ");
+        "Flag to indicate whether to keep containers across application attempts." +
+            " If the flag is true, running containers will not be killed when" +
+            " application attempt fails and these containers will be retrieved by" +
+            " the new application attempt ");
     opts.addOption("attempt_failures_validity_interval", true,
-      "when attempt_failures_validity_interval in milliseconds is set to > 0," +
-      "the failure number will not take failures which happen out of " +
-      "the validityInterval into failure count. " +
-      "If failure count reaches to maxAppAttempts, " +
-      "the application will be failed.");
+        "when attempt_failures_validity_interval in milliseconds is set to > 0," +
+            "the failure number will not take failures which happen out of " +
+            "the validityInterval into failure count. " +
+            "If failure count reaches to maxAppAttempts, " +
+            "the application will be failed.");
     opts.addOption("debug", false, "Dump out debug information");
     opts.addOption("domain", true, "ID of the timeline domain where the "
         + "timeline entities will be put");
@@ -333,7 +324,7 @@ public class Client {
 
   /**
    * Parse command line options
-   * @param args Parsed command line options 
+   * @param args Parsed command line options
    * @return Whether the init was successful to run the client
    * @throws ParseException
    */
@@ -386,7 +377,7 @@ public class Client {
 
     if (!cliParser.hasOption("jar")) {
       throw new IllegalArgumentException("No jar file specified for application master");
-    }		
+    }
 
     appMasterJar = cliParser.getOptionValue("jar");
 
@@ -404,7 +395,7 @@ public class Client {
     if (cliParser.hasOption("shell_args")) {
       shellArgs = cliParser.getOptionValues("shell_args");
     }
-    if (cliParser.hasOption("shell_env")) { 
+    if (cliParser.hasOption("shell_env")) {
       String envs[] = cliParser.getOptionValues("shell_env");
       for (String env : envs) {
         env = env.trim();
@@ -425,8 +416,10 @@ public class Client {
 
     containerMemory = Integer.parseInt(cliParser.getOptionValue("container_memory", "10"));
     containerVirtualCores = Integer.parseInt(cliParser.getOptionValue("container_vcores", "1"));
+    containerFpgaType = cliParser.getOptionValue("fpga_type");
+    containerFpgaIps = cliParser.getOptionValues("fpga_ip");
+    containerFpgaShare = Boolean.parseBoolean(cliParser.getOptionValue("fpga_share", "false"));
     numContainers = Integer.parseInt(cliParser.getOptionValue("num_containers", "1"));
-    
 
     if (containerMemory < 0 || containerVirtualCores < 0 || numContainers < 1) {
       throw new IllegalArgumentException("Invalid no. of containers or container memory/vcores specified,"
@@ -435,14 +428,14 @@ public class Client {
           + ", containerVirtualCores=" + containerVirtualCores
           + ", numContainer=" + numContainers);
     }
-    
+
     nodeLabelExpression = cliParser.getOptionValue("node_label_expression", null);
 
     clientTimeout = Integer.parseInt(cliParser.getOptionValue("timeout", "600000"));
 
     attemptFailuresValidityInterval =
         Long.parseLong(cliParser.getOptionValue(
-          "attempt_failures_validity_interval", "-1"));
+            "attempt_failures_validity_interval", "-1"));
 
     log4jPropFile = cliParser.getOptionValue("log_properties", "");
 
@@ -493,6 +486,8 @@ public class Client {
     return true;
   }
 
+
+
   /**
    * Main run function for the client
    * @return true if application completed successfully
@@ -505,7 +500,7 @@ public class Client {
     yarnClient.start();
 
     YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
-    LOG.info("Got Cluster metric info from ASM" 
+    LOG.info("Got Cluster metric info from ASM"
         + ", numNodeManagers=" + clusterMetrics.getNumNodeManagers());
 
     List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(
@@ -513,7 +508,7 @@ public class Client {
     LOG.info("Got Cluster node info from ASM");
     for (NodeReport node : clusterNodeReports) {
       LOG.info("Got node report from ASM for"
-          + ", nodeId=" + node.getNodeId() 
+          + ", nodeId=" + node.getNodeId()
           + ", nodeAddress=" + node.getHttpAddress()
           + ", nodeRackName=" + node.getRackName()
           + ", nodeNumContainers=" + node.getNumContainers());
@@ -525,16 +520,16 @@ public class Client {
         + ", queueCurrentCapacity=" + queueInfo.getCurrentCapacity()
         + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
         + ", queueApplicationCount=" + queueInfo.getApplications().size()
-        + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());		
+        + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());
 
     List<QueueUserACLInfo> listAclInfo = yarnClient.getQueueAclsInfo();
     for (QueueUserACLInfo aclInfo : listAclInfo) {
       for (QueueACL userAcl : aclInfo.getUserAcls()) {
         LOG.info("User ACL Info for Queue"
-            + ", queueName=" + aclInfo.getQueueName()			
+            + ", queueName=" + aclInfo.getQueueName()
             + ", userAcl=" + userAcl.name());
       }
-    }		
+    }
 
     if (domainId != null && domainId.length() > 0 && toCreateDomain) {
       prepareTimelineDomain();
@@ -544,31 +539,31 @@ public class Client {
     YarnClientApplication app = yarnClient.createApplication();
     GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
     // TODO get min/max resource capabilities from RM and change memory ask if needed
-    // If we do not have min/max, we may not be able to correctly request 
+    // If we do not have min/max, we may not be able to correctly request
     // the required resources from the RM for the app master
-    // Memory ask has to be a multiple of min and less than max. 
+    // Memory ask has to be a multiple of min and less than max.
     // Dump out information about cluster capability as seen by the resource manager
     long maxMem = appResponse.getMaximumResourceCapability().getMemorySize();
     LOG.info("Max mem capability of resources in this cluster " + maxMem);
 
-    // A resource ask cannot exceed the max. 
+    // A resource ask cannot exceed the max.
     if (amMemory > maxMem) {
       LOG.info("AM memory specified above max threshold of cluster. Using max value."
           + ", specified=" + amMemory
           + ", max=" + maxMem);
       amMemory = maxMem;
-    }				
+    }
 
     int maxVCores = appResponse.getMaximumResourceCapability().getVirtualCores();
     LOG.info("Max virtual cores capability of resources in this cluster " + maxVCores);
-    
+
     if (amVCores > maxVCores) {
-      LOG.info("AM virtual cores specified above max threshold of cluster. " 
-          + "Using max value." + ", specified=" + amVCores 
+      LOG.info("AM virtual cores specified above max threshold of cluster. "
+          + "Using max value." + ", specified=" + amVCores
           + ", max=" + maxVCores);
       amVCores = maxVCores;
     }
-    
+
     // set the application name
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
     ApplicationId appId = appContext.getApplicationId();
@@ -578,7 +573,7 @@ public class Client {
 
     if (attemptFailuresValidityInterval >= 0) {
       appContext
-        .setAttemptFailuresValidityInterval(attemptFailuresValidityInterval);
+          .setAttemptFailuresValidityInterval(attemptFailuresValidityInterval);
     }
 
     Set<String> tags = new HashSet<String>();
@@ -595,29 +590,29 @@ public class Client {
 
     // set local resources for the application master
     // local files or archives as needed
-    // In this scenario, the jar file for the application master is part of the local resources			
+    // In this scenario, the jar file for the application master is part of the local resources
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
     LOG.info("Copy App Master jar from local filesystem and add to local environment");
-    // Copy the application master jar to the filesystem 
-    // Create a local resource to point to the destination jar path 
+    // Copy the application master jar to the filesystem
+    // Create a local resource to point to the destination jar path
     FileSystem fs = FileSystem.get(conf);
     addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(),
         localResources, null);
 
-    // Set the log4j properties if needed 
+    // Set the log4j properties if needed
     if (!log4jPropFile.isEmpty()) {
       addToLocalResources(fs, log4jPropFile, log4jPath, appId.toString(),
           localResources, null);
-    }			
+    }
 
     // The shell script has to be made available on the final container(s)
-    // where it will be executed. 
-    // To do this, we need to first copy into the filesystem that is visible 
-    // to the yarn framework. 
-    // We do not need to set this as a local resource for the application 
-    // master as the application master does not need it. 		
-    String hdfsShellScriptLocation = ""; 
+    // where it will be executed.
+    // To do this, we need to first copy into the filesystem that is visible
+    // to the yarn framework.
+    // We do not need to set this as a local resource for the application
+    // master as the application master does not need it.
+    String hdfsShellScriptLocation = "";
     long hdfsShellScriptLen = 0;
     long hdfsShellScriptTimestamp = 0;
     if (!shellScriptPath.isEmpty()) {
@@ -627,7 +622,7 @@ public class Client {
       Path shellDst =
           new Path(fs.getHomeDirectory(), shellPathSuffix);
       fs.copyFromLocalFile(false, true, shellSrc, shellDst);
-      hdfsShellScriptLocation = shellDst.toUri().toString(); 
+      hdfsShellScriptLocation = shellDst.toUri().toString();
       FileStatus shellFileStatus = fs.getFileStatus(shellDst);
       hdfsShellScriptLen = shellFileStatus.getLen();
       hdfsShellScriptTimestamp = shellFileStatus.getModificationTime();
@@ -651,7 +646,7 @@ public class Client {
     Map<String, String> env = new HashMap<String, String>();
 
     // put location of shell script into env
-    // using the env info, the application master will create the correct local resource for the 
+    // using the env info, the application master will create the correct local resource for the
     // eventual containers that will be launched to execute the shell scripts
     env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION, hdfsShellScriptLocation);
     env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTTIMESTAMP, Long.toString(hdfsShellScriptTimestamp));
@@ -660,14 +655,14 @@ public class Client {
       env.put(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN, domainId);
     }
 
-    // Add AppMaster.jar location to classpath 		
-    // At some point we should not be required to add 
-    // the hadoop specific classpaths to the env. 
-    // It should be provided out of the box. 
+    // Add AppMaster.jar location to classpath
+    // At some point we should not be required to add
+    // the hadoop specific classpaths to the env.
+    // It should be provided out of the box.
     // For now setting all required classpaths including
     // the classpath to "." for the application jar
     StringBuilder classPathEnv = new StringBuilder(Environment.CLASSPATH.$$())
-      .append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
+        .append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
     for (String c : conf.getStrings(
         YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
@@ -675,7 +670,7 @@ public class Client {
       classPathEnv.append(c.trim());
     }
     classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR).append(
-      "./log4j.properties");
+        "./log4j.properties");
 
     // add the runtime classpath needed for tests to work
     if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
@@ -685,19 +680,22 @@ public class Client {
 
     env.put("CLASSPATH", classPathEnv.toString());
 
-    // Set the necessary command to execute the application master 
+    // Set the necessary command to execute the application master
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
 
-    // Set java executable command 
+    // Set java executable command
     LOG.info("Setting up app master command");
     vargs.add(Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
     vargs.add("-Xmx" + amMemory + "m");
-    // Set class name 
+    // Set class name
     vargs.add(appMasterMainClass);
     // Set params for Application Master
     vargs.add("--container_memory " + String.valueOf(containerMemory));
     vargs.add("--container_vcores " + String.valueOf(containerVirtualCores));
+    vargs.add("--fpga_type " + String.valueOf(containerFpgaType));
+    vargs.add("--fpga_ips " + String.valueOf(StringUtils.join(containerFpgaIps,",")));
+    vargs.add("--fpga_share " + String.valueOf(containerFpgaShare));
     vargs.add("--num_containers " + String.valueOf(numContainers));
     if (null != nodeLabelExpression) {
       appContext.setNodeLabelExpression(nodeLabelExpression);
@@ -724,11 +722,11 @@ public class Client {
 
     LOG.info("Completed setting up app master command " + command.toString());
     List<String> commands = new ArrayList<String>();
-    commands.add(command.toString());		
+    commands.add(command.toString());
 
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer = ContainerLaunchContext.newInstance(
-      localResources, env, commands, null, null, null);
+        localResources, env, commands, null, null, null);
 
     // Set up resource type requirements
     // For now, both memory and vcores are supported, so we set memory and 
@@ -747,7 +745,7 @@ public class Client {
       String tokenRenewer = YarnClientUtils.getRmPrincipal(conf);
       if (tokenRenewer == null || tokenRenewer.length() == 0) {
         throw new IOException(
-          "Can't get Master Kerberos principal for the RM to use as renewer");
+            "Can't get Master Kerberos principal for the RM to use as renewer");
       }
 
       // For now, only getting tokens for the default file-system.
@@ -832,29 +830,29 @@ public class Client {
       if (YarnApplicationState.FINISHED == state) {
         if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
           LOG.info("Application has completed successfully. Breaking monitoring loop");
-          return true;        
+          return true;
         }
         else {
           LOG.info("Application did finished unsuccessfully."
               + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
               + ". Breaking monitoring loop");
           return false;
-        }			  
+        }
       }
-      else if (YarnApplicationState.KILLED == state	
+      else if (YarnApplicationState.KILLED == state
           || YarnApplicationState.FAILED == state) {
         LOG.info("Application did not finish."
             + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
             + ". Breaking monitoring loop");
         return false;
-      }			
+      }
 
       if (System.currentTimeMillis() > (clientStartTime + clientTimeout)) {
         LOG.info("Reached client specified timeout for application. Killing application");
         forceKillApplication(appId);
-        return false;				
+        return false;
       }
-    }			
+    }
 
   }
 
@@ -872,12 +870,12 @@ public class Client {
 
     // Response can be ignored as it is non-null on success or 
     // throws an exception in case of failures
-    yarnClient.killApplication(appId);	
+    yarnClient.killApplication(appId);
   }
 
   private void addToLocalResources(FileSystem fs, String fileSrcPath,
-      String fileDstPath, String appId, Map<String, LocalResource> localResources,
-      String resources) throws IOException {
+                                   String fileDstPath, String appId, Map<String, LocalResource> localResources,
+                                   String resources) throws IOException {
     String suffix =
         appName + "/" + appId + "/" + fileDstPath;
     Path dst =

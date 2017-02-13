@@ -117,7 +117,7 @@ public class TestContinuousScheduling extends FairSchedulerTestBase {
     scheduler.addApplication(appAttemptId.getApplicationId(), "queue11", "user11", false);
     scheduler.addApplicationAttempt(appAttemptId, false, false);
     List<ResourceRequest> ask = new ArrayList<>();
-    ask.add(createResourceRequest(1024, 1, ResourceRequest.ANY, 1, 1, true));
+    ask.add(createResourceRequest(1024, 1, null, ResourceRequest.ANY, 1, 1, true));
     scheduler.allocate(
         appAttemptId, ask, new ArrayList<ContainerId>(), null, null, null, null);
     FSAppAttempt app = scheduler.getSchedulerApp(appAttemptId);
@@ -154,7 +154,7 @@ public class TestContinuousScheduling extends FairSchedulerTestBase {
     scheduler.addApplicationAttempt(appAttemptId, false, false);
     List<ResourceRequest> ask = new ArrayList<>();
     ResourceRequest request =
-        createResourceRequest(1024, 1, ResourceRequest.ANY, 1, 1, true);
+        createResourceRequest(1024, 1, null, ResourceRequest.ANY, 1, 1, true);
     ask.add(request);
     scheduler.allocate(appAttemptId, ask,
         new ArrayList<ContainerId>(), null, null, null, null);
@@ -165,7 +165,7 @@ public class TestContinuousScheduling extends FairSchedulerTestBase {
 
     // another request
     request =
-        createResourceRequest(1024, 1, ResourceRequest.ANY, 2, 1, true);
+        createResourceRequest(1024, 1, null, ResourceRequest.ANY, 2, 1, true);
     ask.clear();
     ask.add(request);
     scheduler.allocate(appAttemptId, ask,
@@ -327,10 +327,10 @@ public class TestContinuousScheduling extends FairSchedulerTestBase {
         hostName);
     List<ResourceRequest> ask1 = new ArrayList<>();
     request1 =
-        createResourceRequest(1024, 8, node1.getRackName(), priorityValue, 1,
+        createResourceRequest(1024, 8, null, node1.getRackName(), priorityValue, 1,
         true);
     request2 =
-        createResourceRequest(1024, 8, ResourceRequest.ANY, priorityValue, 1,
+        createResourceRequest(1024, 8, null, ResourceRequest.ANY, priorityValue, 1,
         true);
     ask1.add(request1);
     ask1.add(request2);

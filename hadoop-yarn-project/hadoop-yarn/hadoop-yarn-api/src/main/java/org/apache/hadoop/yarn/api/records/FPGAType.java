@@ -8,5 +8,7 @@ public enum FPGAType {
 
   RSD,
 
-  PHI
+  PHI,
+
+  UNKNOWN,
 }

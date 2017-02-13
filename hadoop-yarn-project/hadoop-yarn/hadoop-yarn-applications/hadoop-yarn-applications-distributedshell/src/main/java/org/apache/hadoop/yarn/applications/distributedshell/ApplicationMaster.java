@@ -29,15 +29,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -72,25 +64,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.ContainerRetryContext;
-import org.apache.hadoop.yarn.api.records.ContainerRetryPolicy;
-import org.apache.hadoop.yarn.api.records.ContainerState;
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.NodeReport;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceRequest;
-import org.apache.hadoop.yarn.api.records.URL;
-import org.apache.hadoop.yarn.api.records.UpdatedContainer;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntityGroupId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
@@ -112,12 +86,12 @@ import com.sun.jersey.api.client.ClientHandlerException;
 /**
  * An ApplicationMaster for executing shell commands on a set of launched
  * containers using the YARN framework.
- * 
+ *
  * <p>
  * This class is meant to act as an example on how to write yarn-based
  * application masters.
  * </p>
- * 
+ *
  * <p>
  * The ApplicationMaster is started on a container by the
  * <code>ResourceManager</code>'s launcher. The first thing that the
@@ -129,14 +103,14 @@ import com.sun.jersey.api.client.ClientHandlerException;
  * status/job history if needed. However, in the distributedshell, trackingurl
  * and appMasterHost:appMasterRpcPort are not supported.
  * </p>
- * 
+ *
  * <p>
  * The <code>ApplicationMaster</code> needs to send a heartbeat to the
  * <code>ResourceManager</code> at regular intervals to inform the
  * <code>ResourceManager</code> that it is up and alive. The
  * {@link ApplicationMasterProtocol#allocate} to the <code>ResourceManager</code> from the
  * <code>ApplicationMaster</code> acts as a heartbeat.
- * 
+ *
  * <p>
  * For the actual handling of the job, the <code>ApplicationMaster</code> has to
  * request the <code>ResourceManager</code> via {@link AllocateRequest} for the
@@ -147,7 +121,7 @@ import com.sun.jersey.api.client.ClientHandlerException;
  * <code>ApplicationMaster</code> of the set of newly allocated containers,
  * completed containers as well as current state of available resources.
  * </p>
- * 
+ *
  * <p>
  * For each allocated container, the <code>ApplicationMaster</code> can then set
  * up the necessary launch context via {@link ContainerLaunchContext} to specify
@@ -156,7 +130,7 @@ import com.sun.jersey.api.client.ClientHandlerException;
  * submit a {@link StartContainerRequest} to the {@link ContainerManagementProtocol} to
  * launch and execute the defined commands on the given allocated container.
  * </p>
- * 
+ *
  * <p>
  * The <code>ApplicationMaster</code> can monitor the launched container by
  * either querying the <code>ResourceManager</code> using
@@ -181,7 +155,7 @@ public class ApplicationMaster {
   public static enum DSEvent {
     DS_APP_ATTEMPT_START, DS_APP_ATTEMPT_END, DS_CONTAINER_START, DS_CONTAINER_END
   }
-  
+
   @VisibleForTesting
   @Private
   public static enum DSEntity {
@@ -230,6 +204,11 @@ public class ApplicationMaster {
   // VirtualCores to request for the container on which the shell command will run
   private int containerVirtualCores = 1;
   // Priority of the request
+
+  private String containerFpgaType = "UNKNOWN";
+  private String containerFpgaIps;
+  private boolean containerFpgaShare = false;
+
   private int requestPriority;
 
   // Counter for completed containers ( complete denotes successful or failed )
@@ -350,7 +329,7 @@ public class ApplicationMaster {
     BufferedReader buf = null;
     try {
       String lines = Shell.WINDOWS ? Shell.execCommand("cmd", "/c", "dir") :
-        Shell.execCommand("ls", "-al");
+          Shell.execCommand("ls", "-al");
       buf = new BufferedReader(new StringReader(lines));
       String line = "";
       while ((line = buf.readLine()) != null) {
@@ -387,6 +366,11 @@ public class ApplicationMaster {
         "Amount of memory in MB to be requested to run the shell command");
     opts.addOption("container_vcores", true,
         "Amount of virtual cores to be requested to run the shell command");
+
+    opts.addOption("fpga_type", true, "indicate the FPGA device type");
+    opts.addOption("fpga_ips", true, "indicate AFU type and slots an executor needs");
+    opts.addOption("fpga_share", true, "indicate whether YARN should isolate FPGA to the executor");
+
     opts.addOption("num_containers", true,
         "No. of containers on which the shell command needs to be executed");
     opts.addOption("priority", true, "Application Priority. Default 0");
@@ -531,6 +515,11 @@ public class ApplicationMaster {
         "container_memory", "10"));
     containerVirtualCores = Integer.parseInt(cliParser.getOptionValue(
         "container_vcores", "1"));
+
+    containerFpgaType = cliParser.getOptionValue("fpga_type", "");
+    containerFpgaIps = cliParser.getOptionValue("fpga_ips", "");
+    containerFpgaShare = Boolean.parseBoolean(cliParser.getOptionValue("fpga_share", "false"));
+
     numTotalContainers = Integer.parseInt(cliParser.getOptionValue(
         "num_containers", "1"));
     if (numTotalContainers == 0) {
@@ -651,7 +640,7 @@ public class ApplicationMaster {
     // resource manager
     long maxMem = response.getMaximumResourceCapability().getMemorySize();
     LOG.info("Max mem capability of resources in this cluster " + maxMem);
-    
+
     int maxVCores = response.getMaximumResourceCapability().getVirtualCores();
     LOG.info("Max vcores capability of resources in this cluster " + maxVCores);
 
@@ -673,7 +662,7 @@ public class ApplicationMaster {
     List<Container> previousAMRunningContainers =
         response.getContainersFromPreviousAttempts();
     LOG.info(appAttemptID + " received " + previousAMRunningContainers.size()
-      + " previous attempts' running containers on AM registration.");
+        + " previous attempts' running containers on AM registration.");
     for(Container container: previousAMRunningContainers) {
       launchedContainers.add(container.getId());
     }
@@ -793,7 +782,7 @@ public class ApplicationMaster {
     } catch (IOException e) {
       LOG.error("Failed to unregister application", e);
     }
-    
+
     amRMClient.stop();
 
     // Stop Timeline Client
@@ -862,7 +851,7 @@ public class ApplicationMaster {
           }
         }
       }
-      
+
       // ask for more containers if any failed
       int askCount = numTotalContainers - numRequestedContainers.get();
       numRequestedContainers.addAndGet(askCount);
@@ -873,7 +862,7 @@ public class ApplicationMaster {
           amRMClient.addContainerRequest(containerAsk);
         }
       }
-      
+
       if (numCompletedContainers.get() == numTotalContainers) {
         done = true;
       }
@@ -896,7 +885,9 @@ public class ApplicationMaster {
             + ", containerResourceMemory"
             + allocatedContainer.getResource().getMemorySize()
             + ", containerResourceVirtualCores"
-            + allocatedContainer.getResource().getVirtualCores());
+            + allocatedContainer.getResource().getVirtualCores()
+            + ", containerResourceFpgaSlotsNum"
+            + allocatedContainer.getResource().getFPGASlots().size());
         // + ", containerToken"
         // +allocatedContainer.getContainerToken().getIdentifier().toString());
 
@@ -965,7 +956,7 @@ public class ApplicationMaster {
 
     @Override
     public void onContainerStatusReceived(ContainerId containerId,
-        ContainerStatus containerStatus) {
+                                          ContainerStatus containerStatus) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Container Status: id=" + containerId + ", status=" +
             containerStatus);
@@ -974,7 +965,7 @@ public class ApplicationMaster {
 
     @Override
     public void onContainerStarted(ContainerId containerId,
-        Map<String, ByteBuffer> allServiceResponse) {
+                                   Map<String, ByteBuffer> allServiceResponse) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Succeeded to start Container " + containerId);
       }
@@ -1042,7 +1033,7 @@ public class ApplicationMaster {
      * @param containerListener Callback handler of the container
      */
     public LaunchContainerRunnable(Container lcontainer,
-        NMCallbackHandler containerListener, String shellId) {
+                                   NMCallbackHandler containerListener, String shellId) {
       this.container = lcontainer;
       this.containerListener = containerListener;
       this.shellId = shellId;
@@ -1050,9 +1041,9 @@ public class ApplicationMaster {
 
     @Override
     /**
-     * Connects to CM, sets up container launch context 
-     * for shell command and eventually dispatches the container 
-     * start request to the CM. 
+     * Connects to CM, sets up container launch context
+     * for shell command and eventually dispatches the container
+     * start request to the CM.
      */
     public void run() {
       LOG.info("Setting up container launch container for containerid="
@@ -1102,8 +1093,8 @@ public class ApplicationMaster {
           return;
         }
         LocalResource shellRsrc = LocalResource.newInstance(yarnUrl,
-          LocalResourceType.FILE, LocalResourceVisibility.APPLICATION,
-          shellScriptPathLen, shellScriptPathTimestamp);
+            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION,
+            shellScriptPathLen, shellScriptPathTimestamp);
         localResources.put(Shell.WINDOWS ? EXEC_BAT_SCRIPT_STRING_PATH :
             EXEC_SHELL_STRING_PATH, shellRsrc);
         shellCommand = Shell.WINDOWS ? windows_command : linux_bash_command;
@@ -1151,7 +1142,7 @@ public class ApplicationMaster {
               containerRetryPolicy, containerRetryErrorCodes,
               containerMaxRetries, containrRetryInterval);
       ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(
-        localResources, myShellEnv, commands, null, allTokens.duplicate(),
+          localResources, myShellEnv, commands, null, allTokens.duplicate(),
           null, containerRetryContext);
       containerListener.addContainer(container.getId(), container);
       nmClientAsync.startContainerAsync(container, ctx);
@@ -1183,11 +1174,21 @@ public class ApplicationMaster {
     // set the priority for the request
     // TODO - what is the range for priority? how to decide?
     Priority pri = Priority.newInstance(requestPriority);
-
+    Set<FPGASlot> fpgaSlots = new HashSet<FPGASlot>();
+    LOG.info("AM got FPGA string: " + containerFpgaIps);
+    if (containerFpgaIps != null) {
+      String[] fpgaSlotsArray = containerFpgaIps.split(",");
+      for (String ips : fpgaSlotsArray) {
+        String[] ip = ips.split(":");
+        for (int i = 0; i < Integer.parseInt(ip[1]); i++) {
+          fpgaSlots.add(FPGASlot.newInstance(FPGAType.valueOf(containerFpgaType), UUID.randomUUID().toString(), ip[0]));
+        }
+      }
+    }
     // Set up resource type requirements
     // For now, memory and CPU are supported so we set memory and cpu requirements
     Resource capability = Resource.newInstance(containerMemory,
-      containerVirtualCores);
+        containerVirtualCores, fpgaSlots);
 
     ContainerRequest request = new ContainerRequest(capability, null, null,
         pri);
@@ -1340,7 +1341,7 @@ public class ApplicationMaster {
 
   @VisibleForTesting
   Thread createLaunchContainerThread(Container allocatedContainer,
-      String shellId) {
+                                     String shellId) {
     LaunchContainerRunnable runnableLaunchContainer =
         new LaunchContainerRunnable(allocatedContainer, containerListener,
             shellId);
@@ -1351,7 +1352,7 @@ public class ApplicationMaster {
       Container container) {
     final org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity
         entity =
-            new org.apache.hadoop.yarn.api.records.timelineservice.
+        new org.apache.hadoop.yarn.api.records.timelineservice.
             TimelineEntity();
     entity.setId(container.getId().toString());
     entity.setType(DSEntity.DS_CONTAINER.toString());
@@ -1377,7 +1378,7 @@ public class ApplicationMaster {
       });
     } catch (Exception e) {
       LOG.error("Container start event could not be published for "
-          + container.getId().toString(),
+              + container.getId().toString(),
           e instanceof UndeclaredThrowableException ? e.getCause() : e);
     }
   }
@@ -1386,7 +1387,7 @@ public class ApplicationMaster {
       final ContainerStatus container) {
     final org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity
         entity =
-            new org.apache.hadoop.yarn.api.records.timelineservice.
+        new org.apache.hadoop.yarn.api.records.timelineservice.
             TimelineEntity();
     entity.setId(container.getContainerId().toString());
     entity.setType(DSEntity.DS_CONTAINER.toString());
@@ -1410,7 +1411,7 @@ public class ApplicationMaster {
       });
     } catch (Exception e) {
       LOG.error("Container end event could not be published for "
-          + container.getContainerId().toString(),
+              + container.getContainerId().toString(),
           e instanceof UndeclaredThrowableException ? e.getCause() : e);
     }
   }
@@ -1419,7 +1420,7 @@ public class ApplicationMaster {
       DSEvent appEvent) {
     final org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity
         entity =
-            new org.apache.hadoop.yarn.api.records.timelineservice.
+        new org.apache.hadoop.yarn.api.records.timelineservice.
             TimelineEntity();
     entity.setId(appAttemptID.toString());
     entity.setType(DSEntity.DS_APP_ATTEMPT.toString());
@@ -1444,9 +1445,9 @@ public class ApplicationMaster {
       });
     } catch (Exception e) {
       LOG.error("App Attempt "
-          + (appEvent.equals(DSEvent.DS_APP_ATTEMPT_START) ? "start" : "end")
-          + " event could not be published for "
-          + appAttemptID,
+              + (appEvent.equals(DSEvent.DS_APP_ATTEMPT_START) ? "start" : "end")
+              + " event could not be published for "
+              + appAttemptID,
           e instanceof UndeclaredThrowableException ? e.getCause() : e);
     }
   }
