@@ -369,34 +369,51 @@ public class Resources {
   }
 
   private static Set<FPGASlot> checkFPGAAndAdopt(Set<FPGASlot> large, Set<FPGASlot> small) {
-    int found = 0;
     if (small == null || small.size() == 0) {
       return small;
     }
-    Set<FPGASlot> adoptedFPGA = new HashSet<>();
+    Set<FPGASlot> adoptedFPGAs = new HashSet<>();
+    FPGASlot degradedAdoptedFPGA = FPGASlot.newInstance();
+    boolean foundAllMatches = false;
+    //we prefer to return sets that both matches FPGA type and AFUID to avoid flashing.
+    //But, if no best choice, we should only check FPGA type and do flashing in NM later
     for (FPGASlot neededFPGA : small) {
+      foundAllMatches = false;
       for (FPGASlot t : large) {
-        if (isSimilarFPGA(neededFPGA, t)) {
-          adoptedFPGA.add(t);
-          found++;
+        if (adoptedFPGAs.contains(t)) {
+          continue;
+        }
+        if (isSimilarFPGA(neededFPGA, t, adoptedFPGAs, degradedAdoptedFPGA)) {
+          foundAllMatches = true;
           break;
         }
       }
+      //no exact matches, use degradedAdoptedFPGA as adopted FPGA
+      if (!foundAllMatches) {
+        degradedAdoptedFPGA.setShouldFlash(true);
+        adoptedFPGAs.add(FPGASlot.newInstance(degradedAdoptedFPGA));
+      }
     }
-    if (found == small.size()){
-      return adoptedFPGA;
+
+    if (adoptedFPGAs.size() == small.size()){
+      return adoptedFPGAs;
     }
     return null;
   }
 
   //check if b can be used by a request
-  private static boolean isSimilarFPGA(FPGASlot a, FPGASlot b) {
+  private static boolean isSimilarFPGA(FPGASlot a, FPGASlot b,
+                                       Set<FPGASlot> adoptedFPGA,
+                                       FPGASlot degradedAdoptedFPGA) {
     boolean typeMatch = false;
     boolean afuIDMatch = false;
     //check type
     if (a.getFpgaType() == null) {
       typeMatch = true;
     } else if (a.getFpgaType().equals(b.getFpgaType())){
+      degradedAdoptedFPGA.setFpgaType(b.getFpgaType());
+      degradedAdoptedFPGA.setSlotId(b.getSlotId());
+      degradedAdoptedFPGA.setAfuId(b.getAfuId());
       typeMatch = true;
     }
     //check afuID
@@ -406,6 +423,7 @@ public class Resources {
       afuIDMatch = true;
     }
     if (typeMatch && afuIDMatch) {
+      adoptedFPGA.add(b);
       return true;
     }
     return false;

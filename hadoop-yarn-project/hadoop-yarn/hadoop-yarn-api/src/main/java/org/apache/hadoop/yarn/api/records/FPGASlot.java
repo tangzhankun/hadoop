@@ -6,6 +6,15 @@ public class FPGASlot implements Comparable<FPGASlot>{
   private String slotId;
   private String afuId;
 
+  public boolean shouldFlash() {
+    return shouldFlash;
+  }
+
+  public void setShouldFlash(boolean shouldFlash) {
+    this.shouldFlash = shouldFlash;
+  }
+
+  public boolean shouldFlash;
   public static FPGASlot newInstance(FPGAType type, String slotId, String afuId) {
     FPGASlot fpgaSlot = new FPGASlot();
     fpgaSlot.setFpgaType(type);
@@ -19,6 +28,7 @@ public class FPGASlot implements Comparable<FPGASlot>{
     fpgaSlot.setSlotId(a.getSlotId());
     fpgaSlot.setFpgaType(a.getFpgaType());
     fpgaSlot.setAfuId(a.getAfuId());
+    fpgaSlot.setShouldFlash(a.shouldFlash());
     return fpgaSlot;
   }
 
@@ -64,7 +74,7 @@ public class FPGASlot implements Comparable<FPGASlot>{
 
   @Override
   public String toString() {
-    return "fpga type: " + fpgaType + " slot id: " + slotId + " afu id: " + afuId + ".";
+    return "fpga type: " + fpgaType + " slot id: " + slotId + " afu id: " + afuId + "." + "should flash: " + shouldFlash;
   }
 
   @Override

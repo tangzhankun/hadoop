@@ -795,6 +795,8 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
     LOG.info("zhankun requested capacity:" + capability);
     LOG.info("zhankun available:" + available);
     if (Resources.fitsIn(capability, available)) {
+      //we may change the FPGA info in "fitsIn", so reset again.
+      request.setCapability(capability);
       // Inform the application of the new container for this request
       LOG.info("zhankun, pass fits in and allocate container :" + capability);
       RMContainer allocatedContainer =

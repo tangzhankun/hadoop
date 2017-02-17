@@ -32,18 +32,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.ha.HAServiceProtocol;
@@ -115,6 +109,8 @@ public class TestFairScheduler extends FairSchedulerTestBase {
   private final int GB = 1024;
   private final static String ALLOC_FILE =
       new File(TEST_DIR, "test-queues").getAbsolutePath();
+  private static final Log LOG = LogFactory.getLog(
+      TestFairScheduler.class.getName());
 
   @Before
   public void setUp() throws IOException {
@@ -3288,6 +3284,7 @@ public class TestFairScheduler extends FairSchedulerTestBase {
 
     Set<FPGASlot> fpgas1 = new HashSet<>();
     fpgas1.add(FPGASlot.newInstance(FPGAType.MCP,"","000000"));
+    fpgas1.add(FPGASlot.newInstance(FPGAType.DSC,"","000001"));
     ApplicationAttemptId appAttId1 = createSchedulingRequest(2048, 1, fpgas1, "queue1",
         "user1", 2);
     FSAppAttempt app1 = scheduler.getSchedulerApp(appAttId1);
@@ -3309,14 +3306,19 @@ public class TestFairScheduler extends FairSchedulerTestBase {
     NodeUpdateSchedulerEvent updateEvent = new NodeUpdateSchedulerEvent(node);
     scheduler.handle(updateEvent);
     Assert.assertEquals(1, app1.getLiveContainers().size());
+    for (Iterator<RMContainer> it = app1.getLiveContainers().iterator(); it.hasNext();) {
+      RMContainer rmContainer = it.next();
+      Assert.assertEquals(2, rmContainer.getContainer().getResource().getFPGASlots().size());
+      LOG.info("zhankun test:" + rmContainer.getContainer().getResource().getFPGASlots().toString());
+    }
     //  Assert.assertEquals(0, app2.getLiveContainers().size());
 
-    scheduler.handle(updateEvent);
-    Assert.assertEquals(1, app1.getLiveContainers().size());
-  //  Assert.assertEquals(1, app2.getLiveContainers().size());
-
-    scheduler.handle(updateEvent);
-    Assert.assertEquals(2, app1.getLiveContainers().size());
+//    scheduler.handle(updateEvent);
+//    Assert.assertEquals(1, app1.getLiveContainers().size());
+//  //  Assert.assertEquals(1, app2.getLiveContainers().size());
+//
+//    scheduler.handle(updateEvent);
+//    Assert.assertEquals(2, app1.getLiveContainers().size());
   //  Assert.assertEquals(1, app2.getLiveContainers().size());
   }
 
