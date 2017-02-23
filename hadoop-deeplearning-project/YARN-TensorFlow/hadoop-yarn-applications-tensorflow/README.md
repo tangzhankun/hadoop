@@ -27,19 +27,19 @@ Note that current project is a prototype with limitation and is still under deve
 
 ### Modify Tensorflow Script
 
-1. TensorflowOnYarn have launched TensorFlow servers, so the  codes about start and join servers need to be deleted.
+1. TensorflowOnYarn have launched TensorFlow servers, so the  codes about start and join servers need to be deleted.     
+         
+    ```
+    // the part of your script like the following need to be deleted                       
+    server = tf.train.Server(clusterSpec, job_name="worker", task_index=0)      
+    server.join()                   
+    ```
 
-```python
-// the part of your script like the following need to be deleted
-server = tf.train.Server(clusterSpec, job_name="worker", task_index=0)
-server.join()
-```
-
-2. Server.target should be a parameter of Tensorflow script
-
-```python
-tf.app.flags.DEFINE_string("target", "", "target url")
-```
+2. Server.target should be a parameter of Tensorflow script.        
+    
+    ```
+    tf.app.flags.DEFINE_string("target", "", "target url")
+    ```
 
 3. You need write a python script like job.py to parse Tensorflow cluster parameters and start Tensorflow clients. A example script like the following：
 
