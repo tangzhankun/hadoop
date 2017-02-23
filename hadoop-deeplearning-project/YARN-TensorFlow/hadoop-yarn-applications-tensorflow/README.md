@@ -29,8 +29,8 @@ Note that current project is a prototype with limitation and is still under deve
 
 1. TensorflowOnYarn have launched TensorFlow servers, so the  codes about start and join servers need to be deleted.     
          
-    ```
-    // the part of your script like the following need to be deleted                       
+    ```
+    // the part of your script like the following need to be deleted                       
     server = tf.train.Server(clusterSpec, job_name="worker", task_index=0)      
     server.join()                   
     ```
