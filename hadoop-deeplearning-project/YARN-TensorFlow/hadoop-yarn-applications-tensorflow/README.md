@@ -19,6 +19,7 @@ Note that current project is a prototype with limitation and is still under deve
 1. Git clone ..
 2. Compile [tensorflow-bridge](../tensorflow-bridge/README.md) and put libbridge.so to a place be aware to YARN application. For instance, JVM lib directory.
 3. Compile TensorFlow on YARN
+
    ```sh
    cd <path_to_hadoop-yarn-application-tensorflow>
    mvn clean package -DskipTests
@@ -33,6 +34,7 @@ Note that current project is a prototype with limitation and is still under deve
 server = tf.train.Server(clusterSpec, job_name="worker", task_index=0)
 server.join()
 ```
+
 2. Server.target should be a parameter of Tensorflow script
 
 ```python
@@ -41,7 +43,7 @@ tf.app.flags.DEFINE_string("target", "", "target url")
 
 3. You need write a python script like job.py to parse Tensorflow cluster parameters and start Tensorflow clients. A example script like the following：
 
-[example job.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/job.py)
+   [example job.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/job.py)
 
 ### Run  
 Run your Tensorflow script. Let's assume a "job.py"
