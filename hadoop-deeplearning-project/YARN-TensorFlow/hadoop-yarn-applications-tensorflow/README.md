@@ -23,23 +23,29 @@ Note that current project is a prototype with limitation and is still under deve
    cd <path_to_hadoop-yarn-application-tensorflow>
    mvn clean package -DskipTests
    ```
+
 ### Modify Tensorflow Script
+
 1. TensorflowOnYarn have launched TensorFlow servers, so the  codes about start and join servers need to be deleted.
+
 ```python
 // the part of your script like the following need to be deleted
 server = tf.train.Server(clusterSpec, job_name="worker", task_index=0)
 server.join()
 ```
 2. Server.target should be a parameter of Tensorflow script
+
 ```python
 tf.app.flags.DEFINE_string("target", "", "target url")
 ```
+
 3. You need write a python script like job.py to parse Tensorflow cluster parameters and start Tensorflow clients. A example script like the following：
 
 [example job.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/job.py)
 
 ### Run  
 Run your Tensorflow script. Let's assume a "job.py"
+
    ```sh
    ./bin/yarn-tf -job job.py -numberworkers 4 -numberps 1 -jar <path_to_tensorflow-on-yarn-with-dependency_jar>
    ```
