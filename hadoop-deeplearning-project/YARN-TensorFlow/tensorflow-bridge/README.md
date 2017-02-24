@@ -1,40 +1,55 @@
 
 
-## How to build native library
-To build the native library, we assume that user already have Tensorflow installed on their servers and eventuall we'll build an independent .so file.
+## How to build Tensroflow native shared library
 
-1. Down load this project to folder ${HDL_HOME}
+1. Download Tensorflow's source code to dicrectory ${TENSORFLOW_HOME}.
 
-2. Get protobuf 3.1
-   
-   `wget https://github.com/google/protobuf/archive/v3.1.0.tar.gz`
-   
-3. Build protobuf 3.1
+2. Prepare the build environemnt following the instructions from https://www.tensorflow.org/install/install_sources
 
-   Unzip the protobuf source code and build out it's native library (No need to install)
-   
-   ```
-   ./autogen.sh
-   ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC"
-   make
-   ```
-   
-4. Enter into folder ${HDL_HOME}
+3. Adding following code into file ${TENSORFLOW_HOME}/tensorflow/core/distributed_runtime/rpc/BUILD
 
-4. Build `libridge.so`
+  ```
+   cc_binary(
+       name = "libgrpc_tensorflow_server.so",
+       linkshared = 1,
+       srcs = [
+           "grpc_tensorflow_server.cc",
+       ],
+       deps = [
+           ":grpc_server_lib",
+           "//tensorflow/core:all_kernels",
+           "//tensorflow/core:core_cpu",
+           "//tensorflow/core:framework_internal",                                                                                                                 
+           "//tensorflow/core:lib",
+           "//tensorflow/core:protos_all_cc",
+           "//tensorflow/core/distributed_runtime:server_lib",
+           "@grpc//:grpc++_unsecure",
+       ],
+   )
+  ```
 
-   ```
-   g++ -std=c++11 -o libbridge.so  {TENSORFLOW_HOME}/python/_pywrap_tensorflow.so -shared -O3 -mavx -fPIC 
-   -I{JDK_HOME}/include -I{JDK_HOME}/include/linux/ -I{TENSORFLOW_HOME}/include/ -I/usr/lib64 -I./ -lpython2.7
-   -Wl,--whole-archive ../{PROTOBUF3.1_HOME}/src/.libs/libprotobuf-lite.a -Wl,--no-whole-archive {HDL_HOME}/hadoop-deeplearning-project/tensorflow-bridge/src/main/native/org_tensorflow_bridge_TFServer.cpp
-   {HDL_HOME}/hadoop-deeplearning-project/tensorflow-bridge/src/main/native/exception_jni.cc 
-   ```
-   
-   Please note to build out libbridge.so correctly, you need to replace JDK_HOME with your own path. TENSORFLOW_HOME means tensorflow's installed folder which may be various.
-   Here is an example path it may be: `/usr/lib/python2.7/site-packages/tensorflow`. Also, please make sure the python native library is also sepcified when building.
+4. Enter dircetory ${TENSORFLOW_HOME}, then run following command
+
+  ```
+  bazel build -c opt //tensorflow/core/distributed_runtime/rpc:libgrpc_tensorflow_server.so
+  ```
+  
+5. Then we will get a shared library `libgrpc_tensorflow_server.so` located at ${TENSORFLOW_HOME}/bazel-bin/tensorflow/core/distributed_runtime/rpc
+
+## How to build Tensorflow's JNI shared library
+
+1. Get the source code of Tensorflow on Yarn project from https://github.com/Intel-bigdata/HDL 
+
+2. Build the library using command:
+
+  ```
+  g++ -std=c++11 -shared -o libbridge.so -fPIC -I${JDK_HOME}/include -I${JDK_HOME}/include/linux/ -I${TENSORFLOW_HOME}/bazel-genfiles/ -I${TENSORFLOW_HOME} -L${TENSORFLOW_HOME}/bazel-bin/tensorflow/core/distributed_runtime/rpc -lgrpc_tensorflow_server ${HDL_HOME}/hadoop-deeplearning-project/YARN-TensorFlow/tensorflow-bridge/src/main/native/org_tensorflow_bridge_TFServer.cpp ${HDL_HOME}/hadoop-deeplearning-project/YARN-TensorFlow/tensorflow-bridge/src/main/native/exception_jni.cc
+  ```
+  
+  Please note when building against the latest Tensorflow 1.0, protoc 3.2 may be needed in your build environent. 
    
 ## How to build java library.
-**Please note that hadoop requires protoc 2.5 while tensorflow-bridge needs protoc 3.1 which means you need to build this java library using a different environment. However, this java library has already been pulished out and the tenrflow on yarn project depends on that published artifact. So you don't need to compile this project and we'll fix this part in the future.**
+**Please note that hadoop requires protoc 2.5 while tensorflow-bridge needs protoc 3.X which means you need to build this java library using a different environment. However, this java library has already been pulished out and the tenrflow on yarn project depends on that published artifact. So you don't need to compile this project and we'll fix this part in the future.**
  
 Here are the main java API it exposed:
  
