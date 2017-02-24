@@ -14,7 +14,8 @@ Note that current project is a prototype with limitation and is still under deve
 - [ ] Fault tolerance
 - [ ] Code refine and more tests
 
-## Set up and run
+## Quick Start Guide 
+### Set up
 1. Git clone ..
 2. Compile [tensorflow-bridge](../tensorflow-bridge/README.md) and put libbridge.so to a place be aware to YARN application. For instance, JVM lib directory.
 3. Compile TensorFlow on YARN
@@ -23,10 +24,33 @@ Note that current project is a prototype with limitation and is still under deve
    cd <path_to_hadoop-yarn-application-tensorflow>
    mvn clean package -DskipTests
    ```
-4. Run your Tensorflow script. Let's assume a "job.py"
+
+### Modify Tensorflow Script
+
+1. TensorflowOnYarn have launched TensorFlow servers, so the  codes about start and join servers need to be deleted.     
+         
+    ```
+    // the part of your script like the following need to be deleted                       
+    server = tf.train.Server(clusterSpec, job_name="worker", task_index=0)      
+    server.join()                   
+    ```
+
+2. Server.target should be a parameter of Tensorflow script.        
+    
+    ```
+    tf.app.flags.DEFINE_string("target", "", "target url")
+    ```
+    [example mnist-client.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/samples/between-graph/mnist-client.py)
+
+3. You need write a python script like job.py to parse Tensorflow cluster parameters and start Tensorflow clients. A example script like the following：
+
+   [example job.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/samples/between-graph/job.py)
+
+### Run  
+Run your Tensorflow script. Let's assume a "job.py"
 
    ```sh
    ./bin/yarn-tf -job job.py -numberworkers 4 -numberps 1 -jar <path_to_tensorflow-on-yarn-with-dependency_jar>
    ```
-
+   
    Note that at present, the "job.py" should parse worker and PS server from parameters "ps" and "wk" populated by TensorFlow on YARN client in the form of comma seperated values.
