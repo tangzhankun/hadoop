@@ -42,6 +42,10 @@ public class TFApplication {
     public static final String OPT_TF_WORKER_NUM = "num_worker";
     public static final String OPT_TF_PS_NUM = "num_ps";
 
+    public static final String OPT_TF_CONTAINER_LIBS = "container_libs";
+    public static final String OPT_TF_JNI_SO = "jni_so";
+    public static final String OPT_TF_TF_SO = "tf_so";
+
     public static String makeOption(String opt, String val) {
         return "--" + opt + " " + val;
     }

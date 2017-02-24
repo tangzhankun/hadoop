@@ -10,14 +10,16 @@ Note that current project is a prototype with limitation and is still under deve
 - [x] Generate ClusterSpec dynamically
 - [x] RPC support for client to get ClusterSpec from AM
 - [x] Signal handling for graceful shutdown
-- [ ] Package TensorFlow runtime as a resource that can be distributed easily
+- [x] Package TensorFlow runtime as a resource that can be distributed easily
+- [ ] TensorBoard support
+- [ ] Better handling of network port conflicts
 - [ ] Fault tolerance
 - [ ] Code refine and more tests
 
 ## Quick Start Guide 
 ### Set up
 1. Git clone ..
-2. Compile [tensorflow-bridge](../tensorflow-bridge/README.md) and put libbridge.so to a place be aware to YARN application. For instance, JVM lib directory.
+2. Compile [tensorflow-bridge](../tensorflow-bridge/README.md) and put libbridge.so and libgrpc_tensorflow_server to "bin" directory.
 3. Compile TensorFlow on YARN
 
    ```sh
@@ -40,17 +42,18 @@ Note that current project is a prototype with limitation and is still under deve
     ```
     tf.app.flags.DEFINE_string("target", "", "target url")
     ```
-    [example mnist-client.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/samples/between-graph/mnist-client.py)
+    [example mnist-client.py](samples/between-graph/mnist-client.py)
 
 3. You need write a python script like job.py to parse Tensorflow cluster parameters and start Tensorflow clients. A example script like the following：
 
-   [example job.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/samples/between-graph/job.py)
+   [example job.py](samples/between-graph/job.py)
 
 ### Run  
 Run your Tensorflow script. Let's assume a "job.py"
 
    ```sh
-   ./bin/yarn-tf -job job.py -numberworkers 4 -numberps 1 -jar <path_to_tensorflow-on-yarn-with-dependency_jar>
+   cd bin
+   yarn-tf -job job.py -numberworkers 4 -numberps 1 -jar <path_to_tensorflow-on-yarn-with-dependency_jar>
    ```
    
    Note that at present, the "job.py" should parse worker and PS server from parameters "ps" and "wk" populated by TensorFlow on YARN client in the form of comma seperated values.

@@ -42,5 +42,6 @@ yarn jar $JAR $CLIENT_MAIN_CLASS \
          --tf_client $JOB \
          --num_worker $WORKERS \
          --num_ps $PSES \
-         --container_memory 4096
-
+         --container_memory 4096 \
+         --jni_so "./libbridge.so" \
+         --tf_so "./libgrpc_tensorflow_server.so"

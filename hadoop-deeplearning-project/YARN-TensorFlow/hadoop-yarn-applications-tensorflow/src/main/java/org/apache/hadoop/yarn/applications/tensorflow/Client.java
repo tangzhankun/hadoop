@@ -97,6 +97,9 @@ public class Client {
 
   private TFApplicationRpc appRpc = null;
 
+  private String tfSoFile = "";
+
+  private String jniSoFile = "";
   /**
    * @param args Command line arguments
    */
@@ -181,6 +184,10 @@ public class Client {
             "worker quantity of tensorflow");
     opts.addOption(TFApplication.OPT_TF_PS_NUM, true,
             "ps quantity of tensorflow");
+    opts.addOption(TFApplication.OPT_TF_JNI_SO, true,
+            "jni so of tensorflow");
+    opts.addOption(TFApplication.OPT_TF_TF_SO, true,
+            "tf so of tensorflow");
   }
 
   /**
@@ -237,7 +244,8 @@ public class Client {
 
     appMasterJar = cliParser.getOptionValue("jar");
 
-
+    tfSoFile = cliParser.getOptionValue(TFApplication.OPT_TF_TF_SO, "");
+    jniSoFile = cliParser.getOptionValue(TFApplication.OPT_TF_JNI_SO, "");
 
     if (!cliParser.hasOption(TFApplication.OPT_TF_CLIENT)) {
       throw new IllegalArgumentException(
@@ -387,6 +395,14 @@ public class Client {
     String dstJarPath = copyLocalFileToDfs(fs, appId.toString(), appMasterJar, TFContainer.SERVER_JAR_PATH);
     tfAmContainer.addToLocalResources(fs, new Path(dstJarPath), TFAmContainer.APPMASTER_JAR_PATH, localResources);
 
+    String jniSoDfsPath = "";
+    if (jniSoFile != null && !jniSoFile.equals("")) {
+      jniSoDfsPath = copyLocalFileToDfs(fs, appId.toString(), jniSoFile, "TFServer.so");
+    }
+    String tfSoDfsPath = "";
+    if (tfSoFile != null && !tfSoFile.equals("")) {
+      tfSoDfsPath = copyLocalFileToDfs(fs, appId.toString(), tfSoFile, "Tensorflow.so");
+    }
     // Set the log4j properties if needed
 /*    if (!log4jPropFile.isEmpty()) {
       tfAmContainer.addToLocalResources(fs, log4jPropFile, log4jPath, appId.toString(),
@@ -403,7 +419,7 @@ public class Client {
     }
 
     StringBuilder command = tfAmContainer.makeCommands(amMemory, appMasterMainClass, containerMemory, containerVirtualCores,
-    workerNum, psNum, dstJarPath, containerRetryOptions);
+        workerNum, psNum, dstJarPath, containerRetryOptions, jniSoDfsPath, tfSoDfsPath);
 
     LOG.info("AppMaster command: " + command.toString());
     List<String> commands = new ArrayList<String>();
@@ -484,18 +500,18 @@ public class Client {
 
       ApplicationReport report = yarnClient.getApplicationReport(appId);
 
-      LOG.info("Got application report from ASM for"
-          + ", appId=" + appId.getId()
-          + ", clientToAMToken=" + report.getClientToAMToken()
-          + ", appDiagnostics=" + report.getDiagnostics()
-          + ", appMasterHost=" + report.getHost()
-          + ", appQueue=" + report.getQueue()
-          + ", appMasterRpcPort=" + report.getRpcPort()
-          + ", appStartTime=" + report.getStartTime()
-          + ", yarnAppState=" + report.getYarnApplicationState().toString()
-          + ", tfAppFinalState=" + report.getFinalApplicationStatus().toString()
-          + ", appTrackingUrl=" + report.getTrackingUrl()
-          + ", appUser=" + report.getUser());
+//      LOG.info("Got application report from ASM for"
+//          + ", appId=" + appId.getId()
+//          + ", clientToAMToken=" + report.getClientToAMToken()
+//          + ", appDiagnostics=" + report.getDiagnostics()
+//          + ", appMasterHost=" + report.getHost()
+//          + ", appQueue=" + report.getQueue()
+//          + ", appMasterRpcPort=" + report.getRpcPort()
+//          + ", appStartTime=" + report.getStartTime()
+//          + ", yarnAppState=" + report.getYarnApplicationState().toString()
+//          + ", tfAppFinalState=" + report.getFinalApplicationStatus().toString()
+//          + ", appTrackingUrl=" + report.getTrackingUrl()
+//          + ", appUser=" + report.getUser());
 
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus tfStatus = report.getFinalApplicationStatus();
