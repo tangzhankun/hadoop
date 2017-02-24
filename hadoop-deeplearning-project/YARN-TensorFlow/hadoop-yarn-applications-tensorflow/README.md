@@ -40,10 +40,11 @@ Note that current project is a prototype with limitation and is still under deve
     ```
     tf.app.flags.DEFINE_string("target", "", "target url")
     ```
+    [example mnist-client.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/samples/between-graph/mnist-client.py)
 
 3. You need write a python script like job.py to parse Tensorflow cluster parameters and start Tensorflow clients. A example script like the following：
 
-   [example job.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/job.py)
+   [example job.py](https://github.com/Gnillor/HDL/blob/tensorflow-doc/hadoop-deeplearning-project/YARN-TensorFlow/hadoop-yarn-applications-tensorflow/samples/between-graph/job.py)
 
 ### Run  
 Run your Tensorflow script. Let's assume a "job.py"
