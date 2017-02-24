@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -95,9 +95,11 @@ public class ApplicationMaster {
   UserGroupInformation appSubmitterUgi;
 
   private NMClientAsync nmClientAsync;
+
   public NMClientAsync getNMClientAsync() {
     return nmClientAsync;
   }
+
   private NMCallbackHandler containerListener;
 
   @VisibleForTesting
@@ -142,7 +144,7 @@ public class ApplicationMaster {
 
   // Container retry options
   private ContainerRetryPolicy containerRetryPolicy =
-          ContainerRetryPolicy.NEVER_RETRY;
+      ContainerRetryPolicy.NEVER_RETRY;
   private Set<Integer> containerRetryErrorCodes = null;
   private int containerMaxRetries = 0;
   private int containrRetryInterval = 0;
@@ -150,12 +152,16 @@ public class ApplicationMaster {
   // TF server jar file path on hdfs
   private String tfServerJar = "";
 
+  private String jniSoDfsPath = "";
+  private String tfSoDfsPath = "";
+
   // Hardcoded path to custom log_properties
   private static final String log4jPath = "log4j.properties";
 
   private volatile boolean done;
 
   private ByteBuffer allTokens;
+
   public ByteBuffer getAllTokens() {
     return allTokens;
   }
@@ -165,14 +171,14 @@ public class ApplicationMaster {
 
   private int yarnShellIdCounter = 1;
 
-  private  ClusterSpec clusterSpec;
+  private ClusterSpec clusterSpec;
 
   @VisibleForTesting
   protected final Set<ContainerId> launchedContainers =
-          Collections.newSetFromMap(new ConcurrentHashMap<ContainerId, Boolean>());
+      Collections.newSetFromMap(new ConcurrentHashMap<ContainerId, Boolean>());
 
   protected final Set<Container> allocatedContainers =
-          Collections.newSetFromMap(new ConcurrentHashMap<Container, Boolean>());
+      Collections.newSetFromMap(new ConcurrentHashMap<Container, Boolean>());
 
   /**
    * @param args TF server args
@@ -217,26 +223,28 @@ public class ApplicationMaster {
   public boolean init(String[] args) throws ParseException, IOException {
     Options opts = new Options();
     opts.addOption(TFApplication.OPT_TF_APP_ATTEMPT_ID, true,
-            "App Attempt ID. Not to be used unless for testing purposes");
+        "App Attempt ID. Not to be used unless for testing purposes");
     opts.addOption(TFApplication.OPT_TF_CONTAINER_MEMORY, true,
-            "Amount of memory in MB to be requested to run the shell command");
+        "Amount of memory in MB to be requested to run the shell command");
     opts.addOption(TFApplication.OPT_TF_CONTAINER_VCORES, true,
-            "Amount of virtual cores to be requested to run the shell command");
+        "Amount of virtual cores to be requested to run the shell command");
     opts.addOption(TFApplication.OPT_TF_PRIORITY, true, "Application Priority. Default 0");
     opts.addOption(TFApplication.OPT_TF_CONTAINER_RETRY_POLICY, true,
-            "Retry policy when container fails to run, "
-                    + "0: NEVER_RETRY, 1: RETRY_ON_ALL_ERRORS, "
-                    + "2: RETRY_ON_SPECIFIC_ERROR_CODES");
+        "Retry policy when container fails to run, "
+            + "0: NEVER_RETRY, 1: RETRY_ON_ALL_ERRORS, "
+            + "2: RETRY_ON_SPECIFIC_ERROR_CODES");
     opts.addOption(TFApplication.OPT_TF_CONTAINER_RETRY_ERROR_CODES, true,
-            "When retry policy is set to RETRY_ON_SPECIFIC_ERROR_CODES, error "
-                    + "codes is specified with this option, "
-                    + "e.g. --container_retry_error_codes 1,2,3");
+        "When retry policy is set to RETRY_ON_SPECIFIC_ERROR_CODES, error "
+            + "codes is specified with this option, "
+            + "e.g. --container_retry_error_codes 1,2,3");
     opts.addOption(TFApplication.OPT_TF_CONTAINER_MAX_RETRIES, true,
-            "If container could retry, it specifies max retires");
+        "If container could retry, it specifies max retires");
     opts.addOption(TFApplication.OPT_TF_CONTAINER_RETRY_INTERVAL, true,
-            "Interval between each retry, unit is milliseconds");
+        "Interval between each retry, unit is milliseconds");
 
     opts.addOption(TFApplication.OPT_TF_SERVER_JAR, true, "Provide container jar of tensorflow");
+    opts.addOption(TFApplication.OPT_TF_JNI_SO, true, "jni so of tensorflow");
+    opts.addOption(TFApplication.OPT_TF_TF_SO, true, "tf so of tensorflow");
     opts.addOption(TFApplication.OPT_TF_WORKER_NUM, true, "Provide worker server number of tensorflow");
     opts.addOption(TFApplication.OPT_TF_PS_NUM, true, "Provide ps server number of tensorflow");
 
@@ -245,13 +253,13 @@ public class ApplicationMaster {
     if (args.length == 0) {
       printUsage(opts);
       throw new IllegalArgumentException(
-              "No args specified for application master to initialize");
+          "No args specified for application master to initialize");
     }
 
     if (fileExist(log4jPath)) {
       try {
         Log4jPropertyHelper.updateLog4jConfiguration(ApplicationMaster.class,
-                log4jPath);
+            log4jPath);
       } catch (Exception e) {
         LOG.warn("Can not set up custom log4j properties. " + e);
       }
@@ -265,75 +273,77 @@ public class ApplicationMaster {
         appAttemptID = ApplicationAttemptId.fromString(appIdStr);
       } else {
         throw new IllegalArgumentException(
-                "Application Attempt Id not set in the environment");
+            "Application Attempt Id not set in the environment");
       }
     } else {
       ContainerId containerId = ContainerId.fromString(envs
-              .get(Environment.CONTAINER_ID.name()));
+          .get(Environment.CONTAINER_ID.name()));
       appAttemptID = containerId.getApplicationAttemptId();
     }
 
     if (!envs.containsKey(ApplicationConstants.APP_SUBMIT_TIME_ENV)) {
       throw new RuntimeException(ApplicationConstants.APP_SUBMIT_TIME_ENV
-              + " not set in the environment");
+          + " not set in the environment");
     }
     if (!envs.containsKey(Environment.NM_HOST.name())) {
       throw new RuntimeException(Environment.NM_HOST.name()
-              + " not set in the environment");
+          + " not set in the environment");
     }
     if (!envs.containsKey(Environment.NM_HTTP_PORT.name())) {
       throw new RuntimeException(Environment.NM_HTTP_PORT
-              + " not set in the environment");
+          + " not set in the environment");
     }
     if (!envs.containsKey(Environment.NM_PORT.name())) {
       throw new RuntimeException(Environment.NM_PORT.name()
-              + " not set in the environment");
+          + " not set in the environment");
     }
 
     LOG.info("Application master for app" + ", appId="
-            + appAttemptID.getApplicationId().getId() + ", clustertimestamp="
-            + appAttemptID.getApplicationId().getClusterTimestamp()
-            + ", attemptId=" + appAttemptID.getAttemptId());
+        + appAttemptID.getApplicationId().getId() + ", clustertimestamp="
+        + appAttemptID.getApplicationId().getClusterTimestamp()
+        + ", attemptId=" + appAttemptID.getAttemptId());
 
     containerMemory = Integer.parseInt(cliParser.getOptionValue(TFApplication.OPT_TF_CONTAINER_MEMORY, "256"));
     containerVirtualCores = Integer.parseInt(cliParser.getOptionValue(
-            TFApplication.OPT_TF_CONTAINER_VCORES, "1"));
+        TFApplication.OPT_TF_CONTAINER_VCORES, "1"));
 
 
     numTotalWokerContainers = Integer.parseInt(cliParser.getOptionValue(
-            TFApplication.OPT_TF_WORKER_NUM, "1"));
+        TFApplication.OPT_TF_WORKER_NUM, "1"));
     if (numTotalWokerContainers == 0) {
       throw new IllegalArgumentException(
-              "Cannot run tensroflow application with no worker containers");
+          "Cannot run tensroflow application with no worker containers");
     }
 
     numTotalParamServerContainer = Integer.parseInt(cliParser.getOptionValue(
-            TFApplication.OPT_TF_PS_NUM, "0"));
+        TFApplication.OPT_TF_PS_NUM, "0"));
     numTotalContainers = numTotalWokerContainers + numTotalParamServerContainer;
     if (numTotalContainers == 0) {
       throw new IllegalArgumentException(
-              "Cannot run distributed shell with no containers");
+          "Cannot run distributed shell with no containers");
     }
 
     requestPriority = Integer.parseInt(cliParser
-            .getOptionValue(TFApplication.OPT_TF_PRIORITY, "0"));
+        .getOptionValue(TFApplication.OPT_TF_PRIORITY, "0"));
 
     containerRetryPolicy = ContainerRetryPolicy.values()[
-            Integer.parseInt(cliParser.getOptionValue(
-                    TFApplication.OPT_TF_CONTAINER_RETRY_POLICY, "0"))];
+        Integer.parseInt(cliParser.getOptionValue(
+            TFApplication.OPT_TF_CONTAINER_RETRY_POLICY, "0"))];
     if (cliParser.hasOption(TFApplication.OPT_TF_CONTAINER_RETRY_ERROR_CODES)) {
       containerRetryErrorCodes = new HashSet<>();
       for (String errorCode :
-              cliParser.getOptionValue(TFApplication.OPT_TF_CONTAINER_RETRY_ERROR_CODES).split(",")) {
+          cliParser.getOptionValue(TFApplication.OPT_TF_CONTAINER_RETRY_ERROR_CODES).split(",")) {
         containerRetryErrorCodes.add(Integer.parseInt(errorCode));
       }
     }
     containerMaxRetries = Integer.parseInt(
-            cliParser.getOptionValue(TFApplication.OPT_TF_CONTAINER_MAX_RETRIES, "0"));
+        cliParser.getOptionValue(TFApplication.OPT_TF_CONTAINER_MAX_RETRIES, "0"));
     containrRetryInterval = Integer.parseInt(cliParser.getOptionValue(
-            TFApplication.OPT_TF_CONTAINER_RETRY_INTERVAL, "0"));
+        TFApplication.OPT_TF_CONTAINER_RETRY_INTERVAL, "0"));
 
     tfServerJar = cliParser.getOptionValue(TFApplication.OPT_TF_SERVER_JAR, TFAmContainer.APPMASTER_JAR_PATH);
+    tfSoDfsPath = cliParser.getOptionValue(TFApplication.OPT_TF_TF_SO, "");
+    jniSoDfsPath = cliParser.getOptionValue(TFApplication.OPT_TF_JNI_SO, "");
 
     clusterSpec = ClusterSpec.makeClusterSpec(numTotalWokerContainers, numTotalParamServerContainer);
 
@@ -375,14 +385,14 @@ public class ApplicationMaster {
    * @throws YarnException
    * @throws IOException
    */
-  @SuppressWarnings({ "unchecked" })
+  @SuppressWarnings({"unchecked"})
   public void run() throws YarnException, IOException, InterruptedException {
     LOG.info("Starting ApplicationMaster");
 
     // Note: Credentials, Token, UserGroupInformation, DataOutputBuffer class
     // are marked as LimitedPrivate
     Credentials credentials =
-            UserGroupInformation.getCurrentUser().getCredentials();
+        UserGroupInformation.getCurrentUser().getCredentials();
     DataOutputBuffer dob = new DataOutputBuffer();
     credentials.writeTokenStorageToStream(dob);
     // Now remove the AM->RM token so that containers cannot access it.
@@ -399,13 +409,13 @@ public class ApplicationMaster {
 
     // Create appSubmitterUgi and add original tokens to it
     String appSubmitterUserName =
-            System.getenv(ApplicationConstants.Environment.USER.name());
+        System.getenv(ApplicationConstants.Environment.USER.name());
     appSubmitterUgi =
-            UserGroupInformation.createRemoteUser(appSubmitterUserName);
+        UserGroupInformation.createRemoteUser(appSubmitterUserName);
     appSubmitterUgi.addCredentials(credentials);
 
     AMRMClientAsync.AbstractCallbackHandler allocListener =
-            new RMCallbackHandler();
+        new RMCallbackHandler();
     amRMClient = AMRMClientAsync.createAMRMClientAsync(1000, allocListener);
     amRMClient.init(conf);
     amRMClient.start();
@@ -424,8 +434,8 @@ public class ApplicationMaster {
     // This will start heartbeating to the RM
 
     RegisterApplicationMasterResponse response = amRMClient
-            .registerApplicationMaster(appMasterHostname, appMasterRpcPort,
-                    appMasterTrackingUrl);
+        .registerApplicationMaster(appMasterHostname, appMasterRpcPort,
+            appMasterTrackingUrl);
     // Dump out information about cluster capability as seen by the
     // resource manager
     long maxMem = response.getMaximumResourceCapability().getMemorySize();
@@ -437,30 +447,30 @@ public class ApplicationMaster {
     // A resource ask cannot exceed the max.
     if (containerMemory > maxMem) {
       LOG.info("Container memory specified above max threshold of cluster."
-              + " Using max value." + ", specified=" + containerMemory + ", max="
-              + maxMem);
+          + " Using max value." + ", specified=" + containerMemory + ", max="
+          + maxMem);
       containerMemory = maxMem;
     }
 
     if (containerVirtualCores > maxVCores) {
       LOG.info("Container virtual cores specified above max threshold of cluster."
-              + " Using max value." + ", specified=" + containerVirtualCores + ", max="
-              + maxVCores);
+          + " Using max value." + ", specified=" + containerVirtualCores + ", max="
+          + maxVCores);
       containerVirtualCores = maxVCores;
     }
 
     List<Container> previousAMRunningContainers =
-            response.getContainersFromPreviousAttempts();
+        response.getContainersFromPreviousAttempts();
     LOG.info(appAttemptID + " received " + previousAMRunningContainers.size()
-            + " previous attempts' running containers on AM registration.");
-    for(Container container: previousAMRunningContainers) {
+        + " previous attempts' running containers on AM registration.");
+    for (Container container : previousAMRunningContainers) {
       launchedContainers.add(container.getId());
     }
     numAllocatedContainers.addAndGet(previousAMRunningContainers.size());
 
 
     int numTotalContainersToRequest =
-            numTotalContainers - previousAMRunningContainers.size();
+        numTotalContainers - previousAMRunningContainers.size();
     // Setup ask for containers from RM
     // Send request for containers to RM
     // Until we get our fully allocated quota, we keep on polling RM for
@@ -484,10 +494,11 @@ public class ApplicationMaster {
   protected boolean finish() {
     // wait for completion.
     while (!done
-            && (numCompletedContainers.get() != numTotalContainers)) {
+        && (numCompletedContainers.get() != numTotalContainers)) {
       try {
         Thread.sleep(200);
-      } catch (InterruptedException ex) {}
+      } catch (InterruptedException ex) {
+      }
     }
 
     // Join all launched threads
@@ -514,14 +525,14 @@ public class ApplicationMaster {
     String appMessage = null;
     boolean success = true;
     if (numCompletedContainers.get() - numFailedContainers.get()
-            >= numTotalContainers) {
+        >= numTotalContainers) {
       appStatus = FinalApplicationStatus.SUCCEEDED;
     } else {
       appStatus = FinalApplicationStatus.FAILED;
       appMessage = "Diagnostics." + ", total=" + numTotalContainers
-              + ", completed=" + numCompletedContainers.get() + ", allocated="
-              + numAllocatedContainers.get() + ", failed="
-              + numFailedContainers.get();
+          + ", completed=" + numCompletedContainers.get() + ", allocated="
+          + numAllocatedContainers.get() + ", failed="
+          + numFailedContainers.get();
       LOG.info(appMessage);
       success = false;
     }
@@ -568,21 +579,23 @@ public class ApplicationMaster {
       for (Container allocatedContainer : this.allocatedContainers) {
 
         LOG.info("Launching a new container."
-                + ", containerId=" + allocatedContainer.getId()
-                + ", containerNode=" + allocatedContainer.getNodeId().getHost()
-                + ":" + allocatedContainer.getNodeId().getPort()
-                + ", containerNodeURI=" + allocatedContainer.getNodeHttpAddress()
-                + ", containerResourceMemory"
-                + allocatedContainer.getResource().getMemorySize()
-                + ", containerResourceVirtualCores"
-                + allocatedContainer.getResource().getVirtualCores());
+            + ", containerId=" + allocatedContainer.getId()
+            + ", containerNode=" + allocatedContainer.getNodeId().getHost()
+            + ":" + allocatedContainer.getNodeId().getPort()
+            + ", containerNodeURI=" + allocatedContainer.getNodeHttpAddress()
+            + ", containerResourceMemory"
+            + allocatedContainer.getResource().getMemorySize()
+            + ", containerResourceVirtualCores"
+            + allocatedContainer.getResource().getVirtualCores());
         // + ", containerToken"
         // +allocatedContainer.getContainerToken().getIdentifier().toString());
 
         LOG.info("server cid: " + allocatedContainer.getId().toString());
         LaunchContainerThread launchDelegator = new LaunchContainerThread(allocatedContainer,
-                this, clusterSpec.getServerAddress(allocatedContainer.getId().toString()));
+            this, clusterSpec.getServerAddress(allocatedContainer.getId().toString()));
         launchDelegator.setTfServerJar(tfServerJar);
+        launchDelegator.setJniSoDfsPath(jniSoDfsPath);
+        launchDelegator.setTfSoDfsPath(tfSoDfsPath);
         launchDelegator.setContainerMemory(containerMemory);
         launchDelegator.setContainerRetryPolicy(containerRetryPolicy);
         launchDelegator.setContainerRetryErrorCodes(containerRetryErrorCodes);
@@ -598,7 +611,7 @@ public class ApplicationMaster {
         launchThread.start();
       }
     } else {
-      throw  new Exception("containers are not allocated!");
+      throw new Exception("containers are not allocated!");
     }
     return true;
   }
@@ -609,13 +622,13 @@ public class ApplicationMaster {
     @Override
     public void onContainersCompleted(List<ContainerStatus> completedContainers) {
       LOG.info("Got response from RM for container ask, completedCnt="
-              + completedContainers.size());
+          + completedContainers.size());
       for (ContainerStatus containerStatus : completedContainers) {
         LOG.info(appAttemptID + " got container status for containerID="
-                + containerStatus.getContainerId() + ", state="
-                + containerStatus.getState() + ", exitStatus="
-                + containerStatus.getExitStatus() + ", diagnostics="
-                + containerStatus.getDiagnostics());
+            + containerStatus.getContainerId() + ", state="
+            + containerStatus.getState() + ", exitStatus="
+            + containerStatus.getExitStatus() + ", diagnostics="
+            + containerStatus.getDiagnostics());
 
         // non complete containers should not be here
         assert (containerStatus.getState() == ContainerState.COMPLETE);
@@ -623,8 +636,8 @@ public class ApplicationMaster {
         // attempt
         if (!launchedContainers.contains(containerStatus.getContainerId())) {
           LOG.info("Ignoring completed status of "
-                  + containerStatus.getContainerId()
-                  + "; unknown container(probably launched by previous attempt)");
+              + containerStatus.getContainerId()
+              + "; unknown container(probably launched by previous attempt)");
           continue;
         }
 
@@ -650,7 +663,7 @@ public class ApplicationMaster {
           // container completed successfully
           numCompletedContainers.incrementAndGet();
           LOG.info("Container completed successfully." + ", containerId="
-                  + containerStatus.getContainerId());
+              + containerStatus.getContainerId());
         }
       }
 
@@ -673,7 +686,7 @@ public class ApplicationMaster {
     @Override
     public void onContainersAllocated(List<Container> allocatedContainers) {
       LOG.info("Got response from RM for container ask, allocatedCnt="
-              + allocatedContainers.size());
+          + allocatedContainers.size());
       numAllocatedContainers.addAndGet(allocatedContainers.size());
       ApplicationMaster.this.allocatedContainers.addAll(allocatedContainers);
       if (numAllocatedContainers.get() == numTotalContainers) {
@@ -687,7 +700,8 @@ public class ApplicationMaster {
 
     @Override
     public void onContainersUpdated(
-            List<UpdatedContainer> containers) {}
+        List<UpdatedContainer> containers) {
+    }
 
     @Override
     public void onShutdownRequest() {
@@ -695,13 +709,14 @@ public class ApplicationMaster {
     }
 
     @Override
-    public void onNodesUpdated(List<NodeReport> updatedNodes) {}
+    public void onNodesUpdated(List<NodeReport> updatedNodes) {
+    }
 
     @Override
     public float getProgress() {
       // set progress to deliver to RM on next heartbeat
       float progress = (float) numCompletedContainers.get()
-              / numTotalContainers;
+          / numTotalContainers;
       return progress;
     }
 
@@ -723,7 +738,7 @@ public class ApplicationMaster {
   static class NMCallbackHandler extends NMClientAsync.AbstractCallbackHandler {
 
     private ConcurrentMap<ContainerId, Container> containers =
-            new ConcurrentHashMap<ContainerId, Container>();
+        new ConcurrentHashMap<ContainerId, Container>();
     private final ApplicationMaster applicationMaster;
 
     public NMCallbackHandler(ApplicationMaster applicationMaster) {
@@ -747,7 +762,7 @@ public class ApplicationMaster {
                                           ContainerStatus containerStatus) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Container Status: id=" + containerId + ", status=" +
-                containerStatus);
+            containerStatus);
       }
     }
 
@@ -760,13 +775,14 @@ public class ApplicationMaster {
       Container container = containers.get(containerId);
       if (container != null) {
         applicationMaster.nmClientAsync.getContainerStatusAsync(
-                containerId, container.getNodeId());
+            containerId, container.getNodeId());
       }
     }
 
     @Override
     public void onContainerResourceIncreased(
-            ContainerId containerId, Resource resource) {}
+        ContainerId containerId, Resource resource) {
+    }
 
     @Override
     public void onStartContainerError(ContainerId containerId, Throwable t) {
@@ -778,7 +794,7 @@ public class ApplicationMaster {
 
     @Override
     public void onGetContainerStatusError(
-            ContainerId containerId, Throwable t) {
+        ContainerId containerId, Throwable t) {
       LOG.error("Failed to query the status of Container " + containerId);
     }
 
@@ -790,7 +806,8 @@ public class ApplicationMaster {
 
     @Override
     public void onIncreaseContainerResourceError(
-            ContainerId containerId, Throwable t) {}
+        ContainerId containerId, Throwable t) {
+    }
 
   }
 
@@ -809,10 +826,10 @@ public class ApplicationMaster {
     // Set up resource type requirements
     // For now, memory and CPU are supported so we set memory and cpu requirements
     Resource capability = Resource.newInstance(containerMemory,
-            containerVirtualCores);
+        containerVirtualCores);
 
     ContainerRequest request = new ContainerRequest(capability, null, null,
-            pri);
+        pri);
     //LOG.info("Requested container ask: " + request.toString());
     return request;
   }
