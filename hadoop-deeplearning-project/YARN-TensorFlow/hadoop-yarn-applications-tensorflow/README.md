@@ -19,7 +19,7 @@ Note that current project is a prototype with limitation and is still under deve
 ## Quick Start Guide 
 ### Set up
 1. Git clone ..
-2. Compile [tensorflow-bridge](../tensorflow-bridge/README.md) and put libbridge.so and libgrpc_tensorflow_server to "bin" directory.
+2. Compile [tensorflow-bridge](../tensorflow-bridge/README.md) and put "libbridge.so", "libgrpc_tensorflow_server.so" to "bin" directory that yarn-tf belongs.
 3. Compile TensorFlow on YARN
 
    ```sh
@@ -27,26 +27,24 @@ Note that current project is a prototype with limitation and is still under deve
    mvn clean package -DskipTests
    ```
 
-### Modify Tensorflow Script
+### Modify Your Tensorflow Script
 
-1. TensorflowOnYarn have launched TensorFlow servers, so the  codes about start and join servers need to be deleted.     
-         
+1. Since we'll launch TensorFlow servers first and then run your script, the codes that start and join servers is no more needed:
+   
     ```
     // the part of your script like the following need to be deleted                       
     server = tf.train.Server(clusterSpec, job_name="worker", task_index=0)      
     server.join()                   
     ```
 
-2. Server.target should be a parameter of Tensorflow script.        
-    
-    ```
-    tf.app.flags.DEFINE_string("target", "", "target url")
-    ```
-    [example mnist-client.py](samples/between-graph/mnist-client.py)
+2. Parse ps and worker servers
+   
+   Note that at present, you should parse worker and PS server from parameters "ps" and "wk" populated by TensorFlow on YARN client in the form of comma seperated values.
+   
+3. For a detailed between-graph MNIST example, please refer to:
+   [job.py](samples/between-graph/job.py)
+   [mnist-client.py](samples/between-graph/mnist-client.py)
 
-3. You need write a python script like job.py to parse Tensorflow cluster parameters and start Tensorflow clients. A example script like the following：
-
-   [example job.py](samples/between-graph/job.py)
 
 ### Run  
 Run your Tensorflow script. Let's assume a "job.py"
@@ -55,5 +53,3 @@ Run your Tensorflow script. Let's assume a "job.py"
    cd bin
    yarn-tf -job job.py -numberworkers 4 -numberps 1 -jar <path_to_tensorflow-on-yarn-with-dependency_jar>
    ```
-   
-   Note that at present, the "job.py" should parse worker and PS server from parameters "ps" and "wk" populated by TensorFlow on YARN client in the form of comma seperated values.
