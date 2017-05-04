@@ -39,7 +39,8 @@ public interface CGroupsHandler {
     CPU("cpu"),
     NET_CLS("net_cls"),
     BLKIO("blkio"),
-    MEMORY("memory");
+    MEMORY("memory"),
+    DEVICES("devices");
 
     private final String name;
 
@@ -65,6 +66,7 @@ public interface CGroupsHandler {
   String CGROUP_CPU_QUOTA_US = "cfs_quota_us";
   String CGROUP_CPU_SHARES = "shares";
 
+  String CGROUP_PARAM_DEVICE_DENY = "deny";
   /**
    * Mounts or initializes a cgroup controller.
    * @param controller - the controller being initialized

@@ -28,6 +28,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.Fpga.FpgaResourceHandlerImpl;
 import org.apache.hadoop.yarn.server.nodemanager.util.CgroupsLCEResourcesHandler;
 import org.apache.hadoop.yarn.server.nodemanager.util.DefaultLCEResourcesHandler;
 
@@ -85,6 +86,18 @@ public class ResourceHandlerModule {
 
   public static CGroupsHandler getCGroupsHandler() {
     return cGroupsHandler;
+  }
+
+  private static FpgaResourceHandlerImpl getFpgaResourceHandler(
+      Configuration conf) throws ResourceHandlerException {
+    boolean fpgaEnabled = conf.getBoolean(
+        YarnConfiguration.NM_FPGA_RESOURCE_ENABLED,
+        YarnConfiguration.DEFAULT_NM_FPGA_RESOURCE_ENABLED);
+    if (fpgaEnabled) {
+      return new FpgaResourceHandlerImpl(
+          getInitializedCGroupsHandler(conf));
+    }
+    return null;
   }
 
   private static CGroupsCpuResourceHandlerImpl getCGroupsCpuResourceHandler(
@@ -205,6 +218,7 @@ public class ResourceHandlerModule {
     addHandlerIfNotNull(handlerList, getDiskResourceHandler(conf));
     addHandlerIfNotNull(handlerList, getMemoryResourceHandler(conf));
     addHandlerIfNotNull(handlerList, getCGroupsCpuResourceHandler(conf));
+    addHandlerIfNotNull(handlerList, getFpgaResourceHandler(conf));
     resourceHandlerChain = new ResourceHandlerChain(handlerList);
   }
 
