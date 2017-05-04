@@ -392,6 +392,31 @@ public class ResourceUtils {
     return readOnlyNodeResources;
   }
 
+  /**
+   * Function to get the device allowed infomation. The value format should be comma separated majorNumber:minorNumber
+   *
+   * <property>
+   *   <name>yarn.nodemanager.resource-types.MCP.allowed</name>
+   *   <value>244:0,245:1</value>
+   * </property>
+   * @return a map of resource type and allowed value string
+   * */
+  public static Map<String, String> getResourceTypeAllowedValue(Configuration conf) {
+    Map<String, String> allowedDevices = new HashMap<>();
+    for (Map.Entry<String, String> entry : conf) {
+      String key = entry.getKey();
+      String value = entry.getValue();
+      if (key.startsWith(YarnConfiguration.NM_RESOURCES_PREFIX)) {
+        String[] parts = key.split("\\.");
+        LOG.info("Found allowed device resource entry " + key);
+        if (parts.length == 5 && parts[4].equalsIgnoreCase("allowed")) {
+          allowedDevices.put(parts[3], value);
+        }
+      }
+    }
+    return allowedDevices;
+  }
+
   private static Map<String, ResourceInformation>
   initializeNodeResourceInformation(Configuration conf) {
     Map<String, ResourceInformation> nodeResources = new HashMap<>();
