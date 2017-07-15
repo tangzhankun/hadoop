@@ -1304,6 +1304,13 @@ public class YarnConfiguration extends Configuration {
       NM_FPGA_RESOURCE_PREFIX + "enabled";
 
   /**
+   * Settings for fpga vendor plugin
+   */
+  @Private
+  public static final String NM_FPGA_PLUGIN_CLASS =
+          NM_PREFIX + "fpga.plugin.class";
+
+  /**
    * FPGA as a resource is disabled by default.
    **/
   @Private

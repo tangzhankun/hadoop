@@ -27,16 +27,17 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperation;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.Fpga.plugins.IntelMCPFpgaPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -55,11 +56,31 @@ public class FpgaResourceHandlerImpl implements FpgaResourceHandler {
 
   private CGroupsHandler cGroupsHandler;
 
-  public FpgaResourceHandlerImpl(CGroupsHandler cGroupsHandler) {
+  public FpgaResourceHandlerImpl(CGroupsHandler cGroupsHandler, Configuration conf) {
+
+    LOG.info("FPGA Plugin Chain init.");
+
     allocator = new FpgaResourceAllocator();
     //init all plugins based on configurations or hardcode
     pluginChain = new FpgaPluginChain();
-    pluginChain.addPlugin(new IntelMCPFpgaPlugin());
+
+    String[] fpgaPluginClassStrs = conf.getStrings(YarnConfiguration.NM_FPGA_PLUGIN_CLASS);
+    if(fpgaPluginClassStrs == null) {
+      LOG.info("No FPGA plugin can be loaded.");
+    } else {
+
+      for (String fpgaPluginClass : fpgaPluginClassStrs) {
+        LOG.info("FPGA Plugin Class " + fpgaPluginClass);
+        try {
+          Constructor<?> constructor = Class.forName(fpgaPluginClass).getConstructor();
+          AbstractFpgaPlugin fpgaPlugin = (AbstractFpgaPlugin) constructor.newInstance();
+          pluginChain.addPlugin(fpgaPlugin);
+          LOG.info(fpgaPluginClass + " loaded");
+        } catch (NoSuchMethodException | ClassNotFoundException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+          throw new YarnRuntimeException(e);
+        }
+      }
+    }
     this.cGroupsHandler = cGroupsHandler;
   }
 
@@ -89,7 +110,7 @@ public class FpgaResourceHandlerImpl implements FpgaResourceHandler {
   public List<PrivilegedOperation> bootstrap(Configuration configuration) throws ResourceHandlerException {
     // get vendor plugin type, major and minor number from configuration
     // add FPGA devices to allocator
-    if (!pluginChain.initPlugin("", configuration)){
+    if (!pluginChain.initPlugin()){
       throw new ResourceHandlerException("Fpga plugin initialization failed", null);
     }
     //get major number and minor number from configuration node-resource.xml
@@ -161,7 +182,13 @@ public class FpgaResourceHandlerImpl implements FpgaResourceHandler {
           if (null == ipFilePath) {
             throw new ResourceHandlerException("Fpga plugin failed to download IP", null);
           }
-          if (!tempPlugin.configureIP(ipFilePath, allocation)) {
+          List<FpgaResourceAllocator.FpgaDevice> allowed = allocation.getAllowed();
+          List<String> addresses = new ArrayList<>();
+          for(int i = 0; i < allowed.size(); i++) {
+            addresses.add(allowed.get(i).getMajor() + ":" + allowed.get(i).getMinor());
+          }
+
+          if (!tempPlugin.configureIP(ipFilePath, addresses)) {
             throw new ResourceHandlerException("Fpga plugin failed to configure IP", null);
           }
           //update the allocator that we update an IP of a device

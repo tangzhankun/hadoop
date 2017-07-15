@@ -21,7 +21,6 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resourc
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.conf.Configuration;
 
 import java.util.List;
 
@@ -35,7 +34,7 @@ import java.util.List;
 @InterfaceStability.Unstable
 public interface AbstractFpgaPlugin {
 
-  boolean initPlugin(String s, Configuration configuration);
+  boolean initPlugin();
 
   String getExistingIPID(int major, int minor);
 
@@ -46,7 +45,7 @@ public interface AbstractFpgaPlugin {
    * */
   String downloadIP(String id, String dstDir);
 
-  boolean configureIP(String ipPath, FpgaResourceAllocator.FpgaAllocation fpgaAllocations);
+  boolean configureIP(String ipPath, List<String> addresses);
 
-  boolean cleanupFpgas(FpgaResourceAllocator.FpgaAllocation fpgaAllocations);
+  boolean cleanupFpgas(List<String> address);
 }

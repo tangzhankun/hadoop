@@ -395,12 +395,9 @@ public class ResourceUtils {
   /**
    * Function to get the device allowed infomation. The value format should be comma separated majorNumber:minorNumber
    *
-   * <property>
-   *   <name>yarn.nodemanager.resource-types.MCP.allowed</name>
-   *   <value>244:0,245:1</value>
-   * </property>
+   * @param conf
    * @return a map of resource type and allowed value string
-   * */
+   */
   public static Map<String, String> getResourceTypeAllowedValue(Configuration conf) {
     Map<String, String> allowedDevices = new HashMap<>();
     for (Map.Entry<String, String> entry : conf) {

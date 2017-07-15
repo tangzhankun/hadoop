@@ -95,7 +95,7 @@ public class ResourceHandlerModule {
         YarnConfiguration.DEFAULT_NM_FPGA_RESOURCE_ENABLED);
     if (fpgaEnabled) {
       return new FpgaResourceHandlerImpl(
-          getInitializedCGroupsHandler(conf));
+          getInitializedCGroupsHandler(conf), conf);
     }
     return null;
   }
