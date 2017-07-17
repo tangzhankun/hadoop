@@ -19,9 +19,6 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.Fpga;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,9 +49,9 @@ public class FpgaPluginChain{
     return new ArrayList<>(plugins.values());
   }
 
-  public boolean initPlugin(String s, Configuration configuration) {
+  public boolean initPlugin() {
     for (AbstractFpgaPlugin plugin : plugins.values()) {
-      if (!plugin.initPlugin(s,configuration)) {
+      if (!plugin.initPlugin()) {
         return false;
       }
     }
