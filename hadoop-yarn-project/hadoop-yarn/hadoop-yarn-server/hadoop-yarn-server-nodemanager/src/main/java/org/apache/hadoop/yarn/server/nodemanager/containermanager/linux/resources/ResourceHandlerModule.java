@@ -21,6 +21,8 @@
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.hadoop.yarn.server.nodemanager.Context;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceHandlerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -95,6 +97,17 @@ public class ResourceHandlerModule {
     return cGroupsHandler;
   }
 
+  private static FpgaResourceHandlerImpl getFpgaResourceHandler(
+          Context nmContext, Configuration conf) throws ResourceHandlerException {
+    boolean fpgaEnabled = conf.getBoolean(
+            YarnConfiguration.NM_FPGA_RESOURCE_ENABLED,
+            YarnConfiguration.DEFAULT_NM_FPGA_RESOURCE_ENABLED);
+    if (fpgaEnabled) {
+      return new FpgaResourceHandlerImpl(nmContext,
+              getInitializedCGroupsHandler(conf), PrivilegedOperationExecutor.getInstance(conf), conf);
+    }
+    return null;
+  }
   private static CGroupsCpuResourceHandlerImpl getCGroupsCpuResourceHandler(
       Configuration conf) throws ResourceHandlerException {
     boolean cgroupsCpuEnabled =
@@ -205,7 +218,7 @@ public class ResourceHandlerModule {
     }
   }
 
-  private static void initializeConfiguredResourceHandlerChain(
+  private static void initializeConfiguredResourceHandlerChain(Context nmContext,
       Configuration conf) throws ResourceHandlerException {
     ArrayList<ResourceHandler> handlerList = new ArrayList<>();
 
@@ -213,15 +226,16 @@ public class ResourceHandlerModule {
     addHandlerIfNotNull(handlerList, getDiskResourceHandler(conf));
     addHandlerIfNotNull(handlerList, getMemoryResourceHandler(conf));
     addHandlerIfNotNull(handlerList, getCGroupsCpuResourceHandler(conf));
+    addHandlerIfNotNull(handlerList, getFpgaResourceHandler(nmContext, conf));
     resourceHandlerChain = new ResourceHandlerChain(handlerList);
   }
 
   public static ResourceHandlerChain getConfiguredResourceHandlerChain(
-      Configuration conf) throws ResourceHandlerException {
+          Context nmContext, Configuration conf) throws ResourceHandlerException {
     if (resourceHandlerChain == null) {
       synchronized (ResourceHandlerModule.class) {
         if (resourceHandlerChain == null) {
-          initializeConfiguredResourceHandlerChain(conf);
+          initializeConfiguredResourceHandlerChain(nmContext, conf);
         }
       }
     }

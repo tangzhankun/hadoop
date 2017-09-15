@@ -50,6 +50,7 @@ public class PrivilegedOperation {
     TC_READ_STATE("--tc-read-state"),
     TC_READ_STATS("--tc-read-stats"),
     ADD_PID_TO_CGROUP(""), //no CLI switch supported yet.
+    GPU("--module-gpu"),
     RUN_DOCKER_CMD("--run-docker"),
     LIST_AS_USER(""); //no CLI switch supported yet.
 

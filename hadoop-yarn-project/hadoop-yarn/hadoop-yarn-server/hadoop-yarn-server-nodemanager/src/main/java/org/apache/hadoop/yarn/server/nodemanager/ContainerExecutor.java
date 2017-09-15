@@ -109,7 +109,7 @@ public abstract class ContainerExecutor implements Configurable {
    *
    * @throws IOException if initialization fails
    */
-  public abstract void init() throws IOException;
+  public abstract void init(Context nmContext) throws IOException;
 
   /**
    * This function localizes the JAR file on-demand.

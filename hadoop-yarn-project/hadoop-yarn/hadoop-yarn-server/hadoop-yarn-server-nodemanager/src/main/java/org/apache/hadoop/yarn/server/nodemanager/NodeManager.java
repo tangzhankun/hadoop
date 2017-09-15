@@ -322,14 +322,18 @@ public class NodeManager extends CompositeService
         new NMTokenSecretManagerInNM(nmStore);
 
     recoverTokens(nmTokenSecretManager, containerTokenSecretManager);
-    
+    boolean isDistSchedulingEnabled =
+            conf.getBoolean(YarnConfiguration.DIST_SCHEDULING_ENABLED,
+                    YarnConfiguration.DEFAULT_DIST_SCHEDULING_ENABLED);
+    this.context = createNMContext(containerTokenSecretManager,
+            nmTokenSecretManager, nmStore, isDistSchedulingEnabled, conf);
     this.aclsManager = new ApplicationACLsManager(conf);
 
     ContainerExecutor exec = ReflectionUtils.newInstance(
         conf.getClass(YarnConfiguration.NM_CONTAINER_EXECUTOR,
           DefaultContainerExecutor.class, ContainerExecutor.class), conf);
     try {
-      exec.init();
+      exec.init(context);
     } catch (IOException e) {
       throw new YarnRuntimeException("Failed to initialize container executor", e);
     }    
@@ -344,14 +348,6 @@ public class NodeManager extends CompositeService
         new NodeHealthCheckerService(
             getNodeHealthScriptRunner(conf), dirsHandler);
     addService(nodeHealthChecker);
-
-    boolean isDistSchedulingEnabled =
-        conf.getBoolean(YarnConfiguration.DIST_SCHEDULING_ENABLED,
-            YarnConfiguration.DEFAULT_DIST_SCHEDULING_ENABLED);
-
-    this.context = createNMContext(containerTokenSecretManager,
-        nmTokenSecretManager, nmStore, isDistSchedulingEnabled, conf);
-
 
     ((NMContext)context).setContainerExecutor(exec);
 

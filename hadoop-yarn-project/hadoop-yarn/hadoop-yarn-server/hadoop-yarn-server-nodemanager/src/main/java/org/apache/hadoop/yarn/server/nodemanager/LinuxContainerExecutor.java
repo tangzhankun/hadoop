@@ -280,7 +280,7 @@ public class LinuxContainerExecutor extends ContainerExecutor {
   }
 
   @Override
-  public void init() throws IOException {
+  public void init(Context nmContext) throws IOException {
     Configuration conf = super.getConf();
 
     // Send command to executor which will just start up,
@@ -304,7 +304,7 @@ public class LinuxContainerExecutor extends ContainerExecutor {
 
     try {
       resourceHandlerChain = ResourceHandlerModule
-          .getConfiguredResourceHandlerChain(conf);
+          .getConfiguredResourceHandlerChain(nmContext, conf);
       if (LOG.isDebugEnabled()) {
         LOG.debug("Resource handler chain enabled = " + (resourceHandlerChain
             != null));

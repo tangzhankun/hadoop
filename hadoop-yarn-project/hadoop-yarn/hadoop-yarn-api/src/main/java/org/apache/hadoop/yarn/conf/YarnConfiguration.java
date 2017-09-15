@@ -1316,6 +1316,30 @@ public class YarnConfiguration extends Configuration {
       + "resource.network.";
 
   /**
+   * Prefix for FPGA configurations. Work in progress: This configuration
+   * parameter may be changed/removed in the future.
+   */
+  @Private
+  public static final String NM_FPGA_RESOURCE_PREFIX = NM_PREFIX
+      + "resource.fpga.";
+  /**
+  * This setting controls if resource handling for FPGA operations is enabled.
+   */
+  @Private
+  public static final String NM_FPGA_RESOURCE_ENABLED =
+      NM_FPGA_RESOURCE_PREFIX + "enabled";
+
+  @Private
+  public static final String NM_FPGA_ALLOWED_DEVICES =
+      NM_FPGA_RESOURCE_PREFIX + "allowd-fpga-devices";
+
+  /**
+   * FPGA as a resource is disabled by default.
+   **/
+  @Private
+  public static final boolean DEFAULT_NM_FPGA_RESOURCE_ENABLED = false;
+
+  /**
    * This setting controls if resource handling for network bandwidth is
    * enabled. Work in progress: This configuration parameter may be
    * changed/removed in the future
