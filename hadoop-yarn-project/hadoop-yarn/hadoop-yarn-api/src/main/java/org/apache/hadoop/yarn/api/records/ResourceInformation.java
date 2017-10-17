@@ -43,6 +43,7 @@ public class ResourceInformation implements Comparable<ResourceInformation> {
   public static final String MEMORY_URI = "memory-mb";
   public static final String VCORES_URI = "vcores";
   public static final String GPU_URI = "yarn.io/gpu";
+  public static final String FPGA_URI = "yarn.io/fpga";
 
   public static final ResourceInformation MEMORY_MB =
       ResourceInformation.newInstance(MEMORY_URI, "Mi");
@@ -50,9 +51,11 @@ public class ResourceInformation implements Comparable<ResourceInformation> {
       ResourceInformation.newInstance(VCORES_URI);
   public static final ResourceInformation GPUS =
       ResourceInformation.newInstance(GPU_URI);
+  public static final ResourceInformation FPGAS =
+          ResourceInformation.newInstance(FPGA_URI);
 
   public static final Map<String, ResourceInformation> MANDATORY_RESOURCES =
-      ImmutableMap.of(MEMORY_URI, MEMORY_MB, VCORES_URI, VCORES, GPU_URI, GPUS);
+      ImmutableMap.of(MEMORY_URI, MEMORY_MB, VCORES_URI, VCORES, GPU_URI, GPUS, FPGA_URI, FPGAS);
 
   /**
    * Get the name for the resource.

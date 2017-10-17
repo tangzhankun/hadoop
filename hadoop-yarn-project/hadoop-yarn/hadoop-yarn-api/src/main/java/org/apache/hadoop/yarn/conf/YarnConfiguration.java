@@ -1465,6 +1465,30 @@ public class YarnConfiguration extends Configuration {
   @Private
   public static final String DEFAULT_NM_GPU_PATH_TO_EXEC = "";
 
+  /**
+   * Prefix for FPGA configurations. Work in progress: This configuration
+   * parameter may be changed/removed in the future.
+   */
+  @Private
+  public static final String NM_FPGA_RESOURCE_PREFIX =
+          NM_RESOURCE_PLUGINS + ".fpga.";
+  /**
+   * This setting controls if resource handling for FPGA operations is enabled.
+   */
+  @Private
+  public static final String NM_FPGA_RESOURCE_ENABLED =
+          NM_FPGA_RESOURCE_PREFIX + "enabled";
+
+  @Private
+  public static final boolean DEFAULT_NM_FPGA_RESOURCE_ENABLED = false;
+
+  @Private
+  public static final String NM_FPGA_ALLOWED_DEVICES =
+          NM_FPGA_RESOURCE_PREFIX + "allowd-fpga-devices";
+
+  @Private
+  public static final String NM_FPGA_PATH_TO_EXEC =
+          NM_FPGA_RESOURCE_PREFIX + "path-to-discovery-executables";
 
   /** NM Webapp address.**/
   public static final String NM_WEBAPP_ADDRESS = NM_PREFIX + "webapp.address";
