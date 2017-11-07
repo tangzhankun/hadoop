@@ -39,7 +39,7 @@
 static const struct section* cfg_section;
 
 static int internal_handle_fpga_request(
-    update_cgroups_parameters_func update_cgroups_parameters_func_p,
+    update_cgroups_parameters_func1 update_cgroups_parameters_func_p,
     size_t n_minor_devices_to_block, int minor_devices[],
     const char* container_id) {
   char* allowed_minor_numbers_str = NULL;
@@ -143,7 +143,7 @@ void reload_fpga_configuration() {
  *
  * c-e fpga --excluded_fpgas 0,1,3 --container_id container_x_y
  */
-int handle_fpga_request(update_cgroups_parameters_func func,
+int handle_fpga_request(update_cgroups_parameters_func1 func,
     const char* module_name, int module_argc, char** module_argv) {
   if (!cfg_section) {
     reload_fpga_configuration();
