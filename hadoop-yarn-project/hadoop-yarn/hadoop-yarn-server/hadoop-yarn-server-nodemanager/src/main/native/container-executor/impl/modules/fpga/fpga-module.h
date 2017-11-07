@@ -28,13 +28,13 @@
 #define FPGA_MODULE_SECTION_NAME "fpga"
 
 // For unit test stubbing
-typedef int (*update_cgroups_parameters_func)(const char*, const char*,
+typedef int (*update_cgroups_parameters_func1)(const char*, const char*,
    const char*, const char*);
 
 /**
  * Handle fpga requests
  */
-int handle_fpga_request(update_cgroups_parameters_func func,
+int handle_fpga_request(update_cgroups_parameters_func1 func,
    const char* module_name, int module_argc, char** module_argv);
 
 /**
