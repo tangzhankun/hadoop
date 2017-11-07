@@ -29,6 +29,7 @@ set(GTEST_SRC_DIR ${CMAKE_SOURCE_DIR}/../../../../../hadoop-common-project/hadoo
 string(REGEX MATCH . HCD_ONE "${HADOOP_CONF_DIR}")
 string(COMPARE EQUAL ${HCD_ONE} / HADOOP_CONF_DIR_IS_ABS)
 
+set (CMAKE_C_FLAGS "-std=c99 ${CMAKE_C_FLAGS}")
 set (CMAKE_C_STANDARD 99)
 
 include(CheckIncludeFiles)
