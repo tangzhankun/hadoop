@@ -256,6 +256,17 @@ public class TestFpgaResourceHandler {
   }
 
   @Test
+  public void testAllocationWithZeroDevices() throws ResourceHandlerException, PrivilegedOperationException {
+    configuration.set(YarnConfiguration.NM_FPGA_ALLOWED_DEVICES, "0,1,2");
+    fpgaResourceHandler.bootstrap(configuration);
+    // The id-0 container request 0 FPGA
+    fpgaResourceHandler.preStart(mockContainer(0, 0, null));
+    verifyDeniedDevices(getContainerId(0), Arrays.asList(0, 1, 2));
+    verify(mockVendorPlugin, times(0)).downloadIP(anyString(), anyString());
+    verify(mockVendorPlugin, times(0)).configureIP(anyString(), anyString());
+  }
+
+  @Test
   public void testStateStore() throws ResourceHandlerException, IOException {
     // Case 1. store 3 devices
     configuration.set(YarnConfiguration.NM_FPGA_ALLOWED_DEVICES, "0,1,2");
