@@ -78,12 +78,12 @@ public class TestFpgaDiscoverer {
         "aocl", openclPlugin.getPathToExecutable());
 
     // Case 2. With correct configuration and file exists
-    File fakeBinary = new File(getTestParentFolder(), openclPlugin.getDefaultBinaryName());
-    conf.set(YarnConfiguration.NM_FPGA_PATH_TO_EXEC, getTestParentFolder());
+    File fakeBinary = new File(getTestParentFolder() + "/aocl");
+    conf.set(YarnConfiguration.NM_FPGA_PATH_TO_EXEC, getTestParentFolder() + "/aocl");
     touchFile(fakeBinary);
     discoverer.initialize(conf);
     Assert.assertEquals("Correct configuration should return user setting",
-        getTestParentFolder(), openclPlugin.getPathToExecutable());
+        getTestParentFolder() + "/aocl", openclPlugin.getPathToExecutable());
 
     // Case 3. With correct configuration but file doesn't exists. Use default
     fakeBinary.delete();
