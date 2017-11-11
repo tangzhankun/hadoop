@@ -128,7 +128,6 @@ public class IntelFPGAOpenclPlugin {
         String msg =
             "Failed to get major-minor number from reading /dev/" + devName;
         LOG.warn(msg);
-        LOG.debug(e.getStackTrace().toString());
         LOG.debug("Command output:" + shexec.getOutput() + ", exit code:" +
             shexec.getExitCode());
       }
@@ -148,7 +147,6 @@ public class IntelFPGAOpenclPlugin {
             "Failed to execute " + binary + " diagnose, exception message:" + e
                 .getMessage() +", output:" + output + ", continue ...";
         LOG.warn(msg);
-        LOG.warn(e.getStackTrace().toString());
         LOG.debug(shexec.getOutput());
       }
       return shexec.getOutput();
