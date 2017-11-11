@@ -19,6 +19,7 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.util.Shell;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceAllocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -307,7 +308,7 @@ public class IntelFPGAOpenclPlugin {
    * @param majorMinorNumber major:minor string
    * @return True or False
    * */
-  public boolean configureIP(String ipPath, String majorMinorNumber) {
+  public boolean configureIP(String ipPath, String majorMinorNumber) throws ResourceHandlerException{
     // perform offline program the IP to get a quickest reprogramming sequence
     // we need a mapping of "major:minor" to "acl0" to issue command "aocl program <acl0> <ipPath>"
     Shell.ShellCommandExecutor shexec;
@@ -325,7 +326,7 @@ public class IntelFPGAOpenclPlugin {
     } catch (IOException e) {
       LOG.warn("Intel aocl program " + ipPath + " to " + aclName + " failed!");
       e.printStackTrace();
-      return false;
+      throw new ResourceHandlerException("Intel aocl program failed", e);
     }
     return true;
   }

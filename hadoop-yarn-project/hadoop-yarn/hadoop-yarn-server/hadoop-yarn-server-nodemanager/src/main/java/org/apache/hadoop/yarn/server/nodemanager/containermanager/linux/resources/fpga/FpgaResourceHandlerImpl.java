@@ -123,10 +123,8 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
   @Override
   public List<PrivilegedOperation> preStart(Container container) throws ResourceHandlerException {
     // 1. get requested FPGA type and count, choose corresponding FPGA plugin(s)
-    // 2. download to ensure IP file exists
     // 2. use allocator.assignFpga(type, count) to get FPGAAllocation
-    // 3. configure IP file. if failed, it's ok for opencl application
-    // 4. isolate device
+    // 3. If required, download to ensure IP file exists and configure IP file for all devices
     List<PrivilegedOperation> ret = new ArrayList<>();
     String containerIdStr = container.getContainerId().toString();
     Resource requestedResource = container.getResource();
@@ -139,14 +137,8 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
     LOG.info(containerIdStr + " requested " + deviceCount + " Intel FPGA(s)");
     String ipFilePath = null;
     try {
-      // download IP
-      if (deviceCount > 0) {
-        ipFilePath = openclPlugin.downloadIP(getRequestedIPID(container), container.getWorkDir());
-        if ("".equals(ipFilePath)) {
-          throw new ResourceHandlerException("FPGA plugin failed to download IP", null);
-        }
-      }
-      // allocate
+
+      // allocate even request 0 FPGA because we need to deny all device numbers for this container
       FpgaResourceAllocator.FpgaAllocation allocation = allocator.assignFpga(
           openclPlugin.getFpgaType(), deviceCount,
           container, getRequestedIPID(container));
@@ -162,35 +154,58 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
       }
       privilegedOperationExecutor.executePrivilegedOperation(privilegedOperation, true);
 
-      // configure IP
       if (deviceCount > 0) {
-        LOG.info("IP file path:" + ipFilePath);
-        List<FpgaResourceAllocator.FpgaDevice> allowed = allocation.getAllowed();
-        String majorMinorNumber;
-        for (int i = 0; i < allowed.size(); i++) {
-          majorMinorNumber = allowed.get(i).getMajor() + ":" + allowed.get(i).getMinor();
-          String currentIPID = allowed.get(i).getIPID();
-          if (null != currentIPID &&
-              currentIPID.equalsIgnoreCase(getRequestedIPID(container))) {
-            LOG.info("IP already in device \"" + allowed.get(i).getAliasDevName() + "," +
-                majorMinorNumber + "\", skip reprogramming");
-            continue;
-          }
-          if (openclPlugin.configureIP(ipFilePath, majorMinorNumber)) {
-            // update the allocator that we update an IP of a device
-            allocator.updateFpga(containerIdStr, allowed.get(i),
-                getRequestedIPID(container));
+        /**
+         * We only support flashing one IP for all devices now. If user don't set this
+         * environment variable, we assume that user's application can find the IP file by
+         * itself.
+         * Note that the IP downloading and reprogramming in advance in YARN is not necessary because
+         * the OpenCL application may find the IP file and reprogram device on the fly. But YARN do this
+         * for the containers will achieve the quickest reprogram path
+         *
+         * For instance, REQUESTED_FPGA_IP_ID = "matrix_mul" will make all devices
+         * programmed with matrix multiplication IP
+         *
+         * In the future, we may support "matrix_mul:1,gzip:2" format to support different IP
+         * for different devices
+         *
+         * */
+        ipFilePath = openclPlugin.downloadIP(getRequestedIPID(container), container.getWorkDir());
+        if ("".equals(ipFilePath)) {
+          LOG.warn("FPGA plugin failed to download IP but continue, please set the value of environment viable: " +
+              REQUEST_FPGA_IP_ID_KEY + " if you want yarn to help");
+        } else {
+          LOG.info("IP file path:" + ipFilePath);
+          List<FpgaResourceAllocator.FpgaDevice> allowed = allocation.getAllowed();
+          String majorMinorNumber;
+          for (int i = 0; i < allowed.size(); i++) {
+            majorMinorNumber = allowed.get(i).getMajor() + ":" + allowed.get(i).getMinor();
+            String currentIPID = allowed.get(i).getIPID();
+            if (null != currentIPID &&
+                currentIPID.equalsIgnoreCase(getRequestedIPID(container))) {
+              LOG.info("IP already in device \"" + allowed.get(i).getAliasDevName() + "," +
+                  majorMinorNumber + "\", skip reprogramming");
+              continue;
+            }
+            if (openclPlugin.configureIP(ipFilePath, majorMinorNumber)) {
+              // update the allocator that we update an IP of a device
+              allocator.updateFpga(containerIdStr, allowed.get(i),
+                  getRequestedIPID(container));
+              //TODO: update the node constraint label
+            }
           }
         }
       }
-      //TODO: update the node constraint label
     } catch (ResourceHandlerException re) {
+      allocator.cleanupAssignFpgas(containerIdStr);
       cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
           containerIdStr);
       throw re;
     } catch (PrivilegedOperationException e) {
+      allocator.cleanupAssignFpgas(containerIdStr);
       cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES, containerIdStr);
       LOG.warn("Could not update cgroup for container", e);
+      throw new ResourceHandlerException(e);
     }
     //isolation operation
     ret.add(new PrivilegedOperation(
