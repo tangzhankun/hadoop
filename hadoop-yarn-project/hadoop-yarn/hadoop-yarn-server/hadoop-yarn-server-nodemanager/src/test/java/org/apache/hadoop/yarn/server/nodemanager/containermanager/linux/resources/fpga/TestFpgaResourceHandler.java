@@ -395,7 +395,11 @@ public class TestFpgaResourceHandler {
     when(plugin.initPlugin()).thenReturn(true);
     when(plugin.getFpgaType()).thenReturn(type);
     when(plugin.downloadIP(Mockito.anyString(), Mockito.anyString())).thenReturn("/tmp");
-    when(plugin.configureIP(Mockito.anyString(), Mockito.anyObject())).thenReturn(true);
+    try {
+      when(plugin.configureIP(Mockito.anyString(), Mockito.anyObject())).thenReturn(true);
+    } catch (ResourceHandlerException e) {
+      e.printStackTrace();
+    }
     when(plugin.discover(Mockito.anyInt())).thenReturn(list);
     return plugin;
   }
