@@ -64,18 +64,6 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
   public static final String CONTAINER_ID_CLI_OPTION = "--container_id";
   private PrivilegedOperationExecutor privilegedOperationExecutor;
 
-  public FpgaResourceHandlerImpl(Context nmContext,
-      CGroupsHandler cGroupsHandler,
-      PrivilegedOperationExecutor privilegedOperationExecutor) {
-    allocator = new FpgaResourceAllocator(nmContext);
-    // we only support Intel FPGA for OpenCL plugin at present.
-    // define more general interfaces to support Xilinx or AWS EC2 FPGA SDK etc.
-    openclPlugin = new IntelFPGAOpenclPlugin();
-    FpgaDiscoverer.getInstance().setResourceHanderPlugin(openclPlugin);
-    this.cGroupsHandler = cGroupsHandler;
-    this.privilegedOperationExecutor = privilegedOperationExecutor;
-  }
-
   @VisibleForTesting
   public FpgaResourceHandlerImpl(Context nmContext,
       CGroupsHandler cGroupsHandler,
@@ -91,13 +79,6 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
   }
 
   @VisibleForTesting
-  public static String getDeviceDeniedValue(int deviceMajorNumber, int deviceMinorNumber) {
-    String val = String.format("c %d:%d rwm", deviceMajorNumber, deviceMinorNumber);
-    LOG.info("Add denied devices to cgroups:" + val);
-    return val;
-  }
-
-  @VisibleForTesting
   public FpgaResourceAllocator getFpgaAllocator() {
     return allocator;
   }
@@ -109,7 +90,8 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
 
   @Override
   public List<PrivilegedOperation> bootstrap(Configuration configuration) throws ResourceHandlerException {
-    if (!openclPlugin.initPlugin()) {
+    // the plugin should be initilized by FpgaDiscoverer already
+    if (!openclPlugin.initPlugin(configuration)) {
       throw new ResourceHandlerException("FPGA plugin initialization failed", null);
     }
     LOG.info("FPGA Plugin bootstrap success.");

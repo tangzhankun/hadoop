@@ -85,43 +85,11 @@ public class FpgaDiscoverer {
 
   public synchronized void initialize(Configuration conf) throws YarnException {
     this.conf = conf;
-    String pluginDefaultBinaryName = this.plugin.getDefaultBinaryName();
-    String pathToExecutable = conf.get(YarnConfiguration.NM_FPGA_PATH_TO_EXEC,
-        "");
-    if (pathToExecutable.isEmpty()) {
-      pathToExecutable = pluginDefaultBinaryName;
-    }
-    // Validate file existence
-    File binaryPath = new File(pathToExecutable);
-    if (!binaryPath.exists()) {
-      // When binary not exist, fail
-      LOG.warn("Failed to find FPGA discoverer executable configured in " +
-          YarnConfiguration.NM_FPGA_PATH_TO_EXEC +
-          ", please check! Try default path");
-      pathToExecutable = pluginDefaultBinaryName;
-      // Try to find in plugin's preferred path
-      String pluginDefaultPreferredPath = this.plugin.getDefaultPathToExecutable();
-      if (null == pluginDefaultPreferredPath) {
-        LOG.warn("Failed to find FPGA discoverer executable from system environment " +
-             this.plugin.getDefaultPathEnvName()+
-            ", please check your environment!");
-      } else {
-        binaryPath = new File(pluginDefaultPreferredPath + "/bin", pluginDefaultBinaryName);
-        if (binaryPath.exists()) {
-          pathToExecutable = pluginDefaultPreferredPath;
-        } else {
-          pathToExecutable = pluginDefaultBinaryName;
-          LOG.warn("Failed to find FPGA discoverer executable in " +
-              pluginDefaultPreferredPath + ", file doesn't exists! Use default binary" + pathToExecutable);
-        }
-      }
-    }
-    this.plugin.setPathToExecutable(pathToExecutable);
+    this.plugin.initPlugin(conf);
     // Try to diagnose FPGA
     LOG.info("Trying to diagnose FPGA information ...");
     if (!diagnose()) {
-      LOG.warn("Failed to pass Intel FPGA devices diagnose with " +
-          pathToExecutable);
+      LOG.warn("Failed to pass FPGA devices diagnose");
     }
   }
 

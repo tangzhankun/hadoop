@@ -69,7 +69,7 @@ public class TestFpgaDiscoverer {
     // because FPGA discoverer is a singleton, we use setPlugin to make
     // FpgaDiscoverer.getInstance().diagnose() work in openclPlugin.initPlugin()
     discoverer.setResourceHanderPlugin(openclPlugin);
-    openclPlugin.initPlugin();
+    openclPlugin.initPlugin(conf);
     openclPlugin.setShell(mockPuginShell());
 
     discoverer.initialize(conf);
@@ -120,7 +120,7 @@ public class TestFpgaDiscoverer {
     IntelFPGAOpenclPlugin openclPlugin = new IntelFPGAOpenclPlugin();
     FpgaDiscoverer.getInstance().setResourceHanderPlugin(openclPlugin);
 
-    openclPlugin.initPlugin();
+    openclPlugin.initPlugin(conf);
     openclPlugin.setShell(mockPuginShell());
 
     FpgaDiscoverer.getInstance().initialize(conf);

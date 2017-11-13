@@ -89,7 +89,7 @@ public class TestFpgaResourceHandler {
     String allowed = "0,1,2";
     configuration.set(YarnConfiguration.NM_FPGA_ALLOWED_DEVICES, allowed);
     fpgaResourceHandler.bootstrap(configuration);
-    verify(mockVendorPlugin, times(1)).initPlugin();
+    verify(mockVendorPlugin, times(1)).initPlugin(configuration);
     verify(mockCGroupsHandler, times(1)).initializeCGroupController(
         CGroupsHandler.CGroupController.DEVICES);
     Assert.assertEquals(3, fpgaResourceHandler.getFpgaAllocator().getAllowedFpga().size());
@@ -392,7 +392,7 @@ public class TestFpgaResourceHandler {
 
   private static IntelFPGAOpenclPlugin mockPlugin(String type, List<FpgaResourceAllocator.FpgaDevice> list) {
     IntelFPGAOpenclPlugin plugin = mock(IntelFPGAOpenclPlugin.class);
-    when(plugin.initPlugin()).thenReturn(true);
+    when(plugin.initPlugin(Mockito.anyObject())).thenReturn(true);
     when(plugin.getFpgaType()).thenReturn(type);
     when(plugin.downloadIP(Mockito.anyString(), Mockito.anyString())).thenReturn("/tmp");
     try {

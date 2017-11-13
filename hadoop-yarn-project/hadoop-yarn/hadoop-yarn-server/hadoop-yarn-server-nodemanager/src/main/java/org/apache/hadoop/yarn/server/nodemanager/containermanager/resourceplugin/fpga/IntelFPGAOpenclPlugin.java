@@ -18,7 +18,9 @@
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.Shell;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceAllocator;
 import org.slf4j.Logger;
@@ -41,6 +43,7 @@ public class IntelFPGAOpenclPlugin {
   public static final Logger LOG = LoggerFactory.getLogger(
       IntelFPGAOpenclPlugin.class);
 
+  private boolean initialized = false;
   private InnerShellExecutor shell;
 
   protected static final String DEFAULT_BINARY_NAME = "aocl";
@@ -87,16 +90,53 @@ public class IntelFPGAOpenclPlugin {
   }
 
   /**
-   * Check the Intel FPGA for OpenCL toolchain and
-   * try to recover programmed device information
+   * Check the Intel FPGA for OpenCL toolchain
    * */
-  public boolean initPlugin() {
+  public boolean initPlugin(Configuration conf) {
     this.aliasMap = new HashMap<>();
-    if (!FpgaDiscoverer.getInstance().diagnose()) {
-      LOG.warn("Intel FPGA for OpenCL diagnose failed!");
-      return false;
+    if (this.initialized) {
+      return true;
     }
-    return true;
+    // Find the proper toolchain, mainly aocl
+    String pluginDefaultBinaryName = getDefaultBinaryName();
+    String pathToExecutable = conf.get(YarnConfiguration.NM_FPGA_PATH_TO_EXEC,
+        "");
+    if (pathToExecutable.isEmpty()) {
+      pathToExecutable = pluginDefaultBinaryName;
+    }
+    // Validate file existence
+    File binaryPath = new File(pathToExecutable);
+    if (!binaryPath.exists()) {
+      // When binary not exist, fail
+      LOG.warn("Failed to find FPGA discoverer executable configured in " +
+          YarnConfiguration.NM_FPGA_PATH_TO_EXEC +
+          ", please check! Try default path");
+      pathToExecutable = pluginDefaultBinaryName;
+      // Try to find in plugin's preferred path
+      String pluginDefaultPreferredPath = getDefaultPathToExecutable();
+      if (null == pluginDefaultPreferredPath) {
+        LOG.warn("Failed to find FPGA discoverer executable from system environment " +
+            getDefaultPathEnvName()+
+            ", please check your environment!");
+      } else {
+        binaryPath = new File(pluginDefaultPreferredPath + "/bin", pluginDefaultBinaryName);
+        if (binaryPath.exists()) {
+          pathToExecutable = pluginDefaultPreferredPath;
+        } else {
+          pathToExecutable = pluginDefaultBinaryName;
+          LOG.warn("Failed to find FPGA discoverer executable in " +
+              pluginDefaultPreferredPath + ", file doesn't exists! Use default binary" + pathToExecutable);
+        }
+      }
+    }
+    setPathToExecutable(pathToExecutable);
+    if (!diagnose(10*1000)) {
+      LOG.warn("Intel FPGA for OpenCL diagnose failed!");
+      this.initialized = false;
+    } else {
+      this.initialized = true;
+    }
+    return this.initialized;
   }
 
   public List<FpgaResourceAllocator.FpgaDevice> discover(int timeout) {
@@ -306,7 +346,7 @@ public class IntelFPGAOpenclPlugin {
    * @param majorMinorNumber major:minor string
    * @return True or False
    * */
-  public boolean configureIP(String ipPath, String majorMinorNumber) throws ResourceHandlerException{
+  public boolean configureIP(String ipPath, String majorMinorNumber) throws ResourceHandlerException {
     // perform offline program the IP to get a quickest reprogramming sequence
     // we need a mapping of "major:minor" to "acl0" to issue command "aocl program <acl0> <ipPath>"
     Shell.ShellCommandExecutor shexec;
