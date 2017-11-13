@@ -21,7 +21,6 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
@@ -29,10 +28,6 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -45,7 +40,7 @@ public class FpgaDiscoverer {
 
   private Configuration conf = null;
 
-  private IntelFPGAOpenclPlugin plugin = null;
+  private AbstractFpgaVendorPlugin plugin = null;
 
   private List<FpgaResourceAllocator.FpgaDevice> currentFpgaInfo = null;
 
@@ -75,7 +70,7 @@ public class FpgaDiscoverer {
     return currentFpgaInfo;
   }
 
-  public synchronized void setResourceHanderPlugin(IntelFPGAOpenclPlugin plugin) {
+  public synchronized void setResourceHanderPlugin(AbstractFpgaVendorPlugin plugin) {
     this.plugin = plugin;
   }
 
@@ -100,7 +95,7 @@ public class FpgaDiscoverer {
     List<FpgaResourceAllocator.FpgaDevice> list;
     String allowed = this.conf.get(YarnConfiguration.NM_FPGA_ALLOWED_DEVICES);
     // whatever static or auto discover, we always needs
-    // the IntelFPGAOpenclPlugin to discover to
+    // the IntelFpgaOpenclPlugin to discover to
     // setup a mapping of <major:minor> to <aliasDevName>
     list = this.plugin.discover(MAX_EXEC_TIMEOUT_MS);
     if (0 == list.size()) {

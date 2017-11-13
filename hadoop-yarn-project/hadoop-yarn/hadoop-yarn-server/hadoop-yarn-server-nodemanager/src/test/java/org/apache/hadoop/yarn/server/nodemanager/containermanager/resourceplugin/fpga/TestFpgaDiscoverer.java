@@ -65,7 +65,7 @@ public class TestFpgaDiscoverer {
     Configuration conf = new Configuration(false);
     FpgaDiscoverer discoverer = FpgaDiscoverer.getInstance();
 
-    IntelFPGAOpenclPlugin openclPlugin = new IntelFPGAOpenclPlugin();
+    IntelFpgaOpenclPlugin openclPlugin = new IntelFpgaOpenclPlugin();
     // because FPGA discoverer is a singleton, we use setPlugin to make
     // FpgaDiscoverer.getInstance().diagnose() work in openclPlugin.initPlugin()
     discoverer.setResourceHanderPlugin(openclPlugin);
@@ -117,7 +117,7 @@ public class TestFpgaDiscoverer {
         "DIAGNOSTIC_PASSED" +
         "---------------------------------------------------------\n";
     Configuration conf = new Configuration(false);
-    IntelFPGAOpenclPlugin openclPlugin = new IntelFPGAOpenclPlugin();
+    IntelFpgaOpenclPlugin openclPlugin = new IntelFpgaOpenclPlugin();
     FpgaDiscoverer.getInstance().setResourceHanderPlugin(openclPlugin);
 
     openclPlugin.initPlugin(conf);
@@ -154,8 +154,8 @@ public class TestFpgaDiscoverer {
     Assert.assertEquals("acl1", aliasMap.get("247:1"));
   }
 
-  private IntelFPGAOpenclPlugin.InnerShellExecutor mockPuginShell() {
-    IntelFPGAOpenclPlugin.InnerShellExecutor shell = mock(IntelFPGAOpenclPlugin.InnerShellExecutor.class);
+  private IntelFpgaOpenclPlugin.InnerShellExecutor mockPuginShell() {
+    IntelFpgaOpenclPlugin.InnerShellExecutor shell = mock(IntelFpgaOpenclPlugin.InnerShellExecutor.class);
     when(shell.runDiagnose(anyString(),anyInt())).thenReturn("");
     when(shell.getMajorAndMinorNumber("aclnalla_pcie0")).thenReturn("247:0");
     when(shell.getMajorAndMinorNumber("aclnalla_pcie1")).thenReturn("247:1");

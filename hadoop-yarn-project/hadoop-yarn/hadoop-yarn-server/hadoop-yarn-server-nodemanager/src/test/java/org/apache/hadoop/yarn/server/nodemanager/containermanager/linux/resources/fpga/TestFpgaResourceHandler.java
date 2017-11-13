@@ -31,7 +31,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileg
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.FpgaDiscoverer;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.IntelFPGAOpenclPlugin;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.IntelFpgaOpenclPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.recovery.NMStateStoreService;
 import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
 import org.junit.Assert;
@@ -55,7 +55,7 @@ public class TestFpgaResourceHandler {
   private PrivilegedOperationExecutor mockPrivilegedExecutor;
   private NMStateStoreService mockNMStateStore;
   private ConcurrentHashMap<ContainerId, Container> runningContainersMap;
-  private IntelFPGAOpenclPlugin mockVendorPlugin;
+  private IntelFpgaOpenclPlugin mockVendorPlugin;
   private static final String vendorType = "IntelOpenCL";
 
   @Before
@@ -390,16 +390,12 @@ public class TestFpgaResourceHandler {
     }
   }
 
-  private static IntelFPGAOpenclPlugin mockPlugin(String type, List<FpgaResourceAllocator.FpgaDevice> list) {
-    IntelFPGAOpenclPlugin plugin = mock(IntelFPGAOpenclPlugin.class);
+  private static IntelFpgaOpenclPlugin mockPlugin(String type, List<FpgaResourceAllocator.FpgaDevice> list) {
+    IntelFpgaOpenclPlugin plugin = mock(IntelFpgaOpenclPlugin.class);
     when(plugin.initPlugin(Mockito.anyObject())).thenReturn(true);
     when(plugin.getFpgaType()).thenReturn(type);
     when(plugin.downloadIP(Mockito.anyString(), Mockito.anyString())).thenReturn("/tmp");
-    try {
-      when(plugin.configureIP(Mockito.anyString(), Mockito.anyObject())).thenReturn(true);
-    } catch (ResourceHandlerException e) {
-      e.printStackTrace();
-    }
+    when(plugin.configureIP(Mockito.anyString(), Mockito.anyObject())).thenReturn(true);
     when(plugin.discover(Mockito.anyInt())).thenReturn(list);
     return plugin;
   }

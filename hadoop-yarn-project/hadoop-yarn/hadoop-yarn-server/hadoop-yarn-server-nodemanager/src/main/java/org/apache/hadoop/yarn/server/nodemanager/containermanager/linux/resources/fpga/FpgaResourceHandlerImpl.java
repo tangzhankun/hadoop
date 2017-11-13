@@ -36,13 +36,12 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileg
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.AbstractFpgaVendorPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.FpgaDiscoverer;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.IntelFPGAOpenclPlugin;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.FPGA_URI;
 
@@ -54,7 +53,7 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
 
   private final String REQUEST_FPGA_IP_ID_KEY = "REQUESTED_FPGA_IP_ID";
 
-  private IntelFPGAOpenclPlugin openclPlugin;
+  private AbstractFpgaVendorPlugin vendorPlugin;
 
   private FpgaResourceAllocator allocator;
 
@@ -68,12 +67,10 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
   public FpgaResourceHandlerImpl(Context nmContext,
       CGroupsHandler cGroupsHandler,
       PrivilegedOperationExecutor privilegedOperationExecutor,
-      IntelFPGAOpenclPlugin plugin) {
-    allocator = new FpgaResourceAllocator(nmContext);
-    // we only support Intel FPGA for OpenCL plugin at present.
-    // define more general interfaces to support Xilinx or AWS EC2 FPGA SDK etc.
-    openclPlugin = plugin;
-    FpgaDiscoverer.getInstance().setResourceHanderPlugin(openclPlugin);
+      AbstractFpgaVendorPlugin plugin) {
+    this.allocator = new FpgaResourceAllocator(nmContext);
+    this.vendorPlugin = plugin;
+    FpgaDiscoverer.getInstance().setResourceHanderPlugin(vendorPlugin);
     this.cGroupsHandler = cGroupsHandler;
     this.privilegedOperationExecutor = privilegedOperationExecutor;
   }
@@ -90,22 +87,22 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
 
   @Override
   public List<PrivilegedOperation> bootstrap(Configuration configuration) throws ResourceHandlerException {
-    // the plugin should be initilized by FpgaDiscoverer already
-    if (!openclPlugin.initPlugin(configuration)) {
+    // The plugin should be initilized by FpgaDiscoverer already
+    if (!vendorPlugin.initPlugin(configuration)) {
       throw new ResourceHandlerException("FPGA plugin initialization failed", null);
     }
     LOG.info("FPGA Plugin bootstrap success.");
-    // get avialable devices minor numbers from toolchain or static configuration
+    // Get avialable devices minor numbers from toolchain or static configuration
     List<FpgaResourceAllocator.FpgaDevice> fpgaDeviceList = FpgaDiscoverer.getInstance().discover();
-    allocator.addFpga(openclPlugin.getFpgaType(), fpgaDeviceList);
+    allocator.addFpga(vendorPlugin.getFpgaType(), fpgaDeviceList);
     this.cGroupsHandler.initializeCGroupController(CGroupsHandler.CGroupController.DEVICES);
     return null;
   }
 
   @Override
   public List<PrivilegedOperation> preStart(Container container) throws ResourceHandlerException {
-    // 1. get requested FPGA type and count, choose corresponding FPGA plugin(s)
-    // 2. use allocator.assignFpga(type, count) to get FPGAAllocation
+    // 1. Get requested FPGA type and count, choose corresponding FPGA plugin(s)
+    // 2. Use allocator.assignFpga(type, count) to get FPGAAllocation
     // 3. If required, download to ensure IP file exists and configure IP file for all devices
     List<PrivilegedOperation> ret = new ArrayList<>();
     String containerIdStr = container.getContainerId().toString();
@@ -122,7 +119,7 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
 
       // allocate even request 0 FPGA because we need to deny all device numbers for this container
       FpgaResourceAllocator.FpgaAllocation allocation = allocator.assignFpga(
-          openclPlugin.getFpgaType(), deviceCount,
+          vendorPlugin.getFpgaType(), deviceCount,
           container, getRequestedIPID(container));
       LOG.info("FpgaAllocation:" + allocation);
 
@@ -152,7 +149,7 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
          * for different devices
          *
          * */
-        ipFilePath = openclPlugin.downloadIP(getRequestedIPID(container), container.getWorkDir());
+        ipFilePath = vendorPlugin.downloadIP(getRequestedIPID(container), container.getWorkDir());
         if ("".equals(ipFilePath)) {
           LOG.warn("FPGA plugin failed to download IP but continue, please set the value of environment viable: " +
               REQUEST_FPGA_IP_ID_KEY + " if you want yarn to help");
@@ -169,7 +166,7 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
                   majorMinorNumber + "\", skip reprogramming");
               continue;
             }
-            if (openclPlugin.configureIP(ipFilePath, majorMinorNumber)) {
+            if (vendorPlugin.configureIP(ipFilePath, majorMinorNumber)) {
               // update the allocator that we update an IP of a device
               allocator.updateFpga(containerIdStr, allowed.get(i),
                   getRequestedIPID(container));

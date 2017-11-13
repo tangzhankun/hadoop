@@ -1530,6 +1530,14 @@ public class YarnConfiguration extends Configuration {
   public static final String NM_FPGA_PATH_TO_EXEC =
           NM_FPGA_RESOURCE_PREFIX + "path-to-discovery-executables";
 
+  @Private
+  public static final String NM_FPGA_VENDOR_PLUGIN =
+      NM_FPGA_RESOURCE_PREFIX + "vendor-plugin.class";
+
+  @Private
+  public static final String DEFAULT_NM_FPGA_VENDOR_PLUGIN =
+      "org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.IntelFpgaOpenclPlugin";
+  
   /** NM Webapp address.**/
   public static final String NM_WEBAPP_ADDRESS = NM_PREFIX + "webapp.address";
   public static final int DEFAULT_NM_WEBAPP_PORT = 8042;

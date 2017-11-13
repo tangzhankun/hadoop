@@ -19,7 +19,13 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
@@ -30,15 +36,37 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
 
 public class FpgaResourcePlugin implements ResourcePlugin {
+  private static final Log LOG = LogFactory.getLog(FpgaResourcePlugin.class);
+
   private ResourceHandler fpgaResourceHandler = null;
 
-  private IntelFPGAOpenclPlugin openclPlugin = null;
+  private AbstractFpgaVendorPlugin vendorPlugin = null;
   private FpgaNodeResourceUpdateHandler fpgaNodeResourceUpdateHandler = null;
+
+  private AbstractFpgaVendorPlugin createFpgaVendorPlugin(Configuration conf) {
+    String vendorPluginClass = conf.get(YarnConfiguration.NM_FPGA_VENDOR_PLUGIN,
+        YarnConfiguration.DEFAULT_NM_FPGA_VENDOR_PLUGIN);
+    LOG.info("Using FPGA vendor plugin: " + vendorPluginClass);
+    try {
+      Class<?> schedulerClazz = Class.forName(vendorPluginClass);
+      if (AbstractFpgaVendorPlugin.class.isAssignableFrom(schedulerClazz)) {
+        return (AbstractFpgaVendorPlugin) ReflectionUtils.newInstance(schedulerClazz,
+            conf);
+      } else {
+        throw new YarnRuntimeException("Class: " + vendorPluginClass
+            + " not instance of " + AbstractFpgaVendorPlugin.class.getCanonicalName());
+      }
+    } catch (ClassNotFoundException e) {
+      throw new YarnRuntimeException("Could not instantiate FPGA vendor plugin: "
+          + vendorPluginClass, e);
+    }
+  }
 
   @Override
   public void initialize(Context context) throws YarnException {
-    this.openclPlugin = new IntelFPGAOpenclPlugin();
-    FpgaDiscoverer.getInstance().setResourceHanderPlugin(openclPlugin);
+    // Get vendor plugin from configuration
+    this.vendorPlugin = createFpgaVendorPlugin(context.getConf());
+    FpgaDiscoverer.getInstance().setResourceHanderPlugin(vendorPlugin);
     FpgaDiscoverer.getInstance().initialize(context.getConf());
     fpgaNodeResourceUpdateHandler = new FpgaNodeResourceUpdateHandler();
   }
@@ -49,7 +77,7 @@ public class FpgaResourcePlugin implements ResourcePlugin {
       PrivilegedOperationExecutor privilegedOperationExecutor) {
     if (fpgaResourceHandler == null) {
       fpgaResourceHandler = new FpgaResourceHandlerImpl(nmContext,
-          cGroupsHandler, privilegedOperationExecutor, openclPlugin);
+          cGroupsHandler, privilegedOperationExecutor, vendorPlugin);
     }
     return fpgaResourceHandler;
   }

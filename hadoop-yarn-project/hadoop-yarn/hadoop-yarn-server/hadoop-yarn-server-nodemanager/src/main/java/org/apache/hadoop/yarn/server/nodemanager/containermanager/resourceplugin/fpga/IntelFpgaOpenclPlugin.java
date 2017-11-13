@@ -21,7 +21,6 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceAllocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,17 +32,19 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Intel FPGA for OpenCL plugin. Invoked by FpgaResourceHandlerImpl
+ * Intel FPGA for OpenCL plugin.
  * The key points are:
- * 1. It uses Intel's toolchain "aocl" to reprogram IP to the device
+ * 1. It uses Intel's toolchain "aocl" to discover devices/reprogram IP to the device
  *    before container launch to achieve a quickest reprogramming path
  * 2. It avoids reprogramming by maintaining a mapping of device to FPGA IP ID
+ * 3. It assume IP file is distributed to container directory
  */
-public class IntelFPGAOpenclPlugin {
+public class IntelFpgaOpenclPlugin implements AbstractFpgaVendorPlugin {
   public static final Logger LOG = LoggerFactory.getLogger(
-      IntelFPGAOpenclPlugin.class);
+      IntelFpgaOpenclPlugin.class);
 
   private boolean initialized = false;
+  private Configuration conf;
   private InnerShellExecutor shell;
 
   protected static final String DEFAULT_BINARY_NAME = "aocl";
@@ -55,7 +56,7 @@ public class IntelFPGAOpenclPlugin {
   // a mapping of major:minor number to acl0-31
   private Map<String, String> aliasMap;
 
-  public IntelFPGAOpenclPlugin() {
+  public IntelFpgaOpenclPlugin() {
     this.shell = new InnerShellExecutor();
   }
 
@@ -92,6 +93,7 @@ public class IntelFPGAOpenclPlugin {
   /**
    * Check the Intel FPGA for OpenCL toolchain
    * */
+  @Override
   public boolean initPlugin(Configuration conf) {
     this.aliasMap = new HashMap<>();
     if (this.initialized) {
@@ -139,6 +141,7 @@ public class IntelFPGAOpenclPlugin {
     return this.initialized;
   }
 
+  @Override
   public List<FpgaResourceAllocator.FpgaDevice> discover(int timeout) {
     List<FpgaResourceAllocator.FpgaDevice> list = new LinkedList<>();
     String output;
@@ -300,6 +303,7 @@ public class IntelFPGAOpenclPlugin {
     return this.shell.runDiagnose(this.pathToExecutable,timeout);
   }
 
+  @Override
   public boolean diagnose(int timeout) {
     String output = getDiagnoseInfo(timeout);
     if (null != output && output.contains("DIAGNOSTIC_PASSED")) {
@@ -311,10 +315,12 @@ public class IntelFPGAOpenclPlugin {
   /**
    * this is actually the opencl platform type
    * */
+  @Override
   public String getFpgaType() {
     return "IntelOpenCL";
   }
 
+  @Override
   public String downloadIP(String id, String dstDir) {
     // Assume .aocx IP file is distributed by DS to local dir
     // First check if <id>.aocx exists. Use it if it does.
@@ -346,7 +352,8 @@ public class IntelFPGAOpenclPlugin {
    * @param majorMinorNumber major:minor string
    * @return True or False
    * */
-  public boolean configureIP(String ipPath, String majorMinorNumber) throws ResourceHandlerException {
+  @Override
+  public boolean configureIP(String ipPath, String majorMinorNumber) {
     // perform offline program the IP to get a quickest reprogramming sequence
     // we need a mapping of "major:minor" to "acl0" to issue command "aocl program <acl0> <ipPath>"
     Shell.ShellCommandExecutor shexec;
@@ -362,10 +369,20 @@ public class IntelFPGAOpenclPlugin {
         return false;
       }
     } catch (IOException e) {
-      LOG.warn("Intel aocl program " + ipPath + " to " + aclName + " failed!");
+      LOG.error("Intel aocl program " + ipPath + " to " + aclName + " failed!");
       e.printStackTrace();
-      throw new ResourceHandlerException("Intel aocl program failed", e);
+      return false;
     }
     return true;
+  }
+
+  @Override
+  public void setConf(Configuration conf) {
+    this.conf = conf;
+  }
+
+  @Override
+  public Configuration getConf() {
+    return this.conf;
   }
 }

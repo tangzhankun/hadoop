@@ -21,6 +21,7 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceAllocator;
 
@@ -28,18 +29,24 @@ import java.util.List;
 
 
 /**
- * FPGA plugin interface for vendor to implement
- *
+ * FPGA plugin interface for vendor to implement. Used by {@link FpgaDiscoverer} and
+ * {@link org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceHandlerImpl}
+ * to discover devices/download IP/configure IP
  * */
 
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public interface AbstractFPGAVendorPlugin {
+public interface AbstractFpgaVendorPlugin extends Configurable{
 
   /**
    * Check vendor's toolchain and required environment
    * */
   boolean initPlugin(Configuration conf);
+
+  /**
+   * Diagnose the devices using vendor toolchain but no need to parse device information
+   * */
+  boolean diagnose(int timeout);
 
   /**
    * Discover the vendor's FPGA devices with execution time constraint
@@ -70,4 +77,10 @@ public interface AbstractFPGAVendorPlugin {
    * @return configure device ok or not
    * */
   boolean configureIP(String ipPath, String majorMinorNumber);
+
+  @Override
+  void setConf(Configuration conf);
+
+  @Override
+  Configuration getConf();
 }
