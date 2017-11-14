@@ -1537,13 +1537,13 @@ public class YarnConfiguration extends Configuration {
   @Private
   public static final String DEFAULT_NM_FPGA_VENDOR_PLUGIN =
       "org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.IntelFpgaOpenclPlugin";
-  
+
   /** NM Webapp address.**/
   public static final String NM_WEBAPP_ADDRESS = NM_PREFIX + "webapp.address";
   public static final int DEFAULT_NM_WEBAPP_PORT = 8042;
   public static final String DEFAULT_NM_WEBAPP_ADDRESS = "0.0.0.0:" +
     DEFAULT_NM_WEBAPP_PORT;
-  
+
   /** NM Webapp https address.**/
   public static final String NM_WEBAPP_HTTPS_ADDRESS = NM_PREFIX
       + "webapp.https.address";

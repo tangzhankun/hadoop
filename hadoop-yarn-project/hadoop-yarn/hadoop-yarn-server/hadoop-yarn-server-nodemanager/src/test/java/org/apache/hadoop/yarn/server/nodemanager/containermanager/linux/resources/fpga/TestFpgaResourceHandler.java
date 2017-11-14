@@ -86,12 +86,21 @@ public class TestFpgaResourceHandler {
 
   @Test
   public void testBootstrap() throws ResourceHandlerException {
-    String allowed = "0,1,2";
+    // Case 1. auto
+    String allowed = "auto";
     configuration.set(YarnConfiguration.NM_FPGA_ALLOWED_DEVICES, allowed);
     fpgaResourceHandler.bootstrap(configuration);
     verify(mockVendorPlugin, times(1)).initPlugin(configuration);
     verify(mockCGroupsHandler, times(1)).initializeCGroupController(
         CGroupsHandler.CGroupController.DEVICES);
+    Assert.assertEquals(5, fpgaResourceHandler.getFpgaAllocator().getAvailableFpgaCount());
+    Assert.assertEquals(5, fpgaResourceHandler.getFpgaAllocator().getAllowedFpga().size());
+    // Case 2. subset of devices
+    fpgaResourceHandler = new FpgaResourceHandlerImpl(mockContext,
+        mockCGroupsHandler, mockPrivilegedExecutor, mockVendorPlugin);
+    allowed = "0,1,2";
+    configuration.set(YarnConfiguration.NM_FPGA_ALLOWED_DEVICES, allowed);
+    fpgaResourceHandler.bootstrap(configuration);
     Assert.assertEquals(3, fpgaResourceHandler.getFpgaAllocator().getAllowedFpga().size());
     List<FpgaResourceAllocator.FpgaDevice> allowedDevices = fpgaResourceHandler.getFpgaAllocator().getAllowedFpga();
     for (String s : allowed.split(",")) {
@@ -105,10 +114,14 @@ public class TestFpgaResourceHandler {
     }
     Assert.assertEquals(3, fpgaResourceHandler.getFpgaAllocator().getAvailableFpgaCount());
 
-    // User configuration contains invalid minor device number
+    // Case 3. User configuration contains invalid minor device number
+    fpgaResourceHandler = new FpgaResourceHandlerImpl(mockContext,
+        mockCGroupsHandler, mockPrivilegedExecutor, mockVendorPlugin);
     allowed = "0,1,7";
     configuration.set(YarnConfiguration.NM_FPGA_ALLOWED_DEVICES, allowed);
     fpgaResourceHandler.bootstrap(configuration);
+    Assert.assertEquals(2, fpgaResourceHandler.getFpgaAllocator().getAvailableFpgaCount());
+    Assert.assertEquals(2, fpgaResourceHandler.getFpgaAllocator().getAllowedFpga().size());
   }
 
   @Test
