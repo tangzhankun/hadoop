@@ -267,8 +267,13 @@ public class FpgaResourceAllocator {
   }
 
   public synchronized void addFpga(String type, List<FpgaDevice> list) {
-    allowedFpgas.addAll(list);
-    availableFpga.put(type, list);
+    availableFpga.putIfAbsent(type, new LinkedList<>());
+    for (FpgaDevice device : list) {
+      if (!allowedFpgas.contains(device)) {
+        allowedFpgas.add(device);
+        availableFpga.get(type).add(device);
+      }
+    }
     LOG.info("Add a list of FPGA Devices: " + list);
   }
 

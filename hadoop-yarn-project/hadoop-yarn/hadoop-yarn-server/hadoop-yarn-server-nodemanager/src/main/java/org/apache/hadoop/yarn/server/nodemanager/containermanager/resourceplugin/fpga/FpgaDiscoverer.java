@@ -95,15 +95,15 @@ public class FpgaDiscoverer {
     List<FpgaResourceAllocator.FpgaDevice> list;
     String allowed = this.conf.get(YarnConfiguration.NM_FPGA_ALLOWED_DEVICES);
     // whatever static or auto discover, we always needs
-    // the IntelFpgaOpenclPlugin to discover to
+    // the vendor plugin to discover. For instance, IntelFpgaOpenclPlugin need to
     // setup a mapping of <major:minor> to <aliasDevName>
     list = this.plugin.discover(MAX_EXEC_TIMEOUT_MS);
     if (0 == list.size()) {
       throw new ResourceHandlerException("No FPGA devices detected!");
     }
     currentFpgaInfo = list;
-    if (allowed.equalsIgnoreCase(this.conf.get(
-        YarnConfiguration.AUTOMATICALLY_DISCOVER_GPU_DEVICES))) {
+    if (allowed.equalsIgnoreCase(
+        YarnConfiguration.AUTOMATICALLY_DISCOVER_GPU_DEVICES)) {
         return list;
     } else if (allowed.matches("(\\d,)*\\d")){
       String[] minors = allowed.split(",");
