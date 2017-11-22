@@ -23,9 +23,11 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceAllocator;
 
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -66,9 +68,11 @@ public interface AbstractFpgaVendorPlugin extends Configurable{
    * It should check if the IP file has already been downloaded.
    * @param id The identifier for IP file. Comes from application, ie. matrix_multi_v1
    * @param dstDir The plugin should download IP file to this directory
+   * @param localizedResources The container localized resource can be searched for IP file. Key is
+   * localized file path and value is soft link names
    * @return The absolute path string of IP file
    * */
-  String downloadIP(String id, String dstDir);
+  String downloadIP(String id, String dstDir, Map<Path, List<String>> localizedResources);
 
   /**
    * The vendor plugin configure an IP file to a device

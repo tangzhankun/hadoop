@@ -288,7 +288,7 @@ public class FpgaResourceAllocator {
           "that no record for this allocated device:" + device);
     }
     LOG.info("Update IPID to " + newIPID +
-        "for this allocated device:" + device);
+        " for this allocated device:" + device);
   }
 
   private synchronized int findMatchedFpga(List<FpgaDevice> devices, FpgaDevice item) {
