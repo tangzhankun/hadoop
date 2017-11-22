@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -42,6 +43,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.FPGA_URI;
 
@@ -149,7 +151,8 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
          * for different devices
          *
          * */
-        ipFilePath = vendorPlugin.downloadIP(getRequestedIPID(container), container.getWorkDir());
+        ipFilePath = vendorPlugin.downloadIP(getRequestedIPID(container), container.getWorkDir(),
+            container.getResourceSet().getLocalizedResources());
         if ("".equals(ipFilePath)) {
           LOG.warn("FPGA plugin failed to download IP but continue, please set the value of environment viable: " +
               REQUEST_FPGA_IP_ID_KEY + " if you want yarn to help");

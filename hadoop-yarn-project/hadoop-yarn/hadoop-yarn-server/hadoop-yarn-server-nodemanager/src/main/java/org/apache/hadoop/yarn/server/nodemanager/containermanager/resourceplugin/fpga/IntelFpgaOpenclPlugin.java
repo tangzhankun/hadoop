@@ -19,6 +19,7 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceAllocator;
@@ -321,25 +322,24 @@ public class IntelFpgaOpenclPlugin implements AbstractFpgaVendorPlugin {
   }
 
   @Override
-  public String downloadIP(String id, String dstDir) {
+  public String downloadIP(String id, String dstDir, Map<Path, List<String>> localizedResources) {
     // Assume .aocx IP file is distributed by DS to local dir
-    // First check if <id>.aocx exists. Use it if it does.
     String r = "";
-    File IPFilePath = new File(dstDir, id + ".aocx");
-    if (IPFilePath.exists()) {
-      r = dstDir + "/" + id + ".aocx";
-    } else {
-      //search local for file names containing the id
-      File dir = new File(dstDir);
-      File[] listOfFiles = dir.listFiles();
-      if (null != listOfFiles) {
-        for (File t : listOfFiles) {
-          if (t.isFile() && t.getName().contains(id)) {
-            r = dstDir + "/" + t.getName();
-            break;
-          }
+    Path path;
+    LOG.info("Got environment: " + id + ", search IP file in localized resources");
+    if (localizedResources != null) {
+      for (Map.Entry<Path, List<String>> resourceEntry :
+          localizedResources.entrySet()) {
+        path = resourceEntry.getKey();
+        LOG.debug("Check:" + path.toUri().toString());
+        if (path.getName().toLowerCase().contains(id.toLowerCase()) && path.getName().endsWith(".aocx")) {
+          r = path.toUri().toString();
+          LOG.debug("Found: " + r);
+          break;
         }
       }
+    } else {
+      LOG.warn("Localized resource is null!");
     }
     return r;
   }
@@ -364,6 +364,7 @@ public class IntelFpgaOpenclPlugin implements AbstractFpgaVendorPlugin {
     try {
       shexec.execute();
       if (0 == shexec.getExitCode()) {
+        LOG.debug(shexec.getOutput());
         LOG.info("Intel aocl program " + ipPath + " to " + aclName + " successfully");
       } else {
         return false;
