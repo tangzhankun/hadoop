@@ -270,7 +270,7 @@ public class IntelFpgaOpenclPlugin implements AbstractFpgaVendorPlugin {
         // busNum, bus:slot.func\s=\s.*,
         // FPGA temperature\s=\s.*
         // Total\sCard\sPower\sUsage\s=\s.*
-        String[] fieldRegexes = new String[]{"\\(.*\\)", "(?i)bus:slot.func\\s=\\s.*,",
+        String[] fieldRegexes = new String[]{"\\(.*\\)\n", "(?i)bus:slot.func\\s=\\s.*,",
             "(?i)FPGA temperature\\s=\\s.*", "(?i)Total\\sCard\\sPower\\sUsage\\s=\\s.*"};
         String[] fields = new String[4];
         String tempFieldValue;
@@ -278,6 +278,7 @@ public class IntelFpgaOpenclPlugin implements AbstractFpgaVendorPlugin {
           Matcher fieldMatcher = Pattern.compile(fieldRegexes[i]).matcher(section);
           if (!fieldMatcher.find()) {
             LOG.warn("Couldn't find " + fieldRegexes[i] + " pattern");
+            fields[i] = "";
             continue;
           }
           tempFieldValue = fieldMatcher.group().trim();
@@ -290,12 +291,14 @@ public class IntelFpgaOpenclPlugin implements AbstractFpgaVendorPlugin {
           }
         }
         String majorMinorNumber = this.shell.getMajorAndMinorNumber(fields[0]);
-        String[] mmn = majorMinorNumber.split(":");
-        this.aliasMap.put(majorMinorNumber, aliasName);
-        list.add(new FpgaResourceAllocator.FpgaDevice(getFpgaType(),
-            Integer.parseInt(mmn[0]),
-            Integer.parseInt(mmn[1]), null,
-            fields[0], aliasName, fields[1], fields[2], fields[3]));
+        if (null != majorMinorNumber) {
+          String[] mmn = majorMinorNumber.split(":");
+          this.aliasMap.put(majorMinorNumber, aliasName);
+          list.add(new FpgaResourceAllocator.FpgaDevice(getFpgaType(),
+              Integer.parseInt(mmn[0]),
+              Integer.parseInt(mmn[1]), null,
+              fields[0], aliasName, fields[1], fields[2], fields[3]));
+        }
       }// end while
     }// end if
   }
