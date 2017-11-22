@@ -116,6 +116,18 @@ public class TestFpgaDiscoverer {
         "                       Device Power Usage = 0.0 Watts.\n" +
         "DIAGNOSTIC_PASSED" +
         "---------------------------------------------------------\n";
+    output = output +
+        "------------------------- acl2 -------------------------\n" +
+        "Vendor: Intel(R) Corporation\n" +
+        "\n" +
+        "Phys Dev Name  Status   Information\n" +
+        "\n" +
+        "acla10_ref0   Passed   Arria 10 Reference Platform (acla10_ref0)\n" +
+        "                       PCIe dev_id = 2494, bus:slot.func = 09:00.00, Gen2 x8\n" +
+        "                       FPGA temperature = 50.5781 degrees C.\n" +
+        "\n" +
+        "DIAGNOSTIC_PASSED\n" +
+        "---------------------------------------------------------\n";
     Configuration conf = new Configuration(false);
     IntelFpgaOpenclPlugin openclPlugin = new IntelFpgaOpenclPlugin();
     FpgaDiscoverer.getInstance().setResourceHanderPlugin(openclPlugin);
@@ -129,7 +141,7 @@ public class TestFpgaDiscoverer {
 
     // Case 1. core parsing
     openclPlugin.parseDiagnoseInfo(output, list);
-    Assert.assertEquals(2, list.size());
+    Assert.assertEquals(3, list.size());
     Assert.assertEquals("IntelOpenCL", list.get(0).getType());
     Assert.assertEquals("247", list.get(0).getMajor().toString());
     Assert.assertEquals("0", list.get(0).getMinor().toString());
@@ -148,10 +160,20 @@ public class TestFpgaDiscoverer {
     Assert.assertEquals("43.1 degrees C", list.get(1).getTemperature());
     Assert.assertEquals("11.7 Watts", list.get(1).getCardPowerUsage());
 
+    Assert.assertEquals("IntelOpenCL", list.get(2).getType());
+    Assert.assertEquals("246", list.get(2).getMajor().toString());
+    Assert.assertEquals("0", list.get(2).getMinor().toString());
+    Assert.assertEquals("acl2", list.get(2).getAliasDevName());
+    Assert.assertEquals("acla10_ref0", list.get(2).getDevName());
+    Assert.assertEquals("09:00.00", list.get(2).getBusNum());
+    Assert.assertEquals("50.5781 degrees C", list.get(2).getTemperature());
+    Assert.assertEquals("", list.get(2).getCardPowerUsage());
+
     // Case 2. check alias map
     Map<String, String> aliasMap = openclPlugin.getAliasMap();
     Assert.assertEquals("acl0", aliasMap.get("247:0"));
     Assert.assertEquals("acl1", aliasMap.get("247:1"));
+    Assert.assertEquals("acl2", aliasMap.get("246:0"));
   }
 
   private IntelFpgaOpenclPlugin.InnerShellExecutor mockPuginShell() {
@@ -159,6 +181,7 @@ public class TestFpgaDiscoverer {
     when(shell.runDiagnose(anyString(),anyInt())).thenReturn("");
     when(shell.getMajorAndMinorNumber("aclnalla_pcie0")).thenReturn("247:0");
     when(shell.getMajorAndMinorNumber("aclnalla_pcie1")).thenReturn("247:1");
+    when(shell.getMajorAndMinorNumber("acla10_ref0")).thenReturn("246:0");
     return shell;
   }
 }
