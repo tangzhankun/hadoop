@@ -30,6 +30,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileg
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.localizer.ResourceSet;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.FpgaDiscoverer;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.IntelFpgaOpenclPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.recovery.NMStateStoreService;
@@ -275,7 +276,7 @@ public class TestFpgaResourceHandler {
     // The id-0 container request 0 FPGA
     fpgaResourceHandler.preStart(mockContainer(0, 0, null));
     verifyDeniedDevices(getContainerId(0), Arrays.asList(0, 1, 2));
-    verify(mockVendorPlugin, times(0)).downloadIP(anyString(), anyString());
+    verify(mockVendorPlugin, times(0)).downloadIP(anyString(), anyString(), anyMap());
     verify(mockVendorPlugin, times(0)).configureIP(anyString(), anyString());
   }
 
@@ -407,7 +408,7 @@ public class TestFpgaResourceHandler {
     IntelFpgaOpenclPlugin plugin = mock(IntelFpgaOpenclPlugin.class);
     when(plugin.initPlugin(Mockito.anyObject())).thenReturn(true);
     when(plugin.getFpgaType()).thenReturn(type);
-    when(plugin.downloadIP(Mockito.anyString(), Mockito.anyString())).thenReturn("/tmp");
+    when(plugin.downloadIP(Mockito.anyString(), Mockito.anyString(), Mockito.anyMap())).thenReturn("/tmp");
     when(plugin.configureIP(Mockito.anyString(), Mockito.anyObject())).thenReturn(true);
     when(plugin.discover(Mockito.anyInt())).thenReturn(list);
     return plugin;
@@ -433,6 +434,9 @@ public class TestFpgaResourceHandler {
     when(c.getLaunchContext()).thenReturn(clc);
     when(clc.getEnvironment()).thenReturn(envs);
     when(c.getWorkDir()).thenReturn("/tmp");
+    ResourceSet resourceSet = new ResourceSet();
+    when(c.getResourceSet()).thenReturn(resourceSet);
+
     return c;
   }
 
