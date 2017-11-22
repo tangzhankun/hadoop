@@ -307,6 +307,7 @@ public class ApplicationMaster {
   String aocxfileLocation = "";
   long aocxfileLen = 0;
   long aocxfileTimestamp = 0;
+  long fpgacount = 0;
 
   @VisibleForTesting
   protected final Set<ContainerId> launchedContainers =
@@ -547,7 +548,11 @@ public class ApplicationMaster {
       aocxfileLocation = envs.get(DSConstants.AOCXFILELOCATION);
       aocxfileLen = Long.parseLong(envs.get(DSConstants.AOCXFILELEN));
       aocxfileTimestamp = Long.parseLong(envs.get(DSConstants.AOCXFILETIMESTAMP));
-      LOG.info("zhankun:" + aocxfileLocation + "," + aocxfileLocation + ", " + aocxfileTimestamp);
+      if (envs.containsKey(DSConstants.FPGACOUNT)) {
+        fpgacount = Long.parseLong(envs.get(DSConstants.FPGACOUNT));
+      }
+      LOG.info("zhankun:" + aocxfileLocation + "," + aocxfileLocation + ", " + aocxfileTimestamp
+          +", " + fpgacount);
     }
 
     if (envs.containsKey(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN)) {
@@ -1541,7 +1546,7 @@ public class ApplicationMaster {
       resourceCapability.setVirtualCores(containerVirtualCores);
     }
     LOG.info("DEBUG-zhankun Set FPGA:");
-    resourceCapability.setResourceValue(ResourceInformation.FPGA_URI, 1);
+    resourceCapability.setResourceValue(ResourceInformation.FPGA_URI, fpgacount);
     String profileName = containerResourceProfile;
     if ("".equals(containerResourceProfile) && resourceProfiles != null) {
       profileName = "default";

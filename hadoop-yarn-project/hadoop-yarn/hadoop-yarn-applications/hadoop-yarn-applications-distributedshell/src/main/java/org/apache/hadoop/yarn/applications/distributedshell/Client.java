@@ -149,6 +149,7 @@ public class Client {
   // Application master jar file
   private String appMasterJar = "";
   private String AOCXFILE = "";
+  private String container_fpga_count = "0";
   // Main class to invoke application master
   private final String appMasterMainClass;
 
@@ -226,7 +227,8 @@ public class Client {
     boolean result = false;
     try {
       Client client = new Client();
-      LOG.info("Initializing Client");
+      //LOG.info("Initializing Client");
+      LOG.info("Initializing Client, Zhankun");
       try {
         boolean doRun = client.init(args);
         if (!doRun) {
@@ -259,6 +261,7 @@ public class Client {
   }
 
   Client(String appMasterMainClass, Configuration conf) {
+    LOG.info("-----------------------------------zhankun-----");
     this.conf = conf;
     this.appMasterMainClass = appMasterMainClass;
     yarnClient = YarnClient.createYarnClient();
@@ -333,7 +336,9 @@ public class Client {
         "If container could retry, it specifies max retires");
     opts.addOption("container_retry_interval", true,
         "Interval between each retry, unit is milliseconds");
+    LOG.info("ZHANKUN: add aocx and container_fpga_count options");
     opts.addOption("aocx", true, "aocx file path for FPGA testing");
+    opts.addOption("container_fpga_count", true, "FPGA devices in container request");
   }
 
   /**
@@ -443,6 +448,11 @@ public class Client {
 
     containerMemory =
         Integer.parseInt(cliParser.getOptionValue("container_memory", "-1"));
+    //ZHANKUN
+    if (cliParser.hasOption("container_fpga_count")) {
+      container_fpga_count = cliParser.getOptionValue("container_fpga_count", "0");
+      LOG.info("ZHANKUN: fpga count:" + container_fpga_count);
+    }
     containerVirtualCores =
         Integer.parseInt(cliParser.getOptionValue("container_vcores", "-1"));
     containerResourceProfile =
@@ -729,6 +739,7 @@ public class Client {
     env.put(DSConstants.AOCXFILELOCATION, aocxfileLocation);
     env.put(DSConstants.AOCXFILELEN, Long.toString(aocxfileLen));
     env.put(DSConstants.AOCXFILETIMESTAMP, Long.toString(aocxfileTimestamp));
+    env.put(DSConstants.FPGACOUNT, container_fpga_count);
 
     // put location of shell script into env
     // using the env info, the application master will create the correct local resource for the 
