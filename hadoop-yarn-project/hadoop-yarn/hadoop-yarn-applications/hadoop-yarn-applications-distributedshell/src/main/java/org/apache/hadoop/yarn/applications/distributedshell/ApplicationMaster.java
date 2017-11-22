@@ -51,6 +51,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -70,26 +71,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.ContainerRetryContext;
-import org.apache.hadoop.yarn.api.records.ContainerRetryPolicy;
-import org.apache.hadoop.yarn.api.records.ContainerState;
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.NodeReport;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.ProfileCapability;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceRequest;
-import org.apache.hadoop.yarn.api.records.URL;
-import org.apache.hadoop.yarn.api.records.UpdatedContainer;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntityGroupId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
@@ -319,6 +301,12 @@ public class ApplicationMaster {
   private final String windows_command = "cmd /c";
 
   private int yarnShellIdCounter = 1;
+
+
+  //ZHANKUN
+  String aocxfileLocation = "";
+  long aocxfileLen = 0;
+  long aocxfileTimestamp = 0;
 
   @VisibleForTesting
   protected final Set<ContainerId> launchedContainers =
@@ -552,6 +540,14 @@ public class ApplicationMaster {
         throw new IllegalArgumentException(
             "Illegal values in env for shell script path");
       }
+    }
+
+    //ZHANKUN
+    if (envs.containsKey(DSConstants.AOCXFILELOCATION)) {
+      aocxfileLocation = envs.get(DSConstants.AOCXFILELOCATION);
+      aocxfileLen = Long.parseLong(envs.get(DSConstants.AOCXFILELEN));
+      aocxfileTimestamp = Long.parseLong(envs.get(DSConstants.AOCXFILETIMESTAMP));
+      LOG.info("zhankun:" + aocxfileLocation + "," + aocxfileLocation + ", " + aocxfileTimestamp);
     }
 
     if (envs.containsKey(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN)) {
@@ -1117,6 +1113,21 @@ public class ApplicationMaster {
       // Set the local resources
       Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
+
+      //ZHANKUN
+      URL yarnUrl1 = null;
+      try {
+        yarnUrl1 = URL.fromURI(new URI(aocxfileLocation.toString()));
+      } catch (URISyntaxException e) {
+        LOG.error("Error when trying to use aocx file path specified"
+            + " in env, path=" + aocxfileLocation, e);
+      }
+      LocalResource shellRsrc1 = LocalResource.newInstance(yarnUrl1,
+          LocalResourceType.FILE, LocalResourceVisibility.APPLICATION,
+          aocxfileLen, aocxfileTimestamp);
+      localResources.put(aocxfileLocation.substring(aocxfileLocation.lastIndexOf("/")+1, aocxfileLocation.length()),
+          shellRsrc1);
+
       // The container for the eventual shell commands needs its own local
       // resources too.
       // In this scenario, if a shell script is specified, we need to have it
@@ -1529,7 +1540,8 @@ public class ApplicationMaster {
       resourceCapability.setMemorySize(containerMemory);
       resourceCapability.setVirtualCores(containerVirtualCores);
     }
-
+    LOG.info("DEBUG-zhankun Set FPGA:");
+    resourceCapability.setResourceValue(ResourceInformation.FPGA_URI, 1);
     String profileName = containerResourceProfile;
     if ("".equals(containerResourceProfile) && resourceProfiles != null) {
       profileName = "default";
