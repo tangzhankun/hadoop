@@ -147,7 +147,8 @@ public class Client {
   private String amResourceProfile = "";
 
   // Application master jar file
-  private String appMasterJar = ""; 
+  private String appMasterJar = "";
+  private String AOCXFILE = "";
   // Main class to invoke application master
   private final String appMasterMainClass;
 
@@ -332,6 +333,7 @@ public class Client {
         "If container could retry, it specifies max retires");
     opts.addOption("container_retry_interval", true,
         "Interval between each retry, unit is milliseconds");
+    opts.addOption("aocx", true, "aocx file path for FPGA testing");
   }
 
   /**
@@ -399,6 +401,12 @@ public class Client {
     }		
 
     appMasterJar = cliParser.getOptionValue("jar");
+
+    if (cliParser.hasOption("aocx")) {
+      AOCXFILE = cliParser.getOptionValue("aocx", "");
+    } else {
+      LOG.info("ZHANKUN: no option aocx found");
+    }
 
     if (!cliParser.hasOption("shell_command") && !cliParser.hasOption("shell_script")) {
       throw new IllegalArgumentException(
@@ -649,6 +657,28 @@ public class Client {
     addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(),
         localResources, null);
 
+    //ZHANKUN
+    LOG.info("Zhankun: aocx option:" + AOCXFILE);
+    String aocxfileLocation = "";
+    long aocxfileLen = 0;
+    long aocxfileTimestamp = 0;
+    if (!"".equals(AOCXFILE)) {
+      Path aocxfileSrc = new Path(AOCXFILE);
+      String aocxfilePathSuffix =
+          appName + "/" + appId.toString() + "/" +
+              AOCXFILE.substring(AOCXFILE.lastIndexOf("/")+1,AOCXFILE.length());
+      LOG.info("Zhankun: suffix" + aocxfilePathSuffix);
+      Path aocxfileDst =
+          new Path(fs.getHomeDirectory(), aocxfilePathSuffix);
+      fs.copyFromLocalFile(false, true, aocxfileSrc, aocxfileDst);
+      aocxfileLocation = aocxfileDst.toUri().toString();
+      FileStatus aocxFileStatus = fs.getFileStatus(aocxfileDst);
+      LOG.info("Zhankun: aocxfile Path" + aocxfileLocation);
+      aocxfileLen = aocxFileStatus.getLen();
+      aocxfileTimestamp = aocxFileStatus.getModificationTime();
+    }
+
+
     // Set the log4j properties if needed 
     if (!log4jPropFile.isEmpty()) {
       addToLocalResources(fs, log4jPropFile, log4jPath, appId.toString(),
@@ -693,6 +723,12 @@ public class Client {
     // Set the env variables to be setup in the env where the application master will be run
     LOG.info("Set the environment for the application master");
     Map<String, String> env = new HashMap<String, String>();
+
+
+    //ZHANKUN
+    env.put(DSConstants.AOCXFILELOCATION, aocxfileLocation);
+    env.put(DSConstants.AOCXFILELEN, Long.toString(aocxfileLen));
+    env.put(DSConstants.AOCXFILETIMESTAMP, Long.toString(aocxfileTimestamp));
 
     // put location of shell script into env
     // using the env info, the application master will create the correct local resource for the 

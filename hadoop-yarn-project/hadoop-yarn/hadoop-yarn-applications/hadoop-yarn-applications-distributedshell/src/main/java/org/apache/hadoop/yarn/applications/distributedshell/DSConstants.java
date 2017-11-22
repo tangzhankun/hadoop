@@ -49,4 +49,8 @@ public class DSConstants {
    * Environment key name denoting the timeline domain ID.
    */
   public static final String DISTRIBUTEDSHELLTIMELINEDOMAIN = "DISTRIBUTEDSHELLTIMELINEDOMAIN";
+
+  public static final String AOCXFILELOCATION = "AOCXFILELOCATION";
+  public static final String AOCXFILELEN = "AOCXFILELEN";
+  public static final String AOCXFILETIMESTAMP = "AOCXFILETIMESTAMP";
 }
