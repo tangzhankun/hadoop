@@ -53,4 +53,5 @@ public class DSConstants {
   public static final String AOCXFILELOCATION = "AOCXFILELOCATION";
   public static final String AOCXFILELEN = "AOCXFILELEN";
   public static final String AOCXFILETIMESTAMP = "AOCXFILETIMESTAMP";
+  public static final String FPGACOUNT = "FPGACOUNT";
 }
