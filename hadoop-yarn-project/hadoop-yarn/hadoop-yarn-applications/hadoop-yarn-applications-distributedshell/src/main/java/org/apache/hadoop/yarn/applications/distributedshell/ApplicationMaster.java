@@ -548,11 +548,11 @@ public class ApplicationMaster {
       aocxfileLocation = envs.get(DSConstants.AOCXFILELOCATION);
       aocxfileLen = Long.parseLong(envs.get(DSConstants.AOCXFILELEN));
       aocxfileTimestamp = Long.parseLong(envs.get(DSConstants.AOCXFILETIMESTAMP));
-      if (envs.containsKey(DSConstants.FPGACOUNT)) {
-        fpgacount = Long.parseLong(envs.get(DSConstants.FPGACOUNT));
-      }
-      LOG.info("zhankun:" + aocxfileLocation + "," + aocxfileLocation + ", " + aocxfileTimestamp
-          +", " + fpgacount);
+      LOG.info("zhankun:" + aocxfileLocation + "," + aocxfileLocation + ", " + aocxfileTimestamp);
+    }
+    if (envs.containsKey(DSConstants.FPGACOUNT)) {
+      fpgacount = Long.parseLong(envs.get(DSConstants.FPGACOUNT));
+      LOG.info("zhankun: fpga count" + fpgacount);
     }
 
     if (envs.containsKey(DSConstants.DISTRIBUTEDSHELLTIMELINEDOMAIN)) {
@@ -1120,19 +1120,20 @@ public class ApplicationMaster {
 
 
       //ZHANKUN
-      URL yarnUrl1 = null;
-      try {
-        yarnUrl1 = URL.fromURI(new URI(aocxfileLocation.toString()));
-      } catch (URISyntaxException e) {
-        LOG.error("Error when trying to use aocx file path specified"
-            + " in env, path=" + aocxfileLocation, e);
+      if (!aocxfileLocation.isEmpty()) {
+        URL yarnUrl1 = null;
+        try {
+          yarnUrl1 = URL.fromURI(new URI(aocxfileLocation.toString()));
+        } catch (URISyntaxException e) {
+          LOG.error("Error when trying to use aocx file path specified"
+              + " in env, path=" + aocxfileLocation, e);
+        }
+        LocalResource shellRsrc1 = LocalResource.newInstance(yarnUrl1,
+            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION,
+            aocxfileLen, aocxfileTimestamp);
+        localResources.put(aocxfileLocation.substring(aocxfileLocation.lastIndexOf("/") + 1, aocxfileLocation.length()),
+            shellRsrc1);
       }
-      LocalResource shellRsrc1 = LocalResource.newInstance(yarnUrl1,
-          LocalResourceType.FILE, LocalResourceVisibility.APPLICATION,
-          aocxfileLen, aocxfileTimestamp);
-      localResources.put(aocxfileLocation.substring(aocxfileLocation.lastIndexOf("/")+1, aocxfileLocation.length()),
-          shellRsrc1);
-
       // The container for the eventual shell commands needs its own local
       // resources too.
       // In this scenario, if a shell script is specified, we need to have it
@@ -1545,8 +1546,10 @@ public class ApplicationMaster {
       resourceCapability.setMemorySize(containerMemory);
       resourceCapability.setVirtualCores(containerVirtualCores);
     }
-    LOG.info("DEBUG-zhankun Set FPGA:");
-    resourceCapability.setResourceValue(ResourceInformation.FPGA_URI, fpgacount);
+    if (0 != fpgacount) {
+      LOG.info("DEBUG-zhankun Set FPGA:");
+      resourceCapability.setResourceValue(ResourceInformation.FPGA_URI, fpgacount);
+    }
     String profileName = containerResourceProfile;
     if ("".equals(containerResourceProfile) && resourceProfiles != null) {
       profileName = "default";

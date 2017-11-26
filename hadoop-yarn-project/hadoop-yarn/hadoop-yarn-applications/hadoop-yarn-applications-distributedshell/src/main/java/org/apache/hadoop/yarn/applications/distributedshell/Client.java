@@ -261,7 +261,6 @@ public class Client {
   }
 
   Client(String appMasterMainClass, Configuration conf) {
-    LOG.info("-----------------------------------zhankun-----");
     this.conf = conf;
     this.appMasterMainClass = appMasterMainClass;
     yarnClient = YarnClient.createYarnClient();
@@ -337,7 +336,7 @@ public class Client {
     opts.addOption("container_retry_interval", true,
         "Interval between each retry, unit is milliseconds");
     LOG.info("ZHANKUN: add aocx and container_fpga_count options");
-    opts.addOption("aocx", true, "aocx file path for FPGA testing");
+    opts.addOption("aocx", true, "aocx file path for FPGA testing-----");
     opts.addOption("container_fpga_count", true, "FPGA devices in container request");
   }
 
@@ -736,11 +735,12 @@ public class Client {
 
 
     //ZHANKUN
-    env.put(DSConstants.AOCXFILELOCATION, aocxfileLocation);
-    env.put(DSConstants.AOCXFILELEN, Long.toString(aocxfileLen));
-    env.put(DSConstants.AOCXFILETIMESTAMP, Long.toString(aocxfileTimestamp));
+    if (!"".equals(AOCXFILE)) {
+      env.put(DSConstants.AOCXFILELOCATION, aocxfileLocation);
+      env.put(DSConstants.AOCXFILELEN, Long.toString(aocxfileLen));
+      env.put(DSConstants.AOCXFILETIMESTAMP, Long.toString(aocxfileTimestamp));
+    }
     env.put(DSConstants.FPGACOUNT, container_fpga_count);
-
     // put location of shell script into env
     // using the env info, the application master will create the correct local resource for the 
     // eventual containers that will be launched to execute the shell scripts
