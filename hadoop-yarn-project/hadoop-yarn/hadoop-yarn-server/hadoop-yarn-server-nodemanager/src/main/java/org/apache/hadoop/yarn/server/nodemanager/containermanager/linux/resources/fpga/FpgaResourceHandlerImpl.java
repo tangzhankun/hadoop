@@ -83,8 +83,9 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
   }
 
   public String getRequestedIPID(Container container) {
-    return container.getLaunchContext().getEnvironment().
+    String r= container.getLaunchContext().getEnvironment().
         get(REQUEST_FPGA_IP_ID_KEY);
+    return r == null ? "" : r;
   }
 
   @Override
@@ -153,8 +154,8 @@ public class FpgaResourceHandlerImpl implements ResourceHandler {
          * */
         ipFilePath = vendorPlugin.downloadIP(getRequestedIPID(container), container.getWorkDir(),
             container.getResourceSet().getLocalizedResources());
-        if ("".equals(ipFilePath)) {
-          LOG.warn("FPGA plugin failed to download IP but continue, please set the value of environment viable: " +
+        if (ipFilePath.isEmpty()) {
+          LOG.warn("FPGA plugin failed to download IP but continue, please check the value of environment viable: " +
               REQUEST_FPGA_IP_ID_KEY + " if you want yarn to help");
         } else {
           LOG.info("IP file path:" + ipFilePath);

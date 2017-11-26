@@ -330,6 +330,10 @@ public class IntelFpgaOpenclPlugin implements AbstractFpgaVendorPlugin {
     String r = "";
     Path path;
     LOG.info("Got environment: " + id + ", search IP file in localized resources");
+    if (null == id || id.isEmpty()) {
+      LOG.warn("IP_ID environment is empty, skip downloading");
+      return r;
+    }
     if (localizedResources != null) {
       for (Map.Entry<Path, List<String>> resourceEntry :
           localizedResources.entrySet()) {
