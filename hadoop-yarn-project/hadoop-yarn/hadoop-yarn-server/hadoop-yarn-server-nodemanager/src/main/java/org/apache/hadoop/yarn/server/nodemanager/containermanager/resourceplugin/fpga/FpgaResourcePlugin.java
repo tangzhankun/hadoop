@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.DockerCommandPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.NodeResourceUpdaterPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
+import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
 
 public class FpgaResourcePlugin implements ResourcePlugin {
   private static final Log LOG = LogFactory.getLog(FpgaResourcePlugin.class);
@@ -94,6 +95,11 @@ public class FpgaResourcePlugin implements ResourcePlugin {
 
   @Override
   public DockerCommandPlugin getDockerCommandPluginInstance() {
+    return null;
+  }
+
+  @Override
+  public NMResourceInfo getNMResourceInfo() throws YarnException {
     return null;
   }
 }
