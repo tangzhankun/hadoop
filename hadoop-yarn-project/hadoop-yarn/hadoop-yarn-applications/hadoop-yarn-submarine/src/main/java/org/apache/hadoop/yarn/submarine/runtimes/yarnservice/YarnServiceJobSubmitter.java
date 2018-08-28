@@ -142,6 +142,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       fw.append("export CLASSPATH=`$HADOOP_HDFS_HOME/bin/hadoop classpath --glob`\n");
     }
 
+    //TODO: zhankun-> if both javaHome and hdfsHome is not set. this lackingEnvs will be false
     if (lackingEnvs) {
       LOG.error("When hdfs is being used to read/write models/data. Following"
           + "envs are required: 1) DOCKER_HADOOP_HDFS_HOME=<HDFS_HOME inside"
