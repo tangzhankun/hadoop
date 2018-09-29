@@ -1605,6 +1605,13 @@ public class YarnConfiguration extends Configuration {
   public static final String NM_RESOURCE_PLUGINS =
       NM_PREFIX + "resource-plugins";
 
+  public static final String NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE =
+      NM_RESOURCE_PLUGINS + ".enable-extended-device";
+
+  public static final boolean DEFAULT_NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE = false;
+
+  public static final String NM_RESOURCE_PLUGINS_EXTENDED =
+      NM_RESOURCE_PLUGINS + ".extended";
   /**
    * Prefix for gpu configurations. Work in progress: This configuration
    * parameter may be changed/removed in the future.
