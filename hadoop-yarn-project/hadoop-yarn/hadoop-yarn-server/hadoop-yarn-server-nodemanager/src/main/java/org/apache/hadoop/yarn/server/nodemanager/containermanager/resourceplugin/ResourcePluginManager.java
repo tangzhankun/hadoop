@@ -21,11 +21,19 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceConstants;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.FpgaResourcePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.gpu.GpuResourcePlugin;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,11 +60,10 @@ public class ResourcePluginManager {
   public synchronized void initialize(Context context)
       throws YarnException {
     Configuration conf = context.getConf();
+    Map<String, ResourcePlugin> pluginMap = new HashMap<>();
+
     String[] plugins = conf.getStrings(YarnConfiguration.NM_RESOURCE_PLUGINS);
-
     if (plugins != null) {
-      Map<String, ResourcePlugin> pluginMap = new HashMap<>();
-
       // Initialize each plugins
       for (String resourceName : plugins) {
         resourceName = resourceName.trim();
@@ -92,10 +99,92 @@ public class ResourcePluginManager {
         plugin.initialize(context);
         pluginMap.put(resourceName, plugin);
       }
+    }
+    // Try to load extended device plugins
+    initializeExtendedDevicePlugins(context, conf, pluginMap);
+    configuredPlugins = Collections.unmodifiableMap(pluginMap);
+  }
 
-      configuredPlugins = Collections.unmodifiableMap(pluginMap);
+  public void initializeExtendedDevicePlugins(Context context,
+      Configuration configuration,
+      Map<String, ResourcePlugin> pluginMap) {
+    boolean enable = configuration.getBoolean(
+        YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE,
+        YarnConfiguration.DEFAULT_NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE);
+    if (enable) {
+      LOG.info("New device framework enabled, trying to load the vendor plugins");
+      String[] pluginClassNames = configuration.getStrings(
+          YarnConfiguration.NM_RESOURCE_PLUGINS_EXTENDED);
+      if (pluginClassNames != null) {
+        for (String pluginClassName : pluginClassNames) {
+          try {
+            Class<?> pluginClazz = Class.forName(pluginClassName);
+            if (DevicePlugin.class.isAssignableFrom(pluginClazz)) {
+              DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
+                  configuration);
+              // Try to register plugin
+              DeviceRegisterRequest request = dpInstance.register();
+              if (request == null) {
+                LOG.error("Class: " + pluginClassName +
+                    " register() method return null. Expected a resource name");
+                continue;
+              }
+              // Check version for compatibility
+              String version = request.getVersion();
+              if (!version.equals(DeviceConstants.version)) {
+                LOG.error("Class: " + pluginClassName + " version: " + version +
+                    " is not compatible. Expected: " + DeviceConstants.version);
+              }
+              // check resource name is valid and configured in resource-types.xml
+              String resourceName = request.getResourceName();
+              if(resourceName == null || isValidAndConfiguredResourceName(resourceName)) {
+                LOG.error("Class: " + pluginClassName + " register invalid resource name: "+
+                    resourceName);
+                continue;
+              }
+              DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(resourceName, dpInstance);
+              LOG.info("Adapter of " + pluginClassName + " created. Initializing..");
+              try {
+                pluginAdapter.initialize(context);
+              } catch (YarnException e) {
+                LOG.error("Adapter of " + pluginClassName + " init failed!");
+                e.printStackTrace();
+                continue;
+              }
+              LOG.info("Adapter of " + pluginClassName + " init success!");
+              // Store plugin as adapter instance
+              pluginMap.put(request.getResourceName(), pluginAdapter);
+            } else {
+              throw new YarnRuntimeException("Class: " + pluginClassName
+                  + " not instance of " + DevicePlugin.class.getCanonicalName());
+            }
+          } catch(ClassNotFoundException e) {
+            throw new YarnRuntimeException("Could not instantiate extended vendor plugin: "
+                + pluginClassName, e);
+          }
+        } // end for
+      } // end if
+    } else {
+      LOG.info("New device framework is not enabled. If you want, set true to " +
+          YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE);
     }
   }
+
+  // TODO: check resource name matching pattern
+  private boolean isValidAndConfiguredResourceName(String resourceName) {
+    // check pattern match
+    // check configured
+    Map<String, ResourceInformation> configuredResourceTypes =
+        ResourceUtils.getResourceTypes();
+    if (!configuredResourceTypes.containsKey(resourceName)) {
+      LOG.error( resourceName
+          + " is not configured inside"
+          + " resource-types.xml, please configure it to enable");
+      return false;
+    }
+    return true;
+  }
+
 
   public synchronized void cleanup() throws YarnException {
     for (ResourcePlugin plugin : configuredPlugins.values()) {
