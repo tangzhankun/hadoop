@@ -137,11 +137,20 @@ public class ResourcePluginManager {
               }
               // check resource name is valid and configured in resource-types.xml
               String resourceName = request.getResourceName();
-              if(resourceName == null || isValidAndConfiguredResourceName(resourceName)) {
+              if (resourceName == null) {
                 LOG.error("Class: " + pluginClassName + " register invalid resource name: "+
                     resourceName);
                 continue;
               }
+
+              if (!isValidAndConfiguredResourceName(resourceName)) {
+                LOG.error(resourceName
+                    + " is not configured inside "
+                    + YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE +
+                    " , please configure it to enable");
+                continue;
+              }
+
               DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(resourceName, dpInstance);
               LOG.info("Adapter of " + pluginClassName + " created. Initializing..");
               try {
@@ -177,9 +186,6 @@ public class ResourcePluginManager {
     Map<String, ResourceInformation> configuredResourceTypes =
         ResourceUtils.getResourceTypes();
     if (!configuredResourceTypes.containsKey(resourceName)) {
-      LOG.error( resourceName
-          + " is not configured inside"
-          + " resource-types.xml, please configure it to enable");
       return false;
     }
     return true;
