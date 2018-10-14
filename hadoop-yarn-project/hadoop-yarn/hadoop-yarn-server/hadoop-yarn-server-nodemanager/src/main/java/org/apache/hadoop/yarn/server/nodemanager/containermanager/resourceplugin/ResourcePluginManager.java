@@ -30,6 +30,7 @@ import org.apache.hadoop.yarn.server.nodemanager.Context;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceConstants;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DeviceLocalScheduler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.FpgaResourcePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.gpu.GpuResourcePlugin;
@@ -56,6 +57,8 @@ public class ResourcePluginManager {
 
   private Map<String, ResourcePlugin> configuredPlugins =
           Collections.emptyMap();
+
+  private DeviceLocalScheduler deviceLocalScheduler = null;
 
   public synchronized void initialize(Context context)
       throws YarnException {
@@ -113,6 +116,7 @@ public class ResourcePluginManager {
         YarnConfiguration.DEFAULT_NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE);
     if (enable) {
       LOG.info("New device framework enabled, trying to load the vendor plugins");
+      deviceLocalScheduler = new DeviceLocalScheduler(context);
       String[] pluginClassNames = configuration.getStrings(
           YarnConfiguration.NM_RESOURCE_PLUGINS_EXTENDED);
       if (pluginClassNames != null) {
@@ -123,6 +127,7 @@ public class ResourcePluginManager {
               DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
                   configuration);
               // Try to register plugin
+              // TODO: handle the plugin method timeout issue
               DeviceRegisterRequest request = dpInstance.register();
               if (request == null) {
                 LOG.error("Class: " + pluginClassName +
@@ -135,14 +140,21 @@ public class ResourcePluginManager {
                 LOG.error("Class: " + pluginClassName + " version: " + version +
                     " is not compatible. Expected: " + DeviceConstants.version);
               }
-              // check resource name is valid and configured in resource-types.xml
+
               String resourceName = request.getResourceName();
               if (resourceName == null) {
                 LOG.error("Class: " + pluginClassName + " register invalid resource name: "+
                     resourceName);
                 continue;
               }
+              // check if someone has already registered this resource type name
+              if (pluginMap.containsKey(resourceName)) {
+                LOG.error(resourceName +
+                    " has already been registered! Please change a resource type name");
+                continue;
+              }
 
+              // check resource name is valid and configured in resource-types.xml
               if (!isValidAndConfiguredResourceName(resourceName)) {
                 LOG.error(resourceName
                     + " is not configured inside "
@@ -151,7 +163,8 @@ public class ResourcePluginManager {
                 continue;
               }
 
-              DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(resourceName, dpInstance);
+              DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(this,
+                  resourceName, dpInstance);
               LOG.info("Adapter of " + pluginClassName + " created. Initializing..");
               try {
                 pluginAdapter.initialize(context);
@@ -191,6 +204,9 @@ public class ResourcePluginManager {
     return true;
   }
 
+  public DeviceLocalScheduler getDeviceLocalScheduler() {
+    return deviceLocalScheduler;
+  }
 
   public synchronized void cleanup() throws YarnException {
     for (ResourcePlugin plugin : configuredPlugins.values()) {
