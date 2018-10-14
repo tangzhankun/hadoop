@@ -8,13 +8,13 @@ import java.util.TreeSet;
 public class FakeDevicePlugin implements DevicePlugin {
   @Override
   public DeviceRegisterRequest register() {
-    return new DeviceRegisterRequest(DeviceConstants.version, "nec.com/ve");
+    return new DeviceRegisterRequest(DeviceConstants.version, "cmp.com/cmp");
   }
 
   @Override
   public Set<Device> getAndWatch() {
     TreeSet<Device> r = new TreeSet<>();
-    r.add(new Device(0, "/dev/ve0",
+    r.add(new Device(0, "/dev/cmp0",
         243, 0,
         "0000:65:00.0", true));
     return r;
