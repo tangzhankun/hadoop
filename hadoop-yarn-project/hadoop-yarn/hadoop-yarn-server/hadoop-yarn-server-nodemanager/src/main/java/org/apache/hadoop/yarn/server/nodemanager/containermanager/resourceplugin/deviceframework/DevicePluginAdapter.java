@@ -142,9 +142,8 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
     }
     // Add device set. Here we trust the plugin's return value
     deviceLocalScheduler.addDeviceSet(resourceName, availableDevices);
-    // Init cgroups
-    this.cGroupsHandler.initializeCGroupController(
-        CGroupsHandler.CGroupController.DEVICES);
+    // TODO: Init cgroups
+
     return null;
   }
 
