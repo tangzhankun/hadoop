@@ -1,4 +1,4 @@
-package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
+package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.examples;
 
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.*;
 
