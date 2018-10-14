@@ -120,6 +120,6 @@ public class Device implements Serializable, Comparable {
 
   @Override
   public String toString() {
-    return "(" + getDevPath() + ", " + getID() + ", " + getMajorNumber() + ":" + getMajorNumber() + ")";
+    return "(" + getDevPath() + ", " + getID() + ", " + getMajorNumber() + ":" + getMinorNumber() + ")";
   }
 }
