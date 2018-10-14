@@ -1,8 +1,12 @@
 package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Device implements Comparable{
+public class Device implements Serializable, Comparable {
+
+  private static final long serialVersionUID = 1L;
+
   private Integer ID;
   private String devPath;
   private Integer majorNumber;
@@ -112,5 +116,10 @@ public class Device implements Comparable{
       return result;
     }
     return Integer.compare(minorNumber, other.minorNumber);
+  }
+
+  @Override
+  public String toString() {
+    return "(" + getDevPath() + ", " + getID() + ", " + getMajorNumber() + ":" + getMajorNumber() + ")";
   }
 }

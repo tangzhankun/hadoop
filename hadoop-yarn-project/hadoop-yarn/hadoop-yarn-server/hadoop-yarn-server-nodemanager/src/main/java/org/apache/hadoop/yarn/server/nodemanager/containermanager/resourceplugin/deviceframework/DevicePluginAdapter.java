@@ -20,6 +20,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.DockerCommandPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.NodeResourceUpdaterPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerExecutionException;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
 
@@ -34,12 +35,18 @@ import java.util.Set;
  * */
 public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
     implements ResourcePlugin, DockerCommandPlugin, ResourceHandler{
-  final static Log LOG = LogFactory.getLog(DevicePlugin.class);
+  final static Log LOG = LogFactory.getLog(DevicePluginAdapter.class);
 
+  private ResourcePluginManager devicePluginManager;
   private String resourceName;
   private DevicePlugin devicePlugin;
+  private DeviceLocalScheduler deviceLocalScheduler;
+  private CGroupsHandler cGroupsHandler;
+  private PrivilegedOperationExecutor privilegedOperationExecutor;
 
-  public DevicePluginAdapter(String name, DevicePlugin dp) {
+  public DevicePluginAdapter(ResourcePluginManager pluginManager, String name, DevicePlugin dp) {
+    devicePluginManager = pluginManager;
+    deviceLocalScheduler = pluginManager.getDeviceLocalScheduler();
     resourceName = name;
     devicePlugin = dp;
   }
@@ -53,6 +60,7 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
     LOG.info(resourceName + " plugin update resource ");
     Set<Device> devices = devicePlugin.getAndWatch();
     if (devices == null) {
+      LOG.warn(resourceName + " plugin failed to discover resource ( null value got)." );
       return;
     }
     res.setResourceValue(resourceName, devices.size());
@@ -70,6 +78,8 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
   @Override
   public ResourceHandler createResourceHandler(Context nmContext, CGroupsHandler cGroupsHandler,
       PrivilegedOperationExecutor privilegedOperationExecutor) {
+    this.cGroupsHandler = cGroupsHandler;
+    this.privilegedOperationExecutor = privilegedOperationExecutor;
     return this;
   }
 
@@ -98,17 +108,20 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
    * {@link org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime}
    * */
   @Override
-  public void updateDockerRunCommand(DockerRunCommand dockerRunCommand, Container container) throws ContainerExecutionException {
+  public void updateDockerRunCommand(DockerRunCommand dockerRunCommand, Container container)
+      throws ContainerExecutionException {
 
   }
 
   @Override
-  public DockerVolumeCommand getCreateDockerVolumeCommand(Container container) throws ContainerExecutionException {
+  public DockerVolumeCommand getCreateDockerVolumeCommand(Container container)
+      throws ContainerExecutionException {
     return null;
   }
 
   @Override
-  public DockerVolumeCommand getCleanupDockerVolumesCommand(Container container) throws ContainerExecutionException {
+  public DockerVolumeCommand getCleanupDockerVolumesCommand(Container container)
+      throws ContainerExecutionException {
     return null;
   }
 
@@ -117,26 +130,53 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
    * */
   @Override
   public List<PrivilegedOperation> bootstrap(Configuration configuration) throws ResourceHandlerException {
+    Set<Device> availableDevices = devicePlugin.getAndWatch();
+
+    /**
+     * We won't fail the NM if plugin returns invalid value here.
+     * // TODO: we should update RM's resource count if something wrong
+     * */
+    if (availableDevices == null) {
+      LOG.error("Bootstrap " + resourceName + " failed. Null value got from plugin's getAndWatch method");
+      return null;
+    }
+    // Add device set. Here we trust the plugin's return value
+    deviceLocalScheduler.addDeviceSet(resourceName, availableDevices);
+    // Init cgroups
+    this.cGroupsHandler.initializeCGroupController(
+        CGroupsHandler.CGroupController.DEVICES);
     return null;
   }
 
   @Override
-  public List<PrivilegedOperation> preStart(Container container) throws ResourceHandlerException {
+  public List<PrivilegedOperation> preStart(Container container)
+      throws ResourceHandlerException {
+    String containerIdStr = container.getContainerId().toString();
+    DeviceLocalScheduler.DeviceAllocation allocation = deviceLocalScheduler.assignDevices(
+        resourceName, container);
+    /**
+     * TODO: implement a general container-executor device module to do isolation
+     * */
     return null;
   }
 
   @Override
-  public List<PrivilegedOperation> reacquireContainer(ContainerId containerId) throws ResourceHandlerException {
+  public List<PrivilegedOperation> reacquireContainer(ContainerId containerId)
+      throws ResourceHandlerException {
+    deviceLocalScheduler.recoverAssignedDevices(resourceName, containerId);
     return null;
   }
 
   @Override
-  public List<PrivilegedOperation> updateContainer(Container container) throws ResourceHandlerException {
+  public List<PrivilegedOperation> updateContainer(Container container)
+      throws ResourceHandlerException {
     return null;
   }
 
   @Override
-  public List<PrivilegedOperation> postComplete(ContainerId containerId) throws ResourceHandlerException {
+  public List<PrivilegedOperation> postComplete(ContainerId containerId)
+      throws ResourceHandlerException {
+    deviceLocalScheduler.cleanupAssignedDevices(resourceName, containerId);
     return null;
   }
 
