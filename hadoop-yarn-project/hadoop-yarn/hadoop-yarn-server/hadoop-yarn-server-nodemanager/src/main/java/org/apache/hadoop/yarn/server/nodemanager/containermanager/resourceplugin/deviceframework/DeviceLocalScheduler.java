@@ -46,7 +46,9 @@ public class DeviceLocalScheduler {
   }
 
   public synchronized void addDeviceSet(String resourceName, Set<Device> deviceSet) {
+    LOG.info("Adding new resource: " + "type:" + resourceName + "," + deviceSet);
     allAllowedDevices.put(resourceName, deviceSet);
+    allUsedDevices.put(resourceName, new TreeMap<>());
   }
 
   public synchronized DeviceAllocation assignDevices(String resourceName, Container container)
@@ -202,7 +204,8 @@ public class DeviceLocalScheduler {
   }
 
   public synchronized int getAvailableDevices(String resourceName) {
-    return allAllowedDevices.get(resourceName).size() - allUsedDevices.get(resourceName).size();
+    return allAllowedDevices.get(resourceName).size() -
+        allUsedDevices.get(resourceName).size();
   }
 
   private synchronized long getReleasingDevices(String resourceName) {
