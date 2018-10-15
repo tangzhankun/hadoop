@@ -207,8 +207,8 @@ public class ResourcePluginManager {
 
   private boolean isVersionCompatability(String pluginVersion) {
     // semantic version
-    String[] svs = pluginVersion.split(".");
-    String[] currentsvs = DeviceConstants.version.split(".");
+    String[] svs = pluginVersion.split("\\.");
+    String[] currentsvs = DeviceConstants.version.split("\\.");
     // should be same major version
     if (Integer.valueOf(svs[0]) != Integer.valueOf(currentsvs[0])) {
       return false;
