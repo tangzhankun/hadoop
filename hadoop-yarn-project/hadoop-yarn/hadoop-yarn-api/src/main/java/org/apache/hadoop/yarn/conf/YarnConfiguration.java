@@ -1605,13 +1605,27 @@ public class YarnConfiguration extends Configuration {
   public static final String NM_RESOURCE_PLUGINS =
       NM_PREFIX + "resource-plugins";
 
+  /**
+   * This setting controls if new device plugin framework is enabled.
+   * */
+  @Private
   public static final String NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE =
       NM_RESOURCE_PLUGINS + ".enable-extended-device";
 
+  /**
+   * New device plugin framework is disabled by default
+   * */
+  @Private
   public static final boolean DEFAULT_NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE = false;
 
+  /**
+   * This settings contains vendor plugin class names for new device plugin framework to load.
+   * Split by comma
+   * */
+  @Private
   public static final String NM_RESOURCE_PLUGINS_EXTENDED =
       NM_RESOURCE_PLUGINS + ".extended";
+
   /**
    * Prefix for gpu configurations. Work in progress: This configuration
    * parameter may be changed/removed in the future.
