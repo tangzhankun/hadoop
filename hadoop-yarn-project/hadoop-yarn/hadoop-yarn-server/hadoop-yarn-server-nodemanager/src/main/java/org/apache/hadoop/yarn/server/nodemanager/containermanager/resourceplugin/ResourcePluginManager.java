@@ -112,13 +112,13 @@ public class ResourcePluginManager {
       Configuration configuration,
       Map<String, ResourcePlugin> pluginMap) {
     boolean enable = configuration.getBoolean(
-        YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE,
-        YarnConfiguration.DEFAULT_NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE);
+        YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_PLUGGABLE_DEVICE_FRAMEWORK,
+        YarnConfiguration.DEFAULT_NM_RESOURCE_PLUGINS_ENABLE_PLUGGABLE_DEVICE_FRAMEWORK);
     if (enable) {
       LOG.info("New device framework enabled, trying to load the vendor plugins");
       deviceLocalScheduler = new DeviceLocalScheduler(context);
       String[] pluginClassNames = configuration.getStrings(
-          YarnConfiguration.NM_RESOURCE_PLUGINS_EXTENDED);
+          YarnConfiguration.NM_RESOURCE_PLUGINS_PLUGGABLE_CLASS);
       if (pluginClassNames != null) {
         for (String pluginClassName : pluginClassNames) {
           try {
@@ -189,7 +189,7 @@ public class ResourcePluginManager {
       } // end if
     } else {
       LOG.info("New device framework is not enabled. If you want, set true to " +
-          YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_EXTENDED_DEVICE);
+          YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_PLUGGABLE_DEVICE_FRAMEWORK);
     }
   }
 
