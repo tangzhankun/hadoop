@@ -25,80 +25,65 @@ public class Device implements Serializable, Comparable {
 
   private static final long serialVersionUID = 1L;
 
-  private Integer ID;
-  private String devPath;
-  private Integer majorNumber;
-  private Integer minorNumber;
-  private String busID;
+  /**
+   * Required fields:
+   * ID: an plugin specified index number
+   * devPath: device file like /dev/devicename
+   * majorNumber: major device number
+   * minorNumber: minor device number
+   * busID: PCI Bus ID in format [[[[<domain>]:]<bus>]:][<slot>][.[<func>]]. Can get from "lspci -D"
+   * isHealthy: true or false indicating device health status
+   * */
+  private final Integer ID;
+  private final String devPath;
+  private final Integer majorNumber;
+  private final Integer minorNumber;
+  private final String busID;
   private boolean isHealthy;
+
+  /**
+   * Optional fields
+   * */
   private String status;
   // TODO: topology and attributes
 
-  public Device(Integer ID, String devPath, Integer majorNumber,
-      Integer minorNumber, String busID, boolean isHealthy) {
-    this.ID = ID;
-    this.devPath = devPath;
-    this.majorNumber = majorNumber;
-    this.minorNumber = minorNumber;
-    this.busID = busID;
-    this.isHealthy = isHealthy;
+  private Device(Builder builder) {
+    this.ID = Objects.requireNonNull(builder.ID);
+    this.devPath = Objects.requireNonNull(builder.devPath);
+    this.majorNumber = Objects.requireNonNull(builder.majorNumber);
+    this.minorNumber = Objects.requireNonNull(builder.minorNumber);
+    this.busID = Objects.requireNonNull(builder.busID);
+    this.isHealthy = Objects.requireNonNull(builder.isHealthy);
   }
 
   public Integer getID() {
     return ID;
   }
 
-  public void setID(Integer ID) {
-    this.ID = ID;
-  }
-
   public String getDevPath() {
     return devPath;
-  }
-
-  public void setDevPath(String devPath) {
-    this.devPath = devPath;
   }
 
   public Integer getMajorNumber() {
     return majorNumber;
   }
 
-  public void setMajorNumber(Integer majorNumber) {
-    this.majorNumber = majorNumber;
-  }
-
   public Integer getMinorNumber() {
     return minorNumber;
-  }
-
-  public void setMinorNumber(Integer minorNumber) {
-    this.minorNumber = minorNumber;
   }
 
   public String getBusID() {
     return busID;
   }
 
-  public void setBusID(String busID) {
-    this.busID = busID;
-  }
-
   public boolean isHealthy() {
     return isHealthy;
-  }
-
-  public void setHealthy(boolean healthy) {
-    isHealthy = healthy;
   }
 
   public String getStatus() {
     return status;
   }
 
-  public void setStatus(String status) {
-    this.status = status;
-  }
 
   @Override
   public boolean equals(Object o) {
@@ -139,5 +124,61 @@ public class Device implements Serializable, Comparable {
   @Override
   public String toString() {
     return "(" + getDevPath() + ", " + getID() + ", " + getMajorNumber() + ":" + getMinorNumber() + ")";
+  }
+
+  public static class Builder {
+    private Integer ID;
+    private String devPath;
+    private Integer majorNumber;
+    private Integer minorNumber;
+    private String busID;
+    private boolean isHealthy;
+    private String status;
+
+    private Builder() {}
+
+    public static Builder newInstance() {
+      return new Builder();
+    }
+
+    public Device build(){
+      return new Device(this);
+    }
+
+    public Builder setID(Integer ID) {
+      this.ID = ID;
+      return this;
+    }
+
+    public Builder setDevPath(String devPath) {
+      this.devPath = devPath;
+      return this;
+    }
+
+    public Builder setMajorNumber(Integer majorNumber) {
+      this.majorNumber = majorNumber;
+      return this;
+    }
+
+    public Builder setMinorNumber(Integer minorNumber) {
+      this.minorNumber = minorNumber;
+      return this;
+    }
+
+    public Builder setBusID(String busID) {
+      this.busID = busID;
+      return this;
+    }
+
+    public Builder setHealthy(boolean healthy) {
+      isHealthy = healthy;
+      return this;
+    }
+
+    public Builder setStatus(String status) {
+      this.status = status;
+      return this;
+    }
+
   }
 }

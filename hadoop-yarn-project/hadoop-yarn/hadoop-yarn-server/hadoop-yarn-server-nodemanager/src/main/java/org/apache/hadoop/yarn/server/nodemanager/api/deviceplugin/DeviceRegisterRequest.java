@@ -18,29 +18,54 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
+import java.util.Objects;
+
+/**
+ * A vendor device plugin use this object to register
+ * to NM device plugin framework
+ * */
 public class DeviceRegisterRequest {
 
-  private String version;
-  private String resourceName;
+  private final String version;
+  private final String resourceName;
 
-  public DeviceRegisterRequest(String version, String resourceName) {
-    this.resourceName = resourceName;
-    this.version = version;
+  public DeviceRegisterRequest(Builder builder) {
+    this.version = Objects.requireNonNull(builder.version);
+    this.resourceName = Objects.requireNonNull(builder.resourceName);
   }
 
   public String getResourceName() {
     return resourceName;
   }
 
-  public void setResourceName(String resourceName) {
-    this.resourceName = resourceName;
-  }
-
   public String getVersion() {
     return version;
   }
 
-  public void setVersion(String version) {
-    this.version = version;
+  public static class Builder {
+    private String version;
+    private String resourceName;
+
+    private Builder() {}
+
+    public static Builder newInstance() {
+      return new Builder();
+    }
+
+    public DeviceRegisterRequest build() {
+      return new DeviceRegisterRequest(this);
+    }
+
+    // TODO: add sematic versioning pattern check
+    public Builder setVersion(String version) {
+      this.version = version;
+      return this;
+    }
+
+    public Builder setResourceName(String resourceName) {
+      this.resourceName = resourceName;
+      return this;
+    }
+
   }
 }

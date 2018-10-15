@@ -135,9 +135,9 @@ public class ResourcePluginManager {
                 continue;
               }
               // Check version for compatibility
-              String version = request.getVersion();
-              if (!version.equals(DeviceConstants.version)) {
-                LOG.error("Class: " + pluginClassName + " version: " + version +
+              String pluginVersion = request.getVersion();
+              if (!isVersionCompatability(pluginVersion)) {
+                LOG.error("Class: " + pluginClassName + " version: " + pluginVersion +
                     " is not compatible. Expected: " + DeviceConstants.version);
               }
 
@@ -200,6 +200,21 @@ public class ResourcePluginManager {
     Map<String, ResourceInformation> configuredResourceTypes =
         ResourceUtils.getResourceTypes();
     if (!configuredResourceTypes.containsKey(resourceName)) {
+      return false;
+    }
+    return true;
+  }
+
+  private boolean isVersionCompatability(String pluginVersion) {
+    // semantic version
+    String[] svs = pluginVersion.split(".");
+    String[] currentsvs = DeviceConstants.version.split(".");
+    // should be same major version
+    if (Integer.valueOf(svs[0]) != Integer.valueOf(currentsvs[0])) {
+      return false;
+    }
+    // should be older minor version
+    if (Integer.valueOf(svs[1]) > Integer.valueOf(currentsvs[1])) {
       return false;
     }
     return true;

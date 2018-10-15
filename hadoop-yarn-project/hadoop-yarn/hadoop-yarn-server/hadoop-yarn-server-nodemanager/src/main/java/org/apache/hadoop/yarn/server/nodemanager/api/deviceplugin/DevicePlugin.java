@@ -20,9 +20,29 @@ package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
 import java.util.Set;
 
+/**
+ * Interface for vendor plugin to implement.
+ * */
 public interface DevicePlugin {
+  /**
+   * Called first when device plugin framework wants to register
+   * @return DeviceRegisterRequest {@link DeviceRegisterRequest}
+   * */
   DeviceRegisterRequest register();
+
+  /**
+   * Called when update node resource
+   * @return a set of {@link Device}, {@link java.util.TreeSet} recommended
+   * */
   Set<Device> getAndWatch();
+
+  /**
+   * Called before container launch.
+   * */
   DeviceRuntimeSpec preLaunchContainer(Set<Device> allocatedDevices);
+
+  /**
+   * Called after container finish.
+   * */
   void postCompleteContainer(Set<Device> allocatedDevices);
 }

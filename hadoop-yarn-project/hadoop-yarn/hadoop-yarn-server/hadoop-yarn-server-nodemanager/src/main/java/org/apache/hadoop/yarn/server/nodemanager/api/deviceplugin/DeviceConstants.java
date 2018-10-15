@@ -19,5 +19,8 @@
 package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
 public class DeviceConstants {
-  public static final String version = "v0.1alpha";
+  /**
+   * Follows the "majorVersion.minorVersion.patchVersion" convention
+   * */
+  public static final String version = "0.1.0";
 }

@@ -26,15 +26,21 @@ import java.util.TreeSet;
 public class FakeDevicePlugin implements DevicePlugin {
   @Override
   public DeviceRegisterRequest register() {
-    return new DeviceRegisterRequest(DeviceConstants.version, "cmp.com/cmp");
+    return DeviceRegisterRequest.Builder.newInstance()
+        .setVersion(DeviceConstants.version).setResourceName("cmp.com/cmp").build();
   }
 
   @Override
   public Set<Device> getAndWatch() {
     TreeSet<Device> r = new TreeSet<>();
-    r.add(new Device(0, "/dev/cmp0",
-        243, 0,
-        "0000:65:00.0", true));
+    r.add(Device.Builder.newInstance()
+        .setID(0)
+        .setDevPath("/dev/cmp0")
+        .setMajorNumber(243)
+        .setMinorNumber(0)
+        .setBusID("0000:65:00.0")
+        .setHealthy(true)
+        .build());
     return r;
   }
 
