@@ -136,7 +136,7 @@ public class ResourcePluginManager {
               }
               // Check version for compatibility
               String pluginVersion = request.getVersion();
-              if (!isVersionCompatability(pluginVersion)) {
+              if (!isVersionCompatible(pluginVersion)) {
                 LOG.error("Class: " + pluginClassName + " version: " + pluginVersion +
                     " is not compatible. Expected: " + DeviceConstants.version);
               }
@@ -205,7 +205,7 @@ public class ResourcePluginManager {
     return true;
   }
 
-  private boolean isVersionCompatability(String pluginVersion) {
+  private boolean isVersionCompatible(String pluginVersion) {
     // semantic version
     String[] svs = pluginVersion.split("\\.");
     String[] currentsvs = DeviceConstants.version.split("\\.");
