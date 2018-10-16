@@ -264,4 +264,30 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     }
     Assert.assertTrue("New ResourceHandler should be added", newHandlerAdded);
   }
+
+  @Test(timeout = 30000)
+  public void testPluggableDeviceFrameworkEnabled() {
+
+  }
+
+  @Test(timeout = 30000)
+  public void testPluggableDeviceFrameworkDisabled() {
+
+  }
+
+  @Test(timeout = 30000)
+  public void testDuplicatedDevicePluginRegistration() {
+
+  }
+
+  @Test(timeout = 30000)
+  public void testPluginVersionCompatible() {
+
+  }
+
+  @Test(timeout = 30000)
+  public void testPluginRegistrationNameValid() {
+
+  }
+
 }

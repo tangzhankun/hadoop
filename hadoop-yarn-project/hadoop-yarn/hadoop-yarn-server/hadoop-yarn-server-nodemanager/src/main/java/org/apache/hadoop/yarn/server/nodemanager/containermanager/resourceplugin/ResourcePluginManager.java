@@ -103,94 +103,79 @@ public class ResourcePluginManager {
         pluginMap.put(resourceName, plugin);
       }
     }
-    // Try to load extended device plugins
-    initializeExtendedDevicePlugins(context, conf, pluginMap);
+    // Try to load pluggable device plugins
+    initializePluggableDevicePlugins(context, conf, pluginMap);
     configuredPlugins = Collections.unmodifiableMap(pluginMap);
   }
 
-  public void initializeExtendedDevicePlugins(Context context,
+  public void initializePluggableDevicePlugins(Context context,
       Configuration configuration,
       Map<String, ResourcePlugin> pluginMap) {
     boolean enable = configuration.getBoolean(
         YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_PLUGGABLE_DEVICE_FRAMEWORK,
         YarnConfiguration.DEFAULT_NM_RESOURCE_PLUGINS_ENABLE_PLUGGABLE_DEVICE_FRAMEWORK);
-    if (enable) {
-      LOG.info("New device framework enabled, trying to load the vendor plugins");
-      deviceLocalScheduler = new DeviceLocalScheduler(context);
-      String[] pluginClassNames = configuration.getStrings(
-          YarnConfiguration.NM_RESOURCE_PLUGINS_PLUGGABLE_CLASS);
-      if (pluginClassNames != null) {
-        for (String pluginClassName : pluginClassNames) {
-          try {
-            Class<?> pluginClazz = Class.forName(pluginClassName);
-            if (DevicePlugin.class.isAssignableFrom(pluginClazz)) {
-              DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
-                  configuration);
-              // Try to register plugin
-              // TODO: handle the plugin method timeout issue
-              DeviceRegisterRequest request = dpInstance.register();
-              if (request == null) {
-                LOG.error("Class: " + pluginClassName +
-                    " register() method return null. Expected a resource name");
-                continue;
-              }
-              // Check version for compatibility
-              String pluginVersion = request.getVersion();
-              if (!isVersionCompatible(pluginVersion)) {
-                LOG.error("Class: " + pluginClassName + " version: " + pluginVersion +
-                    " is not compatible. Expected: " + DeviceConstants.version);
-              }
-
-              String resourceName = request.getResourceName();
-              if (resourceName == null) {
-                LOG.error("Class: " + pluginClassName + " register invalid resource name: "+
-                    resourceName);
-                continue;
-              }
-              // check if someone has already registered this resource type name
-              if (pluginMap.containsKey(resourceName)) {
-                LOG.error(resourceName +
-                    " has already been registered! Please change a resource type name");
-                continue;
-              }
-
-              // check resource name is valid and configured in resource-types.xml
-              if (!isValidAndConfiguredResourceName(resourceName)) {
-                LOG.error(resourceName
-                    + " is not configured inside "
-                    + YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE +
-                    " , please configure it to enable");
-                continue;
-              }
-              LOG.info("New resource type: " + resourceName +
-                  " registered successfully by " + pluginClassName);
-              DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(this,
-                  resourceName, dpInstance);
-              LOG.info("Adapter of " + pluginClassName + " created. Initializing..");
-              try {
-                pluginAdapter.initialize(context);
-              } catch (YarnException e) {
-                LOG.error("Adapter of " + pluginClassName + " init failed!");
-                e.printStackTrace();
-                continue;
-              }
-              LOG.info("Adapter of " + pluginClassName + " init success!");
-              // Store plugin as adapter instance
-              pluginMap.put(request.getResourceName(), pluginAdapter);
-            } else {
-              throw new YarnRuntimeException("Class: " + pluginClassName
-                  + " not instance of " + DevicePlugin.class.getCanonicalName());
-            }
-          } catch(ClassNotFoundException e) {
-            throw new YarnRuntimeException("Could not instantiate extended vendor plugin: "
-                + pluginClassName, e);
-          }
-        } // end for
-      } // end if
-    } else {
-      LOG.info("New device framework is not enabled. If you want, set true to " +
+    if (!enable) {
+      LOG.info("The pluggable device framework is not enabled. If you want, set true to " +
           YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_PLUGGABLE_DEVICE_FRAMEWORK);
+      return;
     }
+    LOG.info("The pluggable device framework enabled, trying to load the vendor plugins");
+    deviceLocalScheduler = new DeviceLocalScheduler(context);
+    String[] pluginClassNames = configuration.getStrings(
+        YarnConfiguration.NM_RESOURCE_PLUGINS_PLUGGABLE_CLASS);
+    if (null == pluginClassNames) {
+      throw new YarnRuntimeException("Null value found in configuration: " +
+          YarnConfiguration.NM_RESOURCE_PLUGINS_PLUGGABLE_CLASS);
+    }
+    for (String pluginClassName : pluginClassNames) {
+      try {
+        Class<?> pluginClazz = Class.forName(pluginClassName);
+        if (!DevicePlugin.class.isAssignableFrom(pluginClazz)) {
+          throw new YarnRuntimeException("Class: " + pluginClassName
+              + " not instance of " + DevicePlugin.class.getCanonicalName());
+        }
+        DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
+            configuration);
+        // Try to register plugin
+        // TODO: handle the plugin method timeout issue
+        DeviceRegisterRequest request = dpInstance.register();
+        // Check version for compatibility
+        String pluginVersion = request.getVersion();
+        if (!isVersionCompatible(pluginVersion)) {
+          LOG.error("Class: " + pluginClassName + " version: " + pluginVersion +
+              " is not compatible. Expected: " + DeviceConstants.version);
+        }
+        String resourceName = request.getResourceName();
+        // check if someone has already registered this resource type name
+        if (pluginMap.containsKey(resourceName)) {
+          throw new YarnRuntimeException(resourceName +
+              " has already been registered! Please change a resource type name");
+        }
+        // check resource name is valid and configured in resource-types.xml
+        if (!isValidAndConfiguredResourceName(resourceName)) {
+          throw new YarnRuntimeException(resourceName
+              + " is not configured inside "
+              + YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE +
+              " , please configure it first");
+        }
+        LOG.info("New resource type: " + resourceName +
+            " registered successfully by " + pluginClassName);
+        DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(this,
+            resourceName, dpInstance);
+        LOG.info("Adapter of " + pluginClassName + " created. Initializing..");
+        try {
+          pluginAdapter.initialize(context);
+        } catch (YarnException e) {
+          throw new YarnRuntimeException("Adapter of " + pluginClassName + " init failed!");
+        }
+        LOG.info("Adapter of " + pluginClassName + " init success!");
+        // Store plugin as adapter instance
+        pluginMap.put(request.getResourceName(), pluginAdapter);
+      } catch (Exception e) {
+        throw new YarnRuntimeException("Could not instantiate pluggable vendor plugin: "
+            + pluginClassName, e);
+      }
+    } // end for
   }
 
   // TODO: check resource name matching pattern
