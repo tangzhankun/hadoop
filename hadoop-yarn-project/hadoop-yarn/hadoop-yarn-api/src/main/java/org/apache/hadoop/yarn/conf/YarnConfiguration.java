@@ -1610,7 +1610,7 @@ public class YarnConfiguration extends Configuration {
    * */
   @Private
   public static final String NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED =
-      NM_PREFIX + ".pluggable-device-framework.enabled";
+      NM_PREFIX + "pluggable-device-framework.enabled";
 
   /**
    * The pluggable device plugin framework is disabled by default
@@ -1624,7 +1624,7 @@ public class YarnConfiguration extends Configuration {
    * */
   @Private
   public static final String NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES =
-      NM_PREFIX + ".pluggable-device-framework.device-classes";
+      NM_PREFIX + "pluggable-device-framework.device-classes";
 
   /**
    * Prefix for gpu configurations. Work in progress: This configuration
