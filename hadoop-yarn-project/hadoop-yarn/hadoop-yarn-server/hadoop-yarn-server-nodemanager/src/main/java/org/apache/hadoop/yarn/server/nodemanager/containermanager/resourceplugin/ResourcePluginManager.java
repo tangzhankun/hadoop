@@ -112,20 +112,20 @@ public class ResourcePluginManager {
       Configuration configuration,
       Map<String, ResourcePlugin> pluginMap) {
     boolean enable = configuration.getBoolean(
-        YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_PLUGGABLE_DEVICE_FRAMEWORK,
-        YarnConfiguration.DEFAULT_NM_RESOURCE_PLUGINS_ENABLE_PLUGGABLE_DEVICE_FRAMEWORK);
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
+        YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
     if (!enable) {
       LOG.info("The pluggable device framework is not enabled. If you want, set true to " +
-          YarnConfiguration.NM_RESOURCE_PLUGINS_ENABLE_PLUGGABLE_DEVICE_FRAMEWORK);
+          YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
       return;
     }
     LOG.info("The pluggable device framework enabled, trying to load the vendor plugins");
     deviceLocalScheduler = new DeviceLocalScheduler(context);
     String[] pluginClassNames = configuration.getStrings(
-        YarnConfiguration.NM_RESOURCE_PLUGINS_PLUGGABLE_CLASS);
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
     if (null == pluginClassNames) {
       throw new YarnRuntimeException("Null value found in configuration: " +
-          YarnConfiguration.NM_RESOURCE_PLUGINS_PLUGGABLE_CLASS);
+          YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
     }
     for (String pluginClassName : pluginClassNames) {
       try {
