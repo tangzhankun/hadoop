@@ -3772,7 +3772,8 @@
 
   <property>
     <description>
-      This settings controls if pluggable device framework is enabled
+      This settings controls if pluggable device framework is enabled.
+      Disabled by default
     </description>
     <name>yarn.nodemanager.pluggable-device-framework.enabled</name>
     <value>false</value>
