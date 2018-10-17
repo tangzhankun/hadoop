@@ -52,11 +52,10 @@ public class ResourcePluginManager {
   public synchronized void initialize(Context context)
       throws YarnException {
     Configuration conf = context.getConf();
+    Map<String, ResourcePlugin> pluginMap = new HashMap<>();
+
     String[] plugins = conf.getStrings(YarnConfiguration.NM_RESOURCE_PLUGINS);
-
     if (plugins != null) {
-      Map<String, ResourcePlugin> pluginMap = new HashMap<>();
-
       // Initialize each plugins
       for (String resourceName : plugins) {
         resourceName = resourceName.trim();
@@ -92,9 +91,23 @@ public class ResourcePluginManager {
         plugin.initialize(context);
         pluginMap.put(resourceName, plugin);
       }
-
-      configuredPlugins = Collections.unmodifiableMap(pluginMap);
     }
+    // Try to load pluggable device plugins
+    boolean puggableDeviceFrameworkEnabled = conf.getBoolean(
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
+        YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
+    if (puggableDeviceFrameworkEnabled) {
+      LOG.info("The pluggable device framework is not enabled. If you want, set true to " +
+          YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
+      initializePluggableDevicePlugins(context, conf, pluginMap);
+    }
+    configuredPlugins = Collections.unmodifiableMap(pluginMap);
+  }
+
+  public void initializePluggableDevicePlugins(Context context,
+      Configuration configuration,
+      Map<String, ResourcePlugin> pluginMap) {
+    LOG.info("The pluggable device framework enabled, trying to load the vendor plugins");
   }
 
   public synchronized void cleanup() throws YarnException {
