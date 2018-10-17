@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -264,7 +264,9 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     Assert.assertTrue("New ResourceHandler should be added", newHandlerAdded);
   }
 
-  // Disabled pluggable framework
+  // Disabled pluggable framework.
+  // We use spy object of real rpm to verify "initializePluggableDevicePlugins"
+  // because use mock rpm will not working
   @Test(timeout = 30000)
   public void testInitializationWithPluggableDeviceFrameworkDisabled() throws Exception {
     ResourcePluginManager rpm = new ResourcePluginManager();
@@ -314,9 +316,9 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     nm = new MyMockNM(rpmSpy);
     Boolean fail = false;
     try {
-    YarnConfiguration conf = createNMConfig();
-    conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
-        true);
+      YarnConfiguration conf = createNMConfig();
+      conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
+          true);
 
       nm.init(conf);
       nm.start();
