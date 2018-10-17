@@ -173,7 +173,6 @@ public class ResourcePluginManager {
     } // end for
   }
 
-  // TODO: check resource name matching pattern
   private boolean isValidAndConfiguredResourceName(String resourceName) {
     // check pattern match
     // check configured
