@@ -285,6 +285,23 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
         any(Context.class), any(Configuration.class), any(Map.class));
   }
 
+  // no configuration set.
+  @Test(timeout = 30000)
+  public void testInitializationWithPluggableDeviceFrameworkDisabled2() throws Exception {
+    ResourcePluginManager rpm = new ResourcePluginManager();
+
+    ResourcePluginManager rpmSpy = spy(rpm);
+    nm = new MyMockNM(rpmSpy);
+
+    YarnConfiguration conf = createNMConfig();
+    nm.init(conf);
+    nm.start();
+    verify(rpmSpy, times(1)).initialize(
+        any(Context.class));
+    verify(rpmSpy, times(0)).initializePluggableDevicePlugins(
+        any(Context.class), any(Configuration.class), any(Map.class));
+  }
+
   // Enable framework and configure pluggable device classes
   @Test(timeout = 30000)
   public void testInitializationWithPluggableDeviceFrameworkEnabled() throws Exception {
