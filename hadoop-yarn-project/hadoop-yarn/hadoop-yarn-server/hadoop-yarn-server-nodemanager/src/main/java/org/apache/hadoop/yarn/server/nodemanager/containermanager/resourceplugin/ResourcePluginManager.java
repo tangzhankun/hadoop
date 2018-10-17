@@ -21,12 +21,19 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceConstants;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.FpgaResourcePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.gpu.GpuResourcePlugin;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,6 +122,82 @@ public class ResourcePluginManager {
       throw new YarnRuntimeException("Null value found in configuration: " +
           YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
     }
+    for (String pluginClassName : pluginClassNames) {
+      try {
+        Class<?> pluginClazz = Class.forName(pluginClassName);
+        if (!DevicePlugin.class.isAssignableFrom(pluginClazz)) {
+          throw new YarnRuntimeException("Class: " + pluginClassName
+              + " not instance of " + DevicePlugin.class.getCanonicalName());
+        }
+        DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
+            configuration);
+        // Try to register plugin
+        // TODO: handle the plugin method timeout issue
+        DeviceRegisterRequest request = dpInstance.register();
+        // Check version for compatibility
+        String pluginVersion = request.getVersion();
+        if (!isVersionCompatible(pluginVersion)) {
+          LOG.error("Class: " + pluginClassName + " version: " + pluginVersion +
+              " is not compatible. Expected: " + DeviceConstants.version);
+        }
+        String resourceName = request.getResourceName();
+        // check if someone has already registered this resource type name
+        if (pluginMap.containsKey(resourceName)) {
+          throw new YarnRuntimeException(resourceName +
+              " has already been registered! Please change a resource type name");
+        }
+        // check resource name is valid and configured in resource-types.xml
+        if (!isValidAndConfiguredResourceName(resourceName)) {
+          throw new YarnRuntimeException(resourceName
+              + " is not configured inside "
+              + YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE +
+              " , please configure it first");
+        }
+        LOG.info("New resource type: " + resourceName +
+            " registered successfully by " + pluginClassName);
+        DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(this,
+            resourceName, dpInstance);
+        LOG.info("Adapter of " + pluginClassName + " created. Initializing..");
+        try {
+          pluginAdapter.initialize(context);
+        } catch (YarnException e) {
+          throw new YarnRuntimeException("Adapter of " + pluginClassName + " init failed!");
+        }
+        LOG.info("Adapter of " + pluginClassName + " init success!");
+        // Store plugin as adapter instance
+        pluginMap.put(request.getResourceName(), pluginAdapter);
+      } catch (Exception e) {
+        throw new YarnRuntimeException("Could not instantiate pluggable vendor plugin: "
+            + pluginClassName, e);
+      }
+    } // end for
+  }
+
+  // TODO: check resource name matching pattern
+  private boolean isValidAndConfiguredResourceName(String resourceName) {
+    // check pattern match
+    // check configured
+    Map<String, ResourceInformation> configuredResourceTypes =
+        ResourceUtils.getResourceTypes();
+    if (!configuredResourceTypes.containsKey(resourceName)) {
+      return false;
+    }
+    return true;
+  }
+
+  private boolean isVersionCompatible(String pluginVersion) {
+    // semantic version
+    String[] svs = pluginVersion.split("\\.");
+    String[] currentsvs = DeviceConstants.version.split("\\.");
+    // should be same major version
+    if (Integer.valueOf(svs[0]) != Integer.valueOf(currentsvs[0])) {
+      return false;
+    }
+    // should be older minor version
+    if (Integer.valueOf(svs[1]) > Integer.valueOf(currentsvs[1])) {
+      return false;
+    }
+    return true;
   }
 
   public synchronized void cleanup() throws YarnException {
