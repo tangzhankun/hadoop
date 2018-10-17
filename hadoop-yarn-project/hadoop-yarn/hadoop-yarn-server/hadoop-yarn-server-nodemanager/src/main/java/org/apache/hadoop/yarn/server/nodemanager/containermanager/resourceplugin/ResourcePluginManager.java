@@ -18,11 +18,13 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.FpgaResourcePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.gpu.GpuResourcePlugin;
@@ -106,8 +108,14 @@ public class ResourcePluginManager {
 
   public void initializePluggableDevicePlugins(Context context,
       Configuration configuration,
-      Map<String, ResourcePlugin> pluginMap) {
+      Map<String, ResourcePlugin> pluginMap) throws YarnRuntimeException{
     LOG.info("The pluggable device framework enabled, trying to load the vendor plugins");
+    String[] pluginClassNames = configuration.getStrings(
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
+    if (null == pluginClassNames) {
+      throw new YarnRuntimeException("Null value found in configuration: " +
+          YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
+    }
   }
 
   public synchronized void cleanup() throws YarnException {
