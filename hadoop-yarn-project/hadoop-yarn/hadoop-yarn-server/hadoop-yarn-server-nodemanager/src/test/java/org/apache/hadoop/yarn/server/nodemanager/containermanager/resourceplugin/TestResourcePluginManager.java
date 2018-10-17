@@ -44,6 +44,9 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerChain;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.FakeTestDevicePlugin1;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.FakeTestDevicePlugin2;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.FakeTestDevicePlugin3;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.examples.FakeDevicePlugin;
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
@@ -331,7 +334,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
   // Enable pluggable framework, but leave device classes un-configured
   // initializePluggableDevicePlugins invoked but it should throw an exception
   @Test(timeout = 30000)
-  public void testInitializationWithPluggableDeviceFrameworkEnabled2() {
+  public void testInitializationWithPluggableDeviceFrameworkEnabled2()
+      throws ClassNotFoundException{
     ResourcePluginManager rpm = new ResourcePluginManager();
 
     ResourcePluginManager rpmSpy = spy(rpm);
@@ -364,7 +368,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     nm = new MyMockNM(rpmSpy);
 
     YarnConfiguration conf = createNMConfig();
-    // setup resource-typtes.xml
+    // setup resource-types.xml
     ResourceUtils.resetResourceTypes();
     String resourceTypesFile = "resource-types-pluggable-devices.xml";
     String tempFile = TestResourceUtils.setupResourceTypes(conf, resourceTypesFile);
@@ -372,15 +376,92 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
     conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
+        FakeTestDevicePlugin1.class.getCanonicalName() + "," +
         FakeDevicePlugin.class.getCanonicalName());
     nm.init(conf);
     nm.start();
     Map<String, ResourcePlugin> pluginMap = rpmSpy.getNameToPlugins();
-    Assert.assertEquals(1,pluginMap.size());
+    Assert.assertEquals(2,pluginMap.size());
     ResourcePlugin rp = pluginMap.get("cmp.com/cmp");
     if (! (rp instanceof DevicePluginAdapter)) {
       Assert.assertTrue(false);
     }
+    // cleanup resource-types.xml
+    File dest = new File(tempFile);
+    LOG.info(tempFile);
+    if (dest.exists()) {
+      dest.delete();
+    }
+  }
+
+  // Fail to load a class which doesn't implement interface DevicePlugin
+  @Test(timeout = 30000)
+  public void testLoadInvalidPluggableDeviceClasses()
+      throws Exception{
+    ResourcePluginManager rpm = new ResourcePluginManager();
+
+    ResourcePluginManager rpmSpy = spy(rpm);
+    nm = new MyMockNM(rpmSpy);
+
+    YarnConfiguration conf = createNMConfig();
+    // setup resource-types.xml
+    ResourceUtils.resetResourceTypes();
+    String resourceTypesFile = "resource-types-pluggable-devices.xml";
+    String tempFile = TestResourceUtils.setupResourceTypes(conf, resourceTypesFile);
+
+    conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
+        true);
+    conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
+        FakeTestDevicePlugin2.class.getCanonicalName());
+
+    String expectedMessage = "Class: " + FakeTestDevicePlugin2.class.getCanonicalName()
+        + " not instance of " + DevicePlugin.class.getCanonicalName();
+    String actualMessage = "";
+    try {
+      nm.init(conf);
+      nm.start();
+    } catch (YarnRuntimeException e) {
+      actualMessage = e.getMessage();
+    }
+    Assert.assertEquals(expectedMessage, actualMessage);
+    // cleanup resource-types.xml
+    File dest = new File(tempFile);
+    LOG.info(tempFile);
+    if (dest.exists()) {
+      dest.delete();
+    }
+  }
+
+  @Test(timeout = 30000)
+  public void testLoadDuplicateResourceNameDevicePlugin()
+      throws Exception{
+    ResourcePluginManager rpm = new ResourcePluginManager();
+
+    ResourcePluginManager rpmSpy = spy(rpm);
+    nm = new MyMockNM(rpmSpy);
+
+    YarnConfiguration conf = createNMConfig();
+    // setup resource-types.xml
+    ResourceUtils.resetResourceTypes();
+    String resourceTypesFile = "resource-types-pluggable-devices.xml";
+    String tempFile = TestResourceUtils.setupResourceTypes(conf, resourceTypesFile);
+
+    conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
+        true);
+    conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
+        FakeTestDevicePlugin1.class.getCanonicalName() + "," +
+            FakeTestDevicePlugin3.class.getCanonicalName());
+
+    String expectedMessage = "cmpA.com/hdwA" +
+        " has already been registered! Please change a resource type name";
+    String actualMessage = "";
+    try {
+      nm.init(conf);
+      nm.start();
+    } catch (YarnRuntimeException e) {
+      actualMessage = e.getMessage();
+    }
+    Assert.assertEquals(expectedMessage, actualMessage);
     // cleanup resource-types.xml
     File dest = new File(tempFile);
     LOG.info(tempFile);
