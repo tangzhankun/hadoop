@@ -137,7 +137,7 @@ public class ResourcePluginManager {
         // Check version for compatibility
         String pluginVersion = request.getVersion();
         if (!isVersionCompatible(pluginVersion)) {
-          LOG.error("Class: " + pluginClassName + " version: " + pluginVersion +
+          throw new YarnRuntimeException("Class: " + pluginClassName + " version: " + pluginVersion +
               " is not compatible. Expected: " + DeviceConstants.version);
         }
         String resourceName = request.getResourceName();
@@ -167,8 +167,9 @@ public class ResourcePluginManager {
         // Store plugin as adapter instance
         pluginMap.put(request.getResourceName(), pluginAdapter);
       } catch (Exception e) {
+        e.printStackTrace();
         throw new YarnRuntimeException("Could not instantiate pluggable vendor plugin: "
-            + pluginClassName, e);
+            + pluginClassName);
       }
     } // end for
   }
