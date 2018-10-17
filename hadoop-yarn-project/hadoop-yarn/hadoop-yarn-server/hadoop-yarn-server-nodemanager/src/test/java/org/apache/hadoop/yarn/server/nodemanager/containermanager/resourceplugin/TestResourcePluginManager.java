@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.server.nodemanager.NodeHealthCheckerService;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManagerTestBase;
 import org.apache.hadoop.yarn.server.nodemanager.NodeStatusUpdater;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.*;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.ContainerManagerImpl;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperation;
@@ -42,18 +43,19 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerChain;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.NodeResourceUpdaterPlugin;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.examples.FakeDevicePlugin;
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
+import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
+import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.util.*;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -256,6 +258,9 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     boolean newHandlerAdded = false;
     for (ResourceHandler h : ((ResourceHandlerChain) handler)
         .getResourceHandlerList()) {
+      if (h instanceof DevicePluginAdapter) {
+        Assert.assertTrue(false);
+      }
       if (h instanceof CustomizedResourceHandler) {
         newHandlerAdded = true;
         break;
@@ -314,7 +319,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
     conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
-        "com.cmp1.hdw1plugin");
+        FakeDevicePlugin.class.getCanonicalName());
     nm.init(conf);
     nm.start();
     verify(rpmSpy, times(1)).initialize(
@@ -348,4 +353,40 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
         any(Context.class), any(Configuration.class), any(Map.class));
     Assert.assertTrue(fail);
   }
+
+  @Test(timeout = 30000)
+  public void testNormalInitializationOfPluggableDeviceClasses()
+      throws Exception{
+
+    ResourcePluginManager rpm = new ResourcePluginManager();
+
+    ResourcePluginManager rpmSpy = spy(rpm);
+    nm = new MyMockNM(rpmSpy);
+
+    YarnConfiguration conf = createNMConfig();
+    // setup resource-typtes.xml
+    ResourceUtils.resetResourceTypes();
+    String resourceTypesFile = "resource-types-pluggable-devices.xml";
+    String tempFile = TestResourceUtils.setupResourceTypes(conf, resourceTypesFile);
+
+    conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
+        true);
+    conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
+        FakeDevicePlugin.class.getCanonicalName());
+    nm.init(conf);
+    nm.start();
+    Map<String, ResourcePlugin> pluginMap = rpmSpy.getNameToPlugins();
+    Assert.assertEquals(1,pluginMap.size());
+    ResourcePlugin rp = pluginMap.get("cmp.com/cmp");
+    if (! (rp instanceof DevicePluginAdapter)) {
+      Assert.assertTrue(false);
+    }
+    // cleanup resource-types.xml
+    File dest = new File(tempFile);
+    LOG.info(tempFile);
+    if (dest.exists()) {
+      dest.delete();
+    }
+  }
+
 }

@@ -1,0 +1,7 @@
+<configuration>
+
+    <property>
+        <name>yarn.resource-types</name>
+        <value>cmp.com/cmp</value>
+    </property>
+</configuration>
