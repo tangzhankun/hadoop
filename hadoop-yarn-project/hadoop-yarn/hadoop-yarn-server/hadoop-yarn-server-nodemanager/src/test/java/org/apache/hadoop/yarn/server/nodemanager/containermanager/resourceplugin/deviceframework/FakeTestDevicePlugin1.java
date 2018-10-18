@@ -31,7 +31,7 @@ public class FakeTestDevicePlugin1 implements DevicePlugin {
   @Override
   public DeviceRegisterRequest register() {
     return DeviceRegisterRequest.Builder.newInstance()
-        .setVersion(DeviceConstants.version).setResourceName("cmpA.com/hdwA").build();
+        .setApiVersion(DeviceConstants.version).setResourceName("cmpA.com/hdwA").build();
   }
 
   @Override

@@ -26,24 +26,30 @@ import java.util.Objects;
  * */
 public class DeviceRegisterRequest {
 
-  private final String version;
+  // YARN device framework API apiVersion used in this plugin
+  private final String apiVersion;
+
+  // plugin's own version
+  private final String pluginVersion;
   private final String resourceName;
 
   public DeviceRegisterRequest(Builder builder) {
-    this.version = Objects.requireNonNull(builder.version);
+    this.apiVersion = Objects.requireNonNull(builder.apiVersion);
     this.resourceName = Objects.requireNonNull(builder.resourceName);
+    this.pluginVersion = builder.pluginVersion;
   }
 
   public String getResourceName() {
     return resourceName;
   }
 
-  public String getVersion() {
-    return version;
+  public String getApiVersion() {
+    return apiVersion;
   }
 
   public static class Builder {
-    private String version;
+    private String apiVersion;
+    private String pluginVersion;
     private String resourceName;
 
     private Builder() {}
@@ -57,13 +63,18 @@ public class DeviceRegisterRequest {
     }
 
     // TODO: add sematic versioning pattern check
-    public Builder setVersion(String version) {
-      this.version = version;
+    public Builder setApiVersion(String apiVersion) {
+      this.apiVersion = apiVersion;
       return this;
     }
 
     public Builder setResourceName(String resourceName) {
       this.resourceName = resourceName;
+      return this;
+    }
+
+    public Builder setPluginVersion(String pluginVersion) {
+      this.pluginVersion = pluginVersion;
       return this;
     }
 
