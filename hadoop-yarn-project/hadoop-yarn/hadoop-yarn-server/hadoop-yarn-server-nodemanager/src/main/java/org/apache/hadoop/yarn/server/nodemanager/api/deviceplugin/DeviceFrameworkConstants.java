@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
-public class DeviceConstants {
+public class DeviceFrameworkConstants {
   /**
    * Follows the "majorVersion.minorVersion.patchVersion" convention
    * Given a version number MAJOR.MINOR.PATCH, increment the:
@@ -27,5 +27,5 @@ public class DeviceConstants {
    * MINOR version when you add functionality in a backwards-compatible manner, and
    * PATCH version when you make backwards-compatible bug fixes.
    * */
-  public static final String version = "0.1.0";
+  public static final String API_VERSION = "0.1.0";
 }

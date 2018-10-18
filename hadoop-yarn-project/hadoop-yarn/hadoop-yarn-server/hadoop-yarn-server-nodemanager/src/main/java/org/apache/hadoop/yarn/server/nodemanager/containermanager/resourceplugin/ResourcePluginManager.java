@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -27,7 +28,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceConstants;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceFrameworkConstants;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
@@ -136,9 +137,9 @@ public class ResourcePluginManager {
       DeviceRegisterRequest request = dpInstance.register();
       // Check API version for compatibility
       String apiVersion = request.getApiVersion();
-      if (!isVersionCompatible(apiVersion)) {
+      if (!isVersionCompatible(apiVersion, DeviceFrameworkConstants.API_VERSION)) {
         throw new YarnRuntimeException("Class: " + pluginClassName + " API version: " + apiVersion +
-            " is not compatible. Expected: " + DeviceConstants.version);
+            " is not compatible. Expected: " + DeviceFrameworkConstants.API_VERSION);
       }
       String resourceName = request.getResourceName();
       // check if someone has already registered this resource type name
@@ -169,7 +170,8 @@ public class ResourcePluginManager {
     } // end for
   }
 
-  private boolean isValidAndConfiguredResourceName(String resourceName) {
+  @VisibleForTesting
+  public boolean isValidAndConfiguredResourceName(String resourceName) {
     // check pattern match
     // check configured
     Map<String, ResourceInformation> configuredResourceTypes =
@@ -180,10 +182,12 @@ public class ResourcePluginManager {
     return true;
   }
 
-  private boolean isVersionCompatible(String pluginVersion) {
+  @VisibleForTesting
+  public boolean isVersionCompatible(String pluginApiVersion,
+      String frameworkApiVersion) {
     // semantic version
-    String[] svs = pluginVersion.split("\\.");
-    String[] currentsvs = DeviceConstants.version.split("\\.");
+    String[] svs = pluginApiVersion.split("\\.");
+    String[] currentsvs = frameworkApiVersion.split("\\.");
     // should be same major version
     if (Integer.valueOf(svs[0]) != Integer.valueOf(currentsvs[0])) {
       return false;

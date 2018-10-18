@@ -27,7 +27,7 @@ public class FakeDevicePlugin implements DevicePlugin {
   @Override
   public DeviceRegisterRequest register() {
     return DeviceRegisterRequest.Builder.newInstance()
-        .setApiVersion(DeviceConstants.version)
+        .setApiVersion(DeviceFrameworkConstants.API_VERSION)
         .setResourceName("cmp.com/cmp")
         .setPluginVersion("v1.0").build();
   }
