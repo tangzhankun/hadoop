@@ -134,10 +134,10 @@ public class ResourcePluginManager {
       // Try to register plugin
       // TODO: handle the plugin method timeout issue
       DeviceRegisterRequest request = dpInstance.register();
-      // Check version for compatibility
-      String pluginVersion = request.getVersion();
-      if (!isVersionCompatible(pluginVersion)) {
-        throw new YarnRuntimeException("Class: " + pluginClassName + " version: " + pluginVersion +
+      // Check API version for compatibility
+      String apiVersion = request.getApiVersion();
+      if (!isVersionCompatible(apiVersion)) {
+        throw new YarnRuntimeException("Class: " + pluginClassName + " API version: " + apiVersion +
             " is not compatible. Expected: " + DeviceConstants.version);
       }
       String resourceName = request.getResourceName();
