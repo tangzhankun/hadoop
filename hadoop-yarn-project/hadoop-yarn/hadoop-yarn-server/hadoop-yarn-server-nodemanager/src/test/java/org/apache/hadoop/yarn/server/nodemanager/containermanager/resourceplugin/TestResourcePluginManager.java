@@ -51,7 +51,6 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
-import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -65,6 +64,19 @@ import static org.mockito.Mockito.*;
 
 public class TestResourcePluginManager extends NodeManagerTestBase {
   private NodeManager nm;
+
+  private YarnConfiguration conf;
+
+  private String tempResourceTypesFile;
+
+  @Before
+  public void setup() throws Exception {
+    this.conf = createNMConfig();
+    // setup resource-types.xml
+    ResourceUtils.resetResourceTypes();
+    String resourceTypesFile = "resource-types-pluggable-devices.xml";
+    this.tempResourceTypesFile = TestResourceUtils.setupResourceTypes(this.conf, resourceTypesFile);
+  }
 
   ResourcePluginManager stubResourcePluginmanager() {
     // Stub ResourcePluginManager
@@ -97,6 +109,11 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
       } catch (Throwable t) {
         // ignore
       }
+    }
+    // cleanup resource-types.xml
+    File dest = new File(this.tempResourceTypesFile);
+    if (dest.exists()) {
+      dest.delete();
     }
   }
 
@@ -282,7 +299,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     ResourcePluginManager rpmSpy = spy(rpm);
     nm = new MyMockNM(rpmSpy);
 
-    YarnConfiguration conf = createNMConfig();
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         false);
     nm.init(conf);
@@ -301,7 +317,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     ResourcePluginManager rpmSpy = spy(rpm);
     nm = new MyMockNM(rpmSpy);
 
-    YarnConfiguration conf = createNMConfig();
     nm.init(conf);
     nm.start();
     verify(rpmSpy, times(1)).initialize(
@@ -318,7 +333,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     ResourcePluginManager rpmSpy = spy(rpm);
     nm = new MyMockNM(rpmSpy);
 
-    YarnConfiguration conf = createNMConfig();
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
     conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
@@ -367,12 +381,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     ResourcePluginManager rpmSpy = spy(rpm);
     nm = new MyMockNM(rpmSpy);
 
-    YarnConfiguration conf = createNMConfig();
-    // setup resource-types.xml
-    ResourceUtils.resetResourceTypes();
-    String resourceTypesFile = "resource-types-pluggable-devices.xml";
-    String tempFile = TestResourceUtils.setupResourceTypes(conf, resourceTypesFile);
-
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
     conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
@@ -386,12 +394,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     if (! (rp instanceof DevicePluginAdapter)) {
       Assert.assertTrue(false);
     }
-    // cleanup resource-types.xml
-    File dest = new File(tempFile);
-    LOG.info(tempFile);
-    if (dest.exists()) {
-      dest.delete();
-    }
   }
 
   // Fail to load a class which doesn't implement interface DevicePlugin
@@ -402,12 +404,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
     ResourcePluginManager rpmSpy = spy(rpm);
     nm = new MyMockNM(rpmSpy);
-
-    YarnConfiguration conf = createNMConfig();
-    // setup resource-types.xml
-    ResourceUtils.resetResourceTypes();
-    String resourceTypesFile = "resource-types-pluggable-devices.xml";
-    String tempFile = TestResourceUtils.setupResourceTypes(conf, resourceTypesFile);
 
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
@@ -424,12 +420,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
       actualMessage = e.getMessage();
     }
     Assert.assertEquals(expectedMessage, actualMessage);
-    // cleanup resource-types.xml
-    File dest = new File(tempFile);
-    LOG.info(tempFile);
-    if (dest.exists()) {
-      dest.delete();
-    }
   }
 
   @Test(timeout = 30000)
@@ -439,12 +429,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
     ResourcePluginManager rpmSpy = spy(rpm);
     nm = new MyMockNM(rpmSpy);
-
-    YarnConfiguration conf = createNMConfig();
-    // setup resource-types.xml
-    ResourceUtils.resetResourceTypes();
-    String resourceTypesFile = "resource-types-pluggable-devices.xml";
-    String tempFile = TestResourceUtils.setupResourceTypes(conf, resourceTypesFile);
 
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
@@ -462,12 +446,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
       actualMessage = e.getMessage();
     }
     Assert.assertEquals(expectedMessage, actualMessage);
-    // cleanup resource-types.xml
-    File dest = new File(tempFile);
-    LOG.info(tempFile);
-    if (dest.exists()) {
-      dest.delete();
-    }
   }
 
 }
