@@ -36,7 +36,7 @@ public class FakeTestDevicePlugin3 implements DevicePlugin {
   }
 
   @Override
-  public Set<Device> getAndWatch() {
+  public Set<Device> getDevices() {
     TreeSet<Device> r = new TreeSet<>();
     r.add(Device.Builder.newInstance()
         .setID(0)

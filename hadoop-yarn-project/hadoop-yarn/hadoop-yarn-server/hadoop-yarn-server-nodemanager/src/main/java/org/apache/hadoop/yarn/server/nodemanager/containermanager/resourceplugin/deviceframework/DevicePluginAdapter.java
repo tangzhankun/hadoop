@@ -74,7 +74,7 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
   @Override
   public void updateConfiguredResource(Resource res) throws YarnException {
     LOG.info(resourceName + " plugin update resource ");
-    Set<Device> devices = devicePlugin.getAndWatch();
+    Set<Device> devices = devicePlugin.getDevices();
     if (devices == null) {
       LOG.warn(resourceName + " plugin failed to discover resource ( null value got)." );
       return;
@@ -146,14 +146,14 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
    * */
   @Override
   public List<PrivilegedOperation> bootstrap(Configuration configuration) throws ResourceHandlerException {
-    Set<Device> availableDevices = devicePlugin.getAndWatch();
+    Set<Device> availableDevices = devicePlugin.getDevices();
 
     /**
      * We won't fail the NM if plugin returns invalid value here.
      * // TODO: we should update RM's resource count if something wrong
      * */
     if (availableDevices == null) {
-      LOG.error("Bootstrap " + resourceName + " failed. Null value got from plugin's getAndWatch method");
+      LOG.error("Bootstrap " + resourceName + " failed. Null value got from plugin's getDevices method");
       return null;
     }
 
