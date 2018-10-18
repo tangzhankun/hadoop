@@ -34,7 +34,7 @@ public interface DevicePlugin {
    * Called when update node resource
    * @return a set of {@link Device}, {@link java.util.TreeSet} recommended
    * */
-  Set<Device> getAndWatch();
+  Set<Device> getDevices();
 
   /**
    * Called before container launch.
