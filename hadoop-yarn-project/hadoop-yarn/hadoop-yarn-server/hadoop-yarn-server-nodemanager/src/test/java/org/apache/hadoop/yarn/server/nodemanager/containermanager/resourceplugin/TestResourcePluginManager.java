@@ -448,4 +448,31 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     Assert.assertEquals(expectedMessage, actualMessage);
   }
 
+  @Test(timeout = 30000)
+  public void testLoadInvalidApiVersionDevicePlugin()
+      throws Exception{
+    ResourcePluginManager rpm = new ResourcePluginManager();
+    String pluginApiVersion = "0.1.0";
+    String frameworkApiVersion = "1.0.1";
+    // major version is older than framework, incompatible
+    Boolean flag = rpm.isVersionCompatible(pluginApiVersion, frameworkApiVersion);
+    Assert.assertFalse(flag);
+    // same major version, different minor version. compatible
+    pluginApiVersion = "0.1.1";
+    frameworkApiVersion = "0.2.0";
+    flag = rpm.isVersionCompatible(pluginApiVersion, frameworkApiVersion);
+    Assert.assertTrue(flag);
+  }
+
+  @Test(timeout = 30000)
+  public void testRequestedResourceNameIsConfigured()
+      throws Exception{
+    ResourcePluginManager rpm = new ResourcePluginManager();
+    String resourceName = "a.com/a";
+    Assert.assertFalse(rpm.isValidAndConfiguredResourceName(resourceName));
+    resourceName = "cmp.com/cmp";
+    Assert.assertTrue(rpm.isValidAndConfiguredResourceName(resourceName));
+  }
+
+
 }
