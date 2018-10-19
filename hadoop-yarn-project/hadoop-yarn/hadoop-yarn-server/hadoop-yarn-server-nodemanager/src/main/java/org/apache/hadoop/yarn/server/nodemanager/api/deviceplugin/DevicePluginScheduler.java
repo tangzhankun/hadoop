@@ -27,11 +27,11 @@ import java.util.Set;
 public interface DevicePluginScheduler {
   /**
    * Called when allocating devices. The framework will do all device book keeping
-   * and fail recovery. So this hook should only do scheduling based on allowed devices
-   * passed in.
-   * @param allowedDevices Devices allowed to be chosen from.
+   * and fail recovery. So this hook should only do scheduling based on available devices
+   * passed in. This method could be invoked multiple times.
+   * @param availableDevices Devices allowed to be chosen from.
    * @param count Number of device to be allocated.
    * @return a set of {@link Device}
    * */
-  Set<Device> allocateDevices(Set<Device> allowedDevices, Integer count);
+  Set<Device> allocateDevices(Set<Device> availableDevices, Integer count);
 }
