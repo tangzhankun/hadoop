@@ -168,7 +168,7 @@ public class ResourcePluginManager {
       // If the device plugin implements DevicePluginScheduler interface
       if (dpInstance instanceof DevicePluginScheduler) {
         LOG.info(pluginClassName +
-            " can schedule devices. Added as preferred device scheduler");
+            " can schedule " + resourceName + " devices. Added as preferred device plugin scheduler");
         deviceSchedulerManager.addDevicePluginScheduler(
             resourceName,
             (DevicePluginScheduler)dpInstance);

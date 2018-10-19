@@ -143,13 +143,16 @@ public class DeviceSchedulerManager {
 
       if (dps != null) {
         // we'll prefer vendor provided scheduler
+        LOG.info("Try to schedule " + requestedDeviceCount
+            + "(" + resourceName + ") using " + dps.getClass());
         Set<Device> dpsAllocated = dps.allocateDevices(
             Sets.difference(allowedDevices, usedDevices.keySet()),
             requestedDeviceCount);
         if (assignedDevices.size() != requestedDeviceCount) {
-          throw new ResourceHandlerException(dps.getClass() + " should allocate " + requestedDeviceCount +
-              " of " + resourceName + ", but actual: " +
-              assignedDevices.size());
+          throw new ResourceHandlerException(dps.getClass() + " should allocate "
+              + requestedDeviceCount
+              + " of " + resourceName + ", but actual: "
+              + assignedDevices.size());
         }
         // copy
         assignedDevices.addAll(dpsAllocated);
@@ -221,8 +224,9 @@ public class DeviceSchedulerManager {
       if (usedDevices.containsKey(device)) {
         throw new ResourceHandlerException(
             "Try to recover device id = " + device
-                + " however it is already assigned to container=" + usedDevices
-                .get(device) + ", please double check what happened.");
+                + " however it is already assigned to container="
+                + usedDevices.get(device)
+                + ", please double check what happened.");
       }
 
       usedDevices.put(device, containerId);
