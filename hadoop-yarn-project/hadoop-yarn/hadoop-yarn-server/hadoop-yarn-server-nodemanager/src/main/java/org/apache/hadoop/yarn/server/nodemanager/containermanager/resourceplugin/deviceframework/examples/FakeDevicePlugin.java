@@ -46,12 +46,12 @@ public class FakeDevicePlugin implements DevicePlugin {
   }
 
   @Override
-  public DeviceRuntimeSpec preLaunchContainer(Set<Device> allocatedDevices) {
+  public DeviceRuntimeSpec OnDevicesAllocated(Set<Device> allocatedDevices) {
     return null;
   }
 
   @Override
-  public void postCompleteContainer(Set<Device> allocatedDevices) {
+  public void OnDevicesReleased(Set<Device> allocatedDevices) {
 
   }
 }
