@@ -143,7 +143,7 @@ public class DeviceSchedulerManager {
 
       if (dps != null) {
         // we'll prefer vendor provided scheduler
-        assignedDevices = dps.allocateDevices(
+        Set<Device> dpsAllocated = dps.allocateDevices(
             Sets.difference(allowedDevices, usedDevices.keySet()),
             requestedDeviceCount);
         if (assignedDevices.size() != requestedDeviceCount) {
@@ -151,6 +151,8 @@ public class DeviceSchedulerManager {
               " of " + resourceName + ", but actual: " +
               assignedDevices.size());
         }
+        // copy
+        assignedDevices.addAll(dpsAllocated);
         // Store assigned devices into usedDevices
         for (Device device : assignedDevices) {
           usedDevices.put(device, containerId);
