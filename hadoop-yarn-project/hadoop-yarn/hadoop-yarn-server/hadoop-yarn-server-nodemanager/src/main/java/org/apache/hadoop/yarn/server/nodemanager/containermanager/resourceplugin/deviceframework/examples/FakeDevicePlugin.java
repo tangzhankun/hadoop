@@ -23,7 +23,8 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.*;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class FakeDevicePlugin implements DevicePlugin {
+public class FakeDevicePlugin
+    implements DevicePlugin,DevicePluginScheduler {
   @Override
   public DeviceRegisterRequest register() {
     return DeviceRegisterRequest.Builder.newInstance()
@@ -53,5 +54,18 @@ public class FakeDevicePlugin implements DevicePlugin {
   @Override
   public void OnDevicesReleased(Set<Device> allocatedDevices) {
 
+  }
+
+  @Override
+  public Set<Device> allocateDevices(Set<Device> availableDevices, Integer count) {
+    Set<Device> allocated = new TreeSet<>();
+    int number = 0;
+    for (Device d : availableDevices) {
+      allocated.add(d);
+      if (number == count) {
+        break;
+      }
+    }
+    return allocated;
   }
 }
