@@ -71,7 +71,7 @@ public class DeviceSchedulerManager {
 
   public synchronized void addDeviceSet(String resourceName, Set<Device> deviceSet) {
     LOG.info("Adding new resource: " + "type:" + resourceName + "," + deviceSet);
-    allAllowedDevices.put(resourceName, deviceSet);
+    allAllowedDevices.put(resourceName, new TreeSet<>(deviceSet));
     allUsedDevices.put(resourceName, new TreeMap<>());
   }
 
