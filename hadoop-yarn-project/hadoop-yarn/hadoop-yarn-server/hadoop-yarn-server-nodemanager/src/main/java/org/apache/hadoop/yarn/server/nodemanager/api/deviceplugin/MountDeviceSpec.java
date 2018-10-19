@@ -1,0 +1,103 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
+
+import java.io.Serializable;
+import java.util.Objects;
+
+public class MountDeviceSpec implements Serializable, Comparable {
+
+  private final String devicePathInHost;
+  private final String devicePathInContainer;
+
+  // r for only read, rw can do read and write
+  private final String devicePermission;
+
+  public final static String RO = "r";
+  public final static String RW = "rw";
+
+  private MountDeviceSpec(Builder builder) {
+    this.devicePathInContainer = builder.devicePathInContainer;
+    this.devicePathInHost = builder.devicePathInHost;
+    this.devicePermission = builder.devicePermission;
+  }
+
+  public String getDevicePathInHost() {
+    return devicePathInHost;
+  }
+
+  public String getDevicePathInContainer() {
+    return devicePathInContainer;
+  }
+
+  public String getDevicePermission() {
+    return devicePermission;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()){
+      return false;
+    }
+    MountDeviceSpec other = (MountDeviceSpec) o;
+    return Objects.equals(devicePathInHost, other.devicePathInHost) &&
+        Objects.equals(devicePathInContainer, other.devicePathInContainer) &&
+        Objects.equals(devicePermission, other.devicePermission);
+  }
+
+  @Override
+  public int compareTo(Object o) {
+    return 0;
+  }
+
+  public static class Builder {
+    private String devicePathInHost;
+    private String devicePathInContainer;
+    private String devicePermission;
+
+    private Builder() {}
+
+    public static Builder newInstance() {
+      return new Builder();
+    }
+
+    public MountDeviceSpec build() {
+      return new MountDeviceSpec(this);
+    }
+
+    public Builder setDevicePermission(String permission) {
+      this.devicePermission = permission;
+      return this;
+    }
+
+    public Builder setDevicePathInContainer(String devicePathInContainer) {
+      this.devicePathInContainer = devicePathInContainer;
+      return this;
+    }
+
+    public Builder setDevicePathInHost(String devicePathInHost) {
+      this.devicePathInHost = devicePathInHost;
+      return this;
+    }
+  }
+
+}

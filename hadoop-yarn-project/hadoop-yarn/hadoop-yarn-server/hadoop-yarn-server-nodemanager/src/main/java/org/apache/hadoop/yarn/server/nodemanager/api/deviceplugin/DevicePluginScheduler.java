@@ -21,31 +21,17 @@ package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 import java.util.Set;
 
 /**
- * A must interface for vendor plugin to implement.
+ * An optional interface to implement if custom device scheduling is needed.
+ * If this is not implemented, the device framework will do.
  * */
-public interface DevicePlugin {
+public interface DevicePluginScheduler {
   /**
-   * Called first when device plugin framework wants to register
-   * @return DeviceRegisterRequest {@link DeviceRegisterRequest}
+   * Called when allocating devices. The framework will do all device book keeping
+   * and fail recovery. So this hook should only do scheduling based on allowed devices
+   * passed in.
+   * @param allowedDevices Devices allowed to be chosen from.
+   * @param count Number of device to be allocated.
+   * @return a set of {@link Device}
    * */
-  DeviceRegisterRequest register();
-
-  /**
-   * Called when update node resource
-   * @return a set of {@link Device}, {@link java.util.TreeSet} recommended
-   * */
-  Set<Device> getDevices();
-
-  /**
-   * Called after device allocated (before container launch).
-   * @return a {@link DeviceRuntimeSpec} description about environment,
-   * {@link VolumeSpec}, {@link MountVolumeSpec}. etc
-   * on how these devices should be used when container launch
-   * */
-  DeviceRuntimeSpec OnDevicesAllocated(Set<Device> allocatedDevices);
-
-  /**
-   * Called after device released.
-   * */
-  void OnDevicesReleased(Set<Device> releasedDevices);
+  Set<Device> allocateDevices(Set<Device> allowedDevices, Integer count);
 }
