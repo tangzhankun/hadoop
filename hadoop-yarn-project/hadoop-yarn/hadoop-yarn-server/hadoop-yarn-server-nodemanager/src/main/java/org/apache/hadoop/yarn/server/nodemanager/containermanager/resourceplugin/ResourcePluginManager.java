@@ -28,7 +28,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceFrameworkConstants;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
@@ -135,12 +134,6 @@ public class ResourcePluginManager {
       // Try to register plugin
       // TODO: handle the plugin method timeout issue
       DeviceRegisterRequest request = dpInstance.register();
-      // Check API version for compatibility
-      String apiVersion = request.getApiVersion();
-      if (!isVersionCompatible(apiVersion, DeviceFrameworkConstants.API_VERSION)) {
-        throw new YarnRuntimeException("Class: " + pluginClassName + " API version: " + apiVersion +
-            " is not compatible. Expected: " + DeviceFrameworkConstants.API_VERSION);
-      }
       String resourceName = request.getResourceName();
       // check if someone has already registered this resource type name
       if (pluginMap.containsKey(resourceName)) {
@@ -177,23 +170,6 @@ public class ResourcePluginManager {
     Map<String, ResourceInformation> configuredResourceTypes =
         ResourceUtils.getResourceTypes();
     if (!configuredResourceTypes.containsKey(resourceName)) {
-      return false;
-    }
-    return true;
-  }
-
-  @VisibleForTesting
-  public boolean isVersionCompatible(String pluginApiVersion,
-      String frameworkApiVersion) {
-    // semantic version
-    String[] svs = pluginApiVersion.split("\\.");
-    String[] currentsvs = frameworkApiVersion.split("\\.");
-    // should be same major version
-    if (Integer.valueOf(svs[0]) != Integer.valueOf(currentsvs[0])) {
-      return false;
-    }
-    // should be older minor version
-    if (Integer.valueOf(svs[1]) > Integer.valueOf(currentsvs[1])) {
       return false;
     }
     return true;
