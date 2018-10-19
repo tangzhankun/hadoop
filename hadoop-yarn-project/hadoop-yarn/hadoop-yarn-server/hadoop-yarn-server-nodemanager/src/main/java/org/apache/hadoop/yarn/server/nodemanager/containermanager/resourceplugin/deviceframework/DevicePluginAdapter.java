@@ -58,11 +58,13 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
   private ResourcePluginManager devicePluginManager;
   private String resourceName;
   private DevicePlugin devicePlugin;
+  private DeviceSchedulerManager deviceSchedulerManager;
   private CGroupsHandler cGroupsHandler;
   private PrivilegedOperationExecutor privilegedOperationExecutor;
 
   public DevicePluginAdapter(ResourcePluginManager pluginManager, String name, DevicePlugin dp) {
     devicePluginManager = pluginManager;
+    deviceSchedulerManager = pluginManager.getDeviceSchedulerManager();
     resourceName = name;
     devicePlugin = dp;
   }
@@ -156,7 +158,8 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
       LOG.error("Bootstrap " + resourceName + " failed. Null value got from plugin's getDevices method");
       return null;
     }
-
+    // Add device set. Here we trust the plugin's return value
+    deviceSchedulerManager.addDeviceSet(resourceName, availableDevices);
     // TODO: Init cgroups
 
     return null;
@@ -166,6 +169,10 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
   public List<PrivilegedOperation> preStart(Container container)
       throws ResourceHandlerException {
     String containerIdStr = container.getContainerId().toString();
+    DeviceSchedulerManager.DeviceAllocation allocation = deviceSchedulerManager.assignDevices(
+        resourceName, container);
+    LOG.info("Allocated to " +
+        containerIdStr + ": " + allocation );
     /**
      * TODO: implement a general container-executor device module to do isolation
      * */
@@ -175,6 +182,7 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
   @Override
   public List<PrivilegedOperation> reacquireContainer(ContainerId containerId)
       throws ResourceHandlerException {
+    deviceSchedulerManager.recoverAssignedDevices(resourceName, containerId);
     return null;
   }
 
@@ -187,6 +195,7 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
   @Override
   public List<PrivilegedOperation> postComplete(ContainerId containerId)
       throws ResourceHandlerException {
+    deviceSchedulerManager.cleanupAssignedDevices(resourceName, containerId);
     return null;
   }
 
