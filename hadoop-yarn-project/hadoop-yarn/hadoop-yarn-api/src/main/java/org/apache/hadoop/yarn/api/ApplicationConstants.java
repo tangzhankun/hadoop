@@ -105,7 +105,7 @@ public interface ApplicationConstants {
    */
   @Public
   @Unstable
-  public static final String PARAMETER_EXPANSION_LEFT="{{";
+  public static final String PARAMETER_EXPANSION_LEFT="{_{";
 
   /**
    * User has to use this constant to construct class path if user wants
@@ -114,7 +114,7 @@ public interface ApplicationConstants {
    */
   @Public
   @Unstable
-  public static final String PARAMETER_EXPANSION_RIGHT="}}";
+  public static final String PARAMETER_EXPANSION_RIGHT="}_}";
 
   public static final String STDERR = "stderr";
 
