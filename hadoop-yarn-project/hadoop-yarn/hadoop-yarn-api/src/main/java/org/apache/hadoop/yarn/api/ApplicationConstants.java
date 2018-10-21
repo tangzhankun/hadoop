@@ -97,7 +97,7 @@ public interface ApplicationConstants {
   /**
    * The following two constants are used to expand parameter and it will be
    * replaced with real parameter expansion marker ('%' for Windows and '$' for
-   * Linux) by NodeManager on container launch. For example: {{VAR}} will be
+   * Linux) by NodeManager on container launch. For example: {_{VAR}_} will be
    * replaced as $VAR on Linux, and %VAR% on Windows. User has to use this
    * constant to construct class path if user wants cross-platform practice i.e.
    * submit an application from a Windows client to a Linux/Unix server or vice
