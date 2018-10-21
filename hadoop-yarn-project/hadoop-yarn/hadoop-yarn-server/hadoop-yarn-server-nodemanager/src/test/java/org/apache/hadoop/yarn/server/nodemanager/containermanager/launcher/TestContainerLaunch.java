@@ -592,7 +592,7 @@ public class TestContainerLaunch extends BaseContainerManagerTest {
     if (Shell.WINDOWS) {
       Assert.assertEquals(
           "echo {\"0\": {\"person\": {\"name\": \"John\"}}}"
-          + "$HADOOP_LOG_HOME/nm/container/logs", res);
+          + "%HADOOP_LOG_HOME%/nm/container/logs", res);
     } else {
       Assert.assertEquals(
           "echo {\"0\": {\"person\": {\"name\": \"John\"}}}"
