@@ -583,7 +583,7 @@ public class TestContainerLaunch extends BaseContainerManagerTest {
     }
     System.out.println(res);
 
-    // The user commands may contains json format string which shouldn't be changed.
+    // The user commands may contains JSON format string which shouldn't be changed.
     input = "cmd {\"0\": {\"person\": {\"name\": \"John\"}}}"
         + Apps.crossPlatformify("HADOOP_LOG_HOME")
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR;
