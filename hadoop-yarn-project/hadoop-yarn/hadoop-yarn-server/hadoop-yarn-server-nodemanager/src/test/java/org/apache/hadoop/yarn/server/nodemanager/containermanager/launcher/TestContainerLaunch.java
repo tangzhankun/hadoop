@@ -584,19 +584,18 @@ public class TestContainerLaunch extends BaseContainerManagerTest {
     System.out.println(res);
 
     // The user commands may contains JSON format string which shouldn't be changed.
-    input = "cmd {\"0\": {\"person\": {\"name\": \"John\"}}}"
+    input = "echo {\"0\": {\"person\": {\"name\": \"John\"}}}"
         + Apps.crossPlatformify("HADOOP_LOG_HOME")
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR;
     res = ContainerLaunch.expandEnvironment(input, logPath);
 
-    input = "echo \"{\"0\": {\"person\": {\"name\": \"John\"}}}\""
     if (Shell.WINDOWS) {
       Assert.assertEquals(
-          "cmd {\"0\": {\"person\": {\"name\": \"John\"}}}"
+          "echo {\"0\": {\"person\": {\"name\": \"John\"}}}"
           + "$HADOOP_LOG_HOME/nm/container/logs", res);
     } else {
       Assert.assertEquals(
-          "cmd {\"0\": {\"person\": {\"name\": \"John\"}}}"
+          "echo {\"0\": {\"person\": {\"name\": \"John\"}}}"
           + "$HADOOP_LOG_HOME/nm/container/logs", res);
     }
   }
