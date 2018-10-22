@@ -33,11 +33,10 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerExecutionException;
+import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMDeviceResourceInfo;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
 
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 
 /**
@@ -106,7 +105,16 @@ public class DevicePluginAdapter implements ResourcePlugin {
 
   @Override
   public NMResourceInfo getNMResourceInfo() throws YarnException {
-    return null;
+    List<Device> allowed = new ArrayList<>(
+        deviceSchedulerManager.getAllAllowedDevices().get(resourceName));
+    List<AssignedDevice> assigned = new ArrayList<>();
+    Map<Device, ContainerId> assignedMap =
+        deviceSchedulerManager.getAllUsedDevices().get(resourceName);
+    for (Map.Entry<Device, ContainerId> entry : assignedMap.entrySet()) {
+      assigned.add(new AssignedDevice(entry.getValue(),
+          entry.getKey()));
+    }
+    return new NMDeviceResourceInfo(allowed, assigned);
   }
 
   public DeviceResourceHandlerImpl getDeviceResourceHandler() {
