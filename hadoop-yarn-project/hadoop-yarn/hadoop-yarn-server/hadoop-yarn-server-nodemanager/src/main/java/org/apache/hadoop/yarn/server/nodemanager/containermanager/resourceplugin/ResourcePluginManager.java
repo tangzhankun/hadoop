@@ -128,6 +128,14 @@ public class ResourcePluginManager {
       throw new YarnRuntimeException("Null value found in configuration: " +
           YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
     }
+    // Check if framework prefer customized device scheduler
+    Boolean ifPrefer = configuration.getBoolean(
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_PREFER_CUSTOMIZED_SCHEDULER,
+        YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_PREFER_CUSTOMIZED_SCHEDULER
+    );
+    deviceSchedulerManager.setPreferCustomizedScheduler(ifPrefer);
+    LOG.info("If the device plugin framework prefer customized device scheduler:" +
+        ifPrefer);
     for (String pluginClassName : pluginClassNames) {
       Class<?> pluginClazz = Class.forName(pluginClassName);
       if (!DevicePlugin.class.isAssignableFrom(pluginClazz)) {

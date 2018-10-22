@@ -179,7 +179,8 @@ public class TestDevicePluginAdapter {
     FakeDevicePlugin plugin = new FakeDevicePlugin();
     FakeDevicePlugin spyPlugin = spy(plugin);
     String resourceName = FakeDevicePlugin.resourceName;
-    // Add custom device plugin scheduler
+    // Add customized device plugin scheduler
+    dsm.setPreferCustomizedScheduler(true);
     dsm.addDevicePluginScheduler(resourceName,spyPlugin);
     // Init an adapter for the plugin
     DevicePluginAdapter adapter = new DevicePluginAdapter(rpm,

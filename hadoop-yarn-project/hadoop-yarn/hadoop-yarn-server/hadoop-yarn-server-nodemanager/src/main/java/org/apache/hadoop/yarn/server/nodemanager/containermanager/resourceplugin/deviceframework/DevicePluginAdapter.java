@@ -172,7 +172,7 @@ public class DevicePluginAdapter extends NodeResourceUpdaterPlugin
     String containerIdStr = container.getContainerId().toString();
     DeviceSchedulerManager.DeviceAllocation allocation = deviceSchedulerManager.assignDevices(
         resourceName, container);
-    LOG.info("Allocated to " +
+    LOG.debug("Allocated to " +
         containerIdStr + ": " + allocation );
     /**
      * TODO: implement a general container-executor device module to do isolation
