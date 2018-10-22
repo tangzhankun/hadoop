@@ -152,9 +152,19 @@ public class DeviceSchedulerManager {
       Map<Device, ContainerId> usedDevices = allUsedDevices.get(resourceName);
       Set<Device> allowedDevices = allAllowedDevices.get(resourceName);
 
-      // Use default schedule logic if not prefer
-      if (!isPreferCustomizedScheduler()) {
-        LOG.debug("Customized device plugin scheduler is not preferred, use default logic");
+      DevicePluginScheduler dps = devicePluginSchedulers.get(resourceName);
+      // Use default schedule logic if not prefer or dps not exists or
+      // (prefer but null instance)
+      if ((!isPreferCustomizedScheduler() || null == dps)
+          || (isPreferCustomizedScheduler() && null == dps)) {
+        if (!isPreferCustomizedScheduler()) {
+          LOG.debug("Customized device plugin scheduler is not preferred, use default logic");
+        }
+
+        if (isPreferCustomizedScheduler() && null == dps) {
+          LOG.debug("Customized device plugin scheduler is preferred but not implemented, use default logic");
+        }
+
         for (Device device : allowedDevices) {
           if (!usedDevices.containsKey(device)) {
             usedDevices.put(device, containerId);
@@ -165,28 +175,28 @@ public class DeviceSchedulerManager {
           }
         }
       } else {
-        // Use customized device scheduler if prefer it
-        DevicePluginScheduler dps = devicePluginSchedulers.get(resourceName);
-        if (dps != null) {
-          // we'll prefer vendor provided scheduler
-          LOG.debug("Try to schedule " + requestedDeviceCount
-              + "(" + resourceName + ") using " + dps.getClass());
-          Set<Device> dpsAllocated = dps.allocateDevices(
-              Sets.difference(allowedDevices, usedDevices.keySet()),
-              requestedDeviceCount);
-          if (dpsAllocated.size() != requestedDeviceCount) {
-            throw new ResourceHandlerException(dps.getClass() + " should allocate "
-                + requestedDeviceCount
-                + " of " + resourceName + ", but actual: "
-                + assignedDevices.size());
-            // TODO: fall back to default schedule logic?
-          }
-          // copy
-          assignedDevices.addAll(dpsAllocated);
-          // Store assigned devices into usedDevices
-          for (Device device : assignedDevices) {
-            usedDevices.put(device, containerId);
-          }
+        if(isPreferCustomizedScheduler() && null != dps) {
+          LOG.debug("LOG.debug(\"Customized device plugin scheduler is preferred and implemented," +
+              "use customized logic\");");
+        }
+        // Use customized device scheduler
+        LOG.debug("Try to schedule " + requestedDeviceCount
+            + "(" + resourceName + ") using " + dps.getClass());
+        Set<Device> dpsAllocated = dps.allocateDevices(
+            Sets.difference(allowedDevices, usedDevices.keySet()),
+            requestedDeviceCount);
+        if (dpsAllocated.size() != requestedDeviceCount) {
+          throw new ResourceHandlerException(dps.getClass() + " should allocate "
+              + requestedDeviceCount
+              + " of " + resourceName + ", but actual: "
+              + assignedDevices.size());
+          // TODO: fall back to default schedule logic?
+        }
+        // copy
+        assignedDevices.addAll(dpsAllocated);
+        // Store assigned devices into usedDevices
+        for (Device device : assignedDevices) {
+          usedDevices.put(device, containerId);
         }
       }
       // Record in state store if we allocated anything
