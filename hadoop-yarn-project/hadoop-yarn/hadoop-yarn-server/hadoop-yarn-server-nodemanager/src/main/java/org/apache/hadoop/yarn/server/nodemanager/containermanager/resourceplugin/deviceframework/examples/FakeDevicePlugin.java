@@ -25,10 +25,11 @@ import java.util.TreeSet;
 
 public class FakeDevicePlugin
     implements DevicePlugin,DevicePluginScheduler {
+  public final static String resourceName = "cmp.com/cmp";
   @Override
   public DeviceRegisterRequest register() {
     return DeviceRegisterRequest.Builder.newInstance()
-        .setResourceName("cmp.com/cmp")
+        .setResourceName(resourceName)
         .setPluginVersion("v1.0").build();
   }
 
@@ -62,6 +63,7 @@ public class FakeDevicePlugin
     int number = 0;
     for (Device d : availableDevices) {
       allocated.add(d);
+      number++;
       if (number == count) {
         break;
       }
