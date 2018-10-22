@@ -1626,6 +1626,13 @@ public class YarnConfiguration extends Configuration {
   public static final String NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES =
       NM_PREFIX + "pluggable-device-framework.device-classes";
 
+  @Private
+  public static final String NM_PLUGGABLE_DEVICE_FRAMEWORK_PREFER_CUSTOMIZED_SCHEDULER =
+      NM_PREFIX + "pluggable-device-framework.prefer-customized-scheduler";
+
+  @Private
+  public static final Boolean DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_PREFER_CUSTOMIZED_SCHEDULER =
+      false;
   /**
    * Prefix for gpu configurations. Work in progress: This configuration
    * parameter may be changed/removed in the future.
