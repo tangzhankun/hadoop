@@ -118,7 +118,23 @@ public class Device implements Serializable, Comparable {
     if (0 != result) {
       return result;
     }
-    return Integer.compare(minorNumber, other.minorNumber);
+
+    result = Integer.compare(majorNumber, other.majorNumber);
+    if (0 != result) {
+      return result;
+    }
+
+    result = Integer.compare(minorNumber, other.minorNumber);
+    if (0 != result) {
+      return result;
+    }
+
+    result = devPath.compareTo(other.devPath);
+    if (0 != result) {
+      return result;
+    }
+
+    return busID.compareTo(other.busID);
   }
 
   @Override

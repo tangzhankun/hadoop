@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.commons.logging.Log;
@@ -50,6 +51,16 @@ public class DeviceSchedulerManager {
   // Holds vendor implemented scheduler
   private Map<String, DevicePluginScheduler> devicePluginSchedulers =
       new HashMap<>();
+
+  @VisibleForTesting
+  public Map<String, Set<Device>> getAllAllowedDevices() {
+    return allAllowedDevices;
+  }
+
+  @VisibleForTesting
+  public Map<String, Map<Device, ContainerId>> getAllUsedDevices() {
+    return allUsedDevices;
+  }
 
   /**
    * Hold all type of devices
@@ -148,7 +159,7 @@ public class DeviceSchedulerManager {
         Set<Device> dpsAllocated = dps.allocateDevices(
             Sets.difference(allowedDevices, usedDevices.keySet()),
             requestedDeviceCount);
-        if (assignedDevices.size() != requestedDeviceCount) {
+        if (dpsAllocated.size() != requestedDeviceCount) {
           throw new ResourceHandlerException(dps.getClass() + " should allocate "
               + requestedDeviceCount
               + " of " + resourceName + ", but actual: "
@@ -299,6 +310,7 @@ public class DeviceSchedulerManager {
 
   }
 
+  @VisibleForTesting
   public void addDevicePluginScheduler(String resourceName,
       DevicePluginScheduler s) {
     this.devicePluginSchedulers.put(resourceName,
