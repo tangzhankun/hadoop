@@ -3781,6 +3781,16 @@
 
   <property>
     <description>
+      This settings controls if pluggable device framework prefers customized scheduler
+      implemented in the plugin.
+      Disabled by default
+    </description>
+    <name>yarn.nodemanager.pluggable-device-framework.prefer-customized-scheduler</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <description>
       Configure vendor device plugin class name here. Comma separated.
       The class must be found in CLASSPATH. The pluggable device framework will
       load these classes.
