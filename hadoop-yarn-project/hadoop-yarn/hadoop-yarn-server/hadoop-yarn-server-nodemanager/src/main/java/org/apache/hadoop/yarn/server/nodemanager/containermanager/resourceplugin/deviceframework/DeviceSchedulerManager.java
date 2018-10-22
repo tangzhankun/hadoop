@@ -179,6 +179,7 @@ public class DeviceSchedulerManager {
                 + requestedDeviceCount
                 + " of " + resourceName + ", but actual: "
                 + assignedDevices.size());
+            // TODO: fall back to default schedule logic?
           }
           // copy
           assignedDevices.addAll(dpsAllocated);
