@@ -21,6 +21,7 @@ package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 import java.util.*;
 
 public class DeviceRuntimeSpec {
+
   /**
    * The runtime gives device framework a hint (not forced to) on which container
    * runtime can use this Spec.
@@ -46,6 +47,25 @@ public class DeviceRuntimeSpec {
     this.volumeMounts = builder.volumeMounts;
   }
 
+  public String getRuntime() {
+    return runtime;
+  }
+
+  public Map<String, String> getEnvs() {
+    return envs;
+  }
+
+  public Set<MountVolumeSpec> getVolumeMounts() {
+    return volumeMounts;
+  }
+
+  public Set<MountDeviceSpec> getDeviceMounts() {
+    return deviceMounts;
+  }
+
+  public Set<VolumeSpec> getVolumeClaims() {
+    return volumeClaims;
+  }
   public static class Builder {
 
     private String runtime;

@@ -36,6 +36,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Schedule device resource based on requirements and do book keeping
@@ -50,9 +51,27 @@ public class DeviceSchedulerManager {
 
   // Holds vendor implemented scheduler
   private Map<String, DevicePluginScheduler> devicePluginSchedulers =
-      new HashMap<>();
+      new ConcurrentHashMap<>();
 
   private boolean preferCustomizedScheduler = false;
+
+  /**
+   * Hold all type of devices
+   * key is the device resource name
+   * value is a sorted set of {@link Device}
+   * */
+  private Map<String, Set<Device>> allAllowedDevices = new ConcurrentHashMap<>();
+
+  /**
+   * Hold used devices
+   * key is the device resource name
+   * value is a sorted map of {@link Device} and {@link ContainerId} pairs
+   * */
+  private Map<String, Map<Device,ContainerId>> allUsedDevices = new ConcurrentHashMap<>();
+
+  public DeviceSchedulerManager(Context context) {
+    nmContext = context;
+  }
 
   @VisibleForTesting
   public Map<String, Set<Device>> getAllAllowedDevices() {
@@ -62,24 +81,6 @@ public class DeviceSchedulerManager {
   @VisibleForTesting
   public Map<String, Map<Device, ContainerId>> getAllUsedDevices() {
     return allUsedDevices;
-  }
-
-  /**
-   * Hold all type of devices
-   * key is the device resource name
-   * value is a sorted set of {@link Device}
-   * */
-  private Map<String, Set<Device>> allAllowedDevices = new HashMap<>();
-
-  /**
-   * Hold used devices
-   * key is the device resource name
-   * value is a sorted map of {@link Device} and {@link ContainerId} pairs
-   * */
-  private Map<String, Map<Device,ContainerId>> allUsedDevices = new HashMap<>();
-
-  public DeviceSchedulerManager(Context context) {
-    nmContext = context;
   }
 
   public synchronized void addDeviceSet(String resourceName, Set<Device> deviceSet) {
@@ -270,7 +271,7 @@ public class DeviceSchedulerManager {
     }
   }
 
-  public synchronized int getRequestedDeviceCount(String resourceName, Resource requestedResource) {
+  public static int getRequestedDeviceCount(String resourceName, Resource requestedResource) {
     try {
       return Long.valueOf(requestedResource.getResourceValue(
           resourceName)).intValue();
@@ -312,6 +313,8 @@ public class DeviceSchedulerManager {
 
   static class DeviceAllocation {
     private String resourceName;
+
+
     private Set<Device> allowed = Collections.emptySet();
     private Set<Device> denied = Collections.emptySet();
 
@@ -323,6 +326,11 @@ public class DeviceSchedulerManager {
       if (denied != null) {
         this.denied = ImmutableSet.copyOf(denied);
       }
+    }
+
+
+    public Set<Device> getAllowed() {
+      return allowed;
     }
 
     @Override
