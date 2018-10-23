@@ -37,15 +37,20 @@ public interface DevicePlugin {
   Set<Device> getDevices();
 
   /**
-   * Called after device allocated (before container launch).
+   * Asking how these devices should be prepared/used before container launch.
+   * @param allocatedDevices A set of allocated {@link Device}.
+   *        Note that it could be null which means no device allocated.
+   *        Only {@code volumeClaims} in it will be handled to create volume.
+   * @param runtime Indicate which runtime the framework will use
+   *        Could be {@code RUNTIME_CGROUPS} or {@code RUNTIME_DOCKER}
+   *        in {@link DeviceRuntimeSpec}
    * @return a {@link DeviceRuntimeSpec} description about environment,
    * {@link VolumeSpec}, {@link MountVolumeSpec}. etc
-   * on how these devices should be used when container launch
    * */
-  DeviceRuntimeSpec OnDevicesAllocated(Set<Device> allocatedDevices);
+  DeviceRuntimeSpec onDevicesUse(Set<Device> allocatedDevices, String runtime);
 
   /**
    * Called after device released.
    * */
-  void OnDevicesReleased(Set<Device> releasedDevices);
+  void onDevicesReleased(Set<Device> releasedDevices);
 }

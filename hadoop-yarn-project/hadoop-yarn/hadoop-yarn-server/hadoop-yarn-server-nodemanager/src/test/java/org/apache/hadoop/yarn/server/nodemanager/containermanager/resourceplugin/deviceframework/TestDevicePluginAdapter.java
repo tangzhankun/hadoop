@@ -20,6 +20,7 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.nodemanager.*;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
@@ -27,6 +28,8 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegister
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.ResourceMappings;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.examples.FakeDevicePlugin;
@@ -51,6 +54,8 @@ public class TestDevicePluginAdapter {
 
   private YarnConfiguration conf;
   private String tempResourceTypesFile;
+  private CGroupsHandler mockCGroupsHandler;
+  private PrivilegedOperationExecutor mockPrivilegedExecutor;
 
   @Before
   public void setup() throws Exception {
@@ -59,6 +64,8 @@ public class TestDevicePluginAdapter {
     ResourceUtils.resetResourceTypes();
     String resourceTypesFile = "resource-types-pluggable-devices.xml";
     this.tempResourceTypesFile = TestResourceUtils.setupResourceTypes(this.conf, resourceTypesFile);
+    mockCGroupsHandler = mock(CGroupsHandler.class);
+    mockPrivilegedExecutor = mock(PrivilegedOperationExecutor.class);
   }
 
   @After
@@ -81,13 +88,14 @@ public class TestDevicePluginAdapter {
    * */
   @Test
   public void testBasicWorkflow()
-      throws ResourceHandlerException, IOException {
+      throws YarnException, IOException {
     NodeManager.NMContext context = mock(NodeManager.NMContext.class);
     NMStateStoreService storeService = mock(NMStateStoreService.class);
     when(context.getNMStateStore()).thenReturn(storeService);
     doNothing().when(storeService).storeAssignedResources(isA(Container.class),
         isA(String.class),
         isA(ArrayList.class));
+
     // Init scheduler manager
     DeviceSchedulerManager dsm = new DeviceSchedulerManager(context);
 
@@ -103,7 +111,10 @@ public class TestDevicePluginAdapter {
         resourceName,
         spyPlugin);
     // Bootstrap, adding device
-    adapter.bootstrap(conf);
+    adapter.initialize(context);
+    adapter.createResourceHandler(context,
+        mockCGroupsHandler, mockPrivilegedExecutor);
+    adapter.getDeviceResourceHandler().bootstrap(conf);
     int size = dsm.getAvailableDevices(resourceName);
     Assert.assertEquals(3, size);
 
@@ -112,7 +123,7 @@ public class TestDevicePluginAdapter {
         resourceName,
         1,false);
     // preStart
-    adapter.preStart(c1);
+    adapter.getDeviceResourceHandler().preStart(c1);
     // check book keeping
     Assert.assertEquals(2,
         dsm.getAvailableDevices(resourceName));
@@ -121,7 +132,7 @@ public class TestDevicePluginAdapter {
     Assert.assertEquals(3,
         dsm.getAllAllowedDevices().get(resourceName).size());
     // postComplete
-    adapter.postComplete(getContainerId(0));
+    adapter.getDeviceResourceHandler().postComplete(getContainerId(0));
     Assert.assertEquals(3,
         dsm.getAvailableDevices(resourceName));
     Assert.assertEquals(0,
@@ -134,7 +145,7 @@ public class TestDevicePluginAdapter {
         resourceName,
         3,false);
     // preStart
-    adapter.preStart(c2);
+    adapter.getDeviceResourceHandler().preStart(c2);
     // check book keeping
     Assert.assertEquals(0,
         dsm.getAvailableDevices(resourceName));
@@ -143,7 +154,7 @@ public class TestDevicePluginAdapter {
     Assert.assertEquals(3,
         dsm.getAllAllowedDevices().get(resourceName).size());
     // postComplete
-    adapter.postComplete(getContainerId(1));
+    adapter.getDeviceResourceHandler().postComplete(getContainerId(1));
     Assert.assertEquals(3,
         dsm.getAvailableDevices(resourceName));
     Assert.assertEquals(0,
@@ -162,7 +173,7 @@ public class TestDevicePluginAdapter {
    * */
   @Test
   public void testBasicWorkflowWithPluginAndPluginScheduler()
-      throws ResourceHandlerException, IOException {
+      throws YarnException, IOException {
     NodeManager.NMContext context = mock(NodeManager.NMContext.class);
     NMStateStoreService storeService = mock(NMStateStoreService.class);
     when(context.getNMStateStore()).thenReturn(storeService);
@@ -187,7 +198,10 @@ public class TestDevicePluginAdapter {
         resourceName,
         spyPlugin);
     // Bootstrap, adding device
-    adapter.bootstrap(conf);
+    adapter.initialize(context);
+    adapter.createResourceHandler(context,
+        mockCGroupsHandler, mockPrivilegedExecutor);
+    adapter.getDeviceResourceHandler().bootstrap(conf);
     int size = dsm.getAvailableDevices(resourceName);
     Assert.assertEquals(1, size);
 
@@ -196,7 +210,7 @@ public class TestDevicePluginAdapter {
         resourceName,
         1,false);
     // preStart
-    adapter.preStart(c1);
+    adapter.getDeviceResourceHandler().preStart(c1);
     // check if the plugin's own scheduler works
     verify(spyPlugin, times(1))
         .allocateDevices(isA(Set.class),isA(Integer.class));
@@ -208,7 +222,7 @@ public class TestDevicePluginAdapter {
     Assert.assertEquals(1,
         dsm.getAllAllowedDevices().get(resourceName).size());
     // postComplete
-    adapter.postComplete(getContainerId(0));
+    adapter.getDeviceResourceHandler().postComplete(getContainerId(0));
     Assert.assertEquals(1,
         dsm.getAvailableDevices(resourceName));
     Assert.assertEquals(0,
@@ -288,12 +302,12 @@ public class TestDevicePluginAdapter {
     }
 
     @Override
-    public DeviceRuntimeSpec OnDevicesAllocated(Set<Device> allocatedDevices) {
+    public DeviceRuntimeSpec onDevicesUse(Set<Device> allocatedDevices, String runtime) {
       return null;
     }
 
     @Override
-    public void OnDevicesReleased(Set<Device> releasedDevices) {
+    public void onDevicesReleased(Set<Device> releasedDevices) {
 
     }
   }
