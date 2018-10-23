@@ -32,7 +32,6 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.NodeResourceUpdaterPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerExecutionException;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMDeviceResourceInfo;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
 
@@ -51,6 +50,11 @@ public class DevicePluginAdapter implements ResourcePlugin {
   private DevicePlugin devicePlugin;
 
   private DeviceSchedulerManager deviceSchedulerManager;
+
+  private DeviceResourceDockerRuntimePluginImpl deviceDockerCommandPlugin;
+
+  private DeviceResourceHandlerImpl deviceResourceHandler;
+  private DeviceResourceUpdaterImpl deviceResourceUpdater;
 
   private DeviceResourceDockerRuntimePluginImpl deviceDockerCommandPlugin;
 
