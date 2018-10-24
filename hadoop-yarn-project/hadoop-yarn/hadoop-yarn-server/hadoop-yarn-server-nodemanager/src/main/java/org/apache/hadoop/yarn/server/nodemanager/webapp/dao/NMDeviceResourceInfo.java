@@ -33,4 +33,20 @@ public class NMDeviceResourceInfo extends NMResourceInfo {
     this.totalDevices = totalDevices;
   }
 
+  public List<Device> getTotalDevices() {
+    return totalDevices;
+  }
+
+  public void setTotalDevices(List<Device> totalDevices) {
+    this.totalDevices = totalDevices;
+  }
+
+  public List<AssignedDevice> getAssignedDevices() {
+    return assignedDevices;
+  }
+
+  public void setAssignedDevices(
+      List<AssignedDevice> assignedDevices) {
+    this.assignedDevices = assignedDevices;
+  }
 }
