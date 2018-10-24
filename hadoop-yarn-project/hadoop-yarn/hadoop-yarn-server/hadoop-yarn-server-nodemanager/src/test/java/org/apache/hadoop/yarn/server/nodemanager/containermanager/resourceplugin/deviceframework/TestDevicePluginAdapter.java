@@ -80,9 +80,7 @@ public class TestDevicePluginAdapter {
 
   /**
    * Use the MyPlugin which doesn't implement scheduler interfaces
-   * Test Adapter's "Bootstrap", "preStart" and "postComplete"
-   * Test plugin's "getDevices".
-   * Plugin's initialization and "register" invocation is tested in
+   * Plugin's initialization is tested in
    * {@link org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.TestResourcePluginManager}
    *
    * */
@@ -107,9 +105,9 @@ public class TestDevicePluginAdapter {
     MyPlugin spyPlugin = spy(plugin);
     String resourceName = MyPlugin.resourceName;
     // Init an adapter for the plugin
-    DevicePluginAdapter adapter = new DevicePluginAdapter(rpm,
+    DevicePluginAdapter adapter = new DevicePluginAdapter(
         resourceName,
-        spyPlugin);
+        spyPlugin, dsm);
     // Bootstrap, adding device
     adapter.initialize(context);
     adapter.createResourceHandler(context,
@@ -167,8 +165,6 @@ public class TestDevicePluginAdapter {
    * Use {@link FakeDevicePlugin} which implements
    * {@link org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePluginScheduler}
    * interface.
-   * Test Adapter's "Bootstrap", "preStart" and "postComplete"
-   * Test plugin's "getDevices", "allocateDevices"
    *
    * */
   @Test
@@ -194,9 +190,9 @@ public class TestDevicePluginAdapter {
     dsm.setPreferCustomizedScheduler(true);
     dsm.addDevicePluginScheduler(resourceName,spyPlugin);
     // Init an adapter for the plugin
-    DevicePluginAdapter adapter = new DevicePluginAdapter(rpm,
+    DevicePluginAdapter adapter = new DevicePluginAdapter(
         resourceName,
-        spyPlugin);
+        spyPlugin, dsm);
     // Bootstrap, adding device
     adapter.initialize(context);
     adapter.createResourceHandler(context,

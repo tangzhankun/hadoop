@@ -162,8 +162,8 @@ public class ResourcePluginManager {
       }
       LOG.info("New resource type: " + resourceName +
           " registered successfully by " + pluginClassName);
-      DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(this,
-          resourceName, dpInstance);
+      DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(
+          resourceName, dpInstance, deviceSchedulerManager);
       LOG.info("Adapter of " + pluginClassName + " created. Initializing..");
       try {
         pluginAdapter.initialize(context);
