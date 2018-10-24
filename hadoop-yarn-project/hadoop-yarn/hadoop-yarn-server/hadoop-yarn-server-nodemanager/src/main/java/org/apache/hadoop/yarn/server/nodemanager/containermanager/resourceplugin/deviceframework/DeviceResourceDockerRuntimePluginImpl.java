@@ -71,6 +71,9 @@ public class DeviceResourceDockerRuntimePluginImpl
     // handle device mounts
     DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.onDevicesUse(allocated,
         DeviceRuntimeSpec.RUNTIME_DOCKER);
+    if (null == deviceRuntimeSpec) {
+      return;
+    }
     Set<MountDeviceSpec> deviceMounts = deviceRuntimeSpec.getDeviceMounts();
     for (MountDeviceSpec mountDeviceSpec : deviceMounts) {
       dockerRunCommand.addDevice(
@@ -102,6 +105,9 @@ public class DeviceResourceDockerRuntimePluginImpl
     }
     DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.onDevicesUse(
         null, DeviceRuntimeSpec.RUNTIME_DOCKER);
+    if (null == deviceRuntimeSpec) {
+      return null;
+    }
     Set<VolumeSpec> volumeClaims = deviceRuntimeSpec.getVolumeClaims();
 
     for (VolumeSpec volumeSec: volumeClaims) {
@@ -125,6 +131,9 @@ public class DeviceResourceDockerRuntimePluginImpl
     }
     DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.onDevicesUse(
         null, DeviceRuntimeSpec.RUNTIME_DOCKER);
+    if (null == deviceRuntimeSpec) {
+      return null;
+    }
     Set<VolumeSpec> volumeClaims = deviceRuntimeSpec.getVolumeClaims();
     for (VolumeSpec volumeSec: volumeClaims) {
       if (volumeSec.getVolumeOperation().equals(VolumeSpec.DELETE)) {
