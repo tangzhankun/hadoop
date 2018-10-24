@@ -48,7 +48,6 @@ import java.util.TreeSet;
 public class DevicePluginAdapter implements ResourcePlugin {
   final static Log LOG = LogFactory.getLog(DevicePluginAdapter.class);
 
-  private ResourcePluginManager devicePluginManager;
   private String resourceName;
   private DevicePlugin devicePlugin;
 
@@ -59,9 +58,9 @@ public class DevicePluginAdapter implements ResourcePlugin {
   private DeviceResourceHandlerImpl deviceResourceHandler;
   private DeviceResourceUpdaterImpl deviceResourceUpdater;
 
-  public DevicePluginAdapter(ResourcePluginManager pluginManager, String name, DevicePlugin dp) {
-    devicePluginManager = pluginManager;
-    deviceSchedulerManager = pluginManager.getDeviceSchedulerManager();
+  public DevicePluginAdapter(String name, DevicePlugin dp,
+      DeviceSchedulerManager dsm) {
+    deviceSchedulerManager = dsm;
     resourceName = name;
     devicePlugin = dp;
   }
