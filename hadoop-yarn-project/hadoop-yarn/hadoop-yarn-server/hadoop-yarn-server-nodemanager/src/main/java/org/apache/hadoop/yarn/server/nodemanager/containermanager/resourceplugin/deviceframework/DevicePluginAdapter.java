@@ -56,11 +56,6 @@ public class DevicePluginAdapter implements ResourcePlugin {
   private DeviceResourceHandlerImpl deviceResourceHandler;
   private DeviceResourceUpdaterImpl deviceResourceUpdater;
 
-  private DeviceResourceDockerRuntimePluginImpl deviceDockerCommandPlugin;
-
-  private DeviceResourceHandlerImpl deviceResourceHandler;
-  private DeviceResourceUpdaterImpl deviceResourceUpdater;
-
   public DevicePluginAdapter(String name, DevicePlugin dp,
       DeviceSchedulerManager dsm) {
     deviceSchedulerManager = dsm;
