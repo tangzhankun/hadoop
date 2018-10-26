@@ -39,6 +39,7 @@ import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -141,6 +142,19 @@ public class ResourcePluginManager {
       if (!DevicePlugin.class.isAssignableFrom(pluginClazz)) {
         throw new YarnRuntimeException("Class: " + pluginClassName
             + " not instance of " + DevicePlugin.class.getCanonicalName());
+      }
+      // sanity-check
+      Method[] expectedMethods = DevicePlugin.class.getMethods();
+      for (Method method: expectedMethods) {
+        try {
+          pluginClazz.getMethod(
+              method.getName(),method.getParameterTypes());
+        } catch (NoSuchMethodException e) {
+          LOG.error("No method found: {} in the declared class: {}",
+              method, pluginClassName);
+          throw new YarnRuntimeException("Class: " + pluginClassName
+              + " is incompatible.");
+        }
       }
       DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
           configuration);
