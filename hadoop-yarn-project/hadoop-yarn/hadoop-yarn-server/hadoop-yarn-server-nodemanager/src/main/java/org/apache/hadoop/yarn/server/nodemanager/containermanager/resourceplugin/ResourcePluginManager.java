@@ -144,6 +144,7 @@ public class ResourcePluginManager {
             + " not instance of " + DevicePlugin.class.getCanonicalName());
       }
       // sanity-check
+      LOG.info("Doing sanity check to plugin..");
       Method[] expectedMethods = DevicePlugin.class.getMethods();
       for (Method method: expectedMethods) {
         try {
@@ -156,6 +157,7 @@ public class ResourcePluginManager {
               + " is incompatible.");
         }
       }
+      LOG.info("Sanity check ok.");
       DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
           configuration);
       // Try to register plugin
