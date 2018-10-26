@@ -143,6 +143,9 @@ public class ResourcePluginManager {
         throw new YarnRuntimeException("Class: " + pluginClassName
             + " not instance of " + DevicePlugin.class.getCanonicalName());
       }
+
+      DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
+          configuration);
       // sanity-check
       LOG.info("Doing sanity check to plugin..");
       Method[] expectedMethods = DevicePlugin.class.getMethods();
@@ -150,7 +153,7 @@ public class ResourcePluginManager {
         try {
           LOG.info("Find method: {}",
               method.getName());
-          pluginClazz.getMethod(
+          dpInstance.getClass().getMethod(
               method.getName(),method.getParameterTypes());
         } catch (NoSuchMethodException e) {
           LOG.error("No method found: {} in the declared class: {}",
@@ -160,8 +163,6 @@ public class ResourcePluginManager {
         }
       }
       LOG.info("Sanity check ok.");
-      DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
-          configuration);
       // Try to register plugin
       // TODO: handle the plugin method timeout issue
       DeviceRegisterRequest request = dpInstance.getRegisterRequestInfo();
