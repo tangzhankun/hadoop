@@ -27,7 +27,7 @@ public class FakeDevicePlugin
     implements DevicePlugin,DevicePluginScheduler {
   public final static String resourceName = "cmp.com/cmp";
   @Override
-  public DeviceRegisterRequest register() {
+  public DeviceRegisterRequest getRegisterRequestInfo() {
     return DeviceRegisterRequest.Builder.newInstance()
         .setResourceName(resourceName)
         .setPluginVersion("v1.0").build();
@@ -48,7 +48,7 @@ public class FakeDevicePlugin
   }
 
   @Override
-  public DeviceRuntimeSpec onDevicesUse(Set<Device> allocatedDevices, String runtime) {
+  public DeviceRuntimeSpec getDeviceRuntimeSpec(Set<Device> allocatedDevices, String runtime) {
     return null;
   }
 

@@ -261,7 +261,7 @@ public class TestDevicePluginAdapter {
   private class MyPlugin implements DevicePlugin {
     private final static String resourceName = "cmpA.com/hdwA";
     @Override
-    public DeviceRegisterRequest register() {
+    public DeviceRegisterRequest getRegisterRequestInfo() {
       return DeviceRegisterRequest.Builder.newInstance()
           .setResourceName(resourceName)
           .setPluginVersion("v1.0").build();
@@ -298,7 +298,7 @@ public class TestDevicePluginAdapter {
     }
 
     @Override
-    public DeviceRuntimeSpec onDevicesUse(Set<Device> allocatedDevices, String runtime) {
+    public DeviceRuntimeSpec getDeviceRuntimeSpec(Set<Device> allocatedDevices, String runtime) {
       return null;
     }
 

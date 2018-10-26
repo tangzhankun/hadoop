@@ -28,7 +28,7 @@ public interface DevicePlugin {
    * Called first when device plugin framework wants to register
    * @return DeviceRegisterRequest {@link DeviceRegisterRequest}
    * */
-  DeviceRegisterRequest register();
+  DeviceRegisterRequest getRegisterRequestInfo();
 
   /**
    * Called when update node resource
@@ -37,7 +37,7 @@ public interface DevicePlugin {
   Set<Device> getDevices();
 
   /**
-   * Asking how these devices should be prepared/used before container launch.
+   * Asking how these devices should be prepared/used before/when container launch.
    * @param allocatedDevices A set of allocated {@link Device}.
    *        Note that it could be null which means no device allocated.
    *        Only {@code volumeClaims} in it will be handled to create volume.
@@ -47,7 +47,7 @@ public interface DevicePlugin {
    * @return a {@link DeviceRuntimeSpec} description about environment,
    * {@link VolumeSpec}, {@link MountVolumeSpec}. etc
    * */
-  DeviceRuntimeSpec onDevicesUse(Set<Device> allocatedDevices, String runtime);
+  DeviceRuntimeSpec getDeviceRuntimeSpec(Set<Device> allocatedDevices, String runtime);
 
   /**
    * Called after device released.

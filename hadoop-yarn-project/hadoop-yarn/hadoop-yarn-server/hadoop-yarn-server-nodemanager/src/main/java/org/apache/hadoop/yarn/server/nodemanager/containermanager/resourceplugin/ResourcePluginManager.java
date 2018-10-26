@@ -109,7 +109,7 @@ public class ResourcePluginManager {
         YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
     if (puggableDeviceFrameworkEnabled) {
-      LOG.info("The pluggable device framework is not enabled. If you want, set true to " +
+      LOG.info("The pluggable device framework is not enabled. If you want, set true to {}",
           YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
       initializePluggableDevicePlugins(context, conf, pluginMap);
     }
@@ -134,7 +134,7 @@ public class ResourcePluginManager {
         YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_PREFER_CUSTOMIZED_SCHEDULER
     );
     deviceSchedulerManager.setPreferCustomizedScheduler(ifPrefer);
-    LOG.info("If the device plugin framework prefer customized device scheduler:" +
+    LOG.info("If the device plugin framework prefer customized device scheduler: {}",
         ifPrefer);
     for (String pluginClassName : pluginClassNames) {
       Class<?> pluginClazz = Class.forName(pluginClassName);
@@ -146,7 +146,7 @@ public class ResourcePluginManager {
           configuration);
       // Try to register plugin
       // TODO: handle the plugin method timeout issue
-      DeviceRegisterRequest request = dpInstance.register();
+      DeviceRegisterRequest request = dpInstance.getRegisterRequestInfo();
       String resourceName = request.getResourceName();
       // check if someone has already registered this resource type name
       if (pluginMap.containsKey(resourceName)) {
@@ -160,23 +160,25 @@ public class ResourcePluginManager {
             + YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE +
             " , please configure it first");
       }
-      LOG.info("New resource type: " + resourceName +
-          " registered successfully by " + pluginClassName);
+      LOG.info("New resource type: {} registered successfully by {}",
+          resourceName,
+          pluginClassName);
       DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(
           resourceName, dpInstance, deviceSchedulerManager);
-      LOG.info("Adapter of " + pluginClassName + " created. Initializing..");
+      LOG.info("Adapter of {} created. Initializing..", pluginClassName);
       try {
         pluginAdapter.initialize(context);
       } catch (YarnException e) {
         throw new YarnRuntimeException("Adapter of " + pluginClassName + " init failed!");
       }
-      LOG.info("Adapter of " + pluginClassName + " init success!");
+      LOG.info("Adapter of {} init success!", pluginClassName);
       // Store plugin as adapter instance
       pluginMap.put(request.getResourceName(), pluginAdapter);
       // If the device plugin implements DevicePluginScheduler interface
       if (dpInstance instanceof DevicePluginScheduler) {
-        LOG.info(pluginClassName +
-            " can schedule " + resourceName + " devices. Added as preferred device plugin scheduler");
+        LOG.info("{} can schedule {} devices. Added as preferred device plugin scheduler",
+            pluginClassName,
+            resourceName);
         deviceSchedulerManager.addDevicePluginScheduler(
             resourceName,
             (DevicePluginScheduler)dpInstance);

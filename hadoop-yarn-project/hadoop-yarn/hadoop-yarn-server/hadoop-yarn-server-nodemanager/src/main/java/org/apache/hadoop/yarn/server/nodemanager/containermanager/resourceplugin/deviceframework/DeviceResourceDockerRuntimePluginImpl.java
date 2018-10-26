@@ -69,7 +69,7 @@ public class DeviceResourceDockerRuntimePluginImpl
       }
     }
     // handle device mounts
-    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.onDevicesUse(allocated,
+    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.getDeviceRuntimeSpec(allocated,
         DeviceRuntimeSpec.RUNTIME_DOCKER);
     if (null == deviceRuntimeSpec) {
       return;
@@ -103,7 +103,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     if(!requestsDevice(resourceName, container)) {
       return null;
     }
-    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.onDevicesUse(
+    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.getDeviceRuntimeSpec(
         null, DeviceRuntimeSpec.RUNTIME_DOCKER);
     if (null == deviceRuntimeSpec) {
       return null;
@@ -129,7 +129,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     if(!requestsDevice(resourceName, container)) {
       return null;
     }
-    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.onDevicesUse(
+    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.getDeviceRuntimeSpec(
         null, DeviceRuntimeSpec.RUNTIME_DOCKER);
     if (null == deviceRuntimeSpec) {
       return null;

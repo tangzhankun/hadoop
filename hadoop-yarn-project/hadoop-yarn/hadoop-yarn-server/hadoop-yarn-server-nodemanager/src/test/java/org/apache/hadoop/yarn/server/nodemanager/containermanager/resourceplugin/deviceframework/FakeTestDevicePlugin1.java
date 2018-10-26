@@ -29,7 +29,7 @@ import java.util.TreeSet;
  * */
 public class FakeTestDevicePlugin1 implements DevicePlugin {
   @Override
-  public DeviceRegisterRequest register() {
+  public DeviceRegisterRequest getRegisterRequestInfo() {
     return DeviceRegisterRequest.Builder.newInstance()
         .setResourceName("cmpA.com/hdwA").build();
   }
@@ -49,7 +49,7 @@ public class FakeTestDevicePlugin1 implements DevicePlugin {
   }
 
   @Override
-  public DeviceRuntimeSpec onDevicesUse(Set<Device> allocatedDevices, String runtime) {
+  public DeviceRuntimeSpec getDeviceRuntimeSpec(Set<Device> allocatedDevices, String runtime) {
     return null;
   }
 

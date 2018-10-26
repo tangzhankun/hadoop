@@ -186,6 +186,7 @@ public class DeviceSchedulerManager {
         Set<Device> dpsAllocated = dps.allocateDevices(
             Sets.difference(allowedDevices, usedDevices.keySet()),
             requestedDeviceCount);
+        // TODO: should check if customized scheduler return values are real
         if (dpsAllocated.size() != requestedDeviceCount) {
           throw new ResourceHandlerException(dps.getClass() + " should allocate "
               + requestedDeviceCount
