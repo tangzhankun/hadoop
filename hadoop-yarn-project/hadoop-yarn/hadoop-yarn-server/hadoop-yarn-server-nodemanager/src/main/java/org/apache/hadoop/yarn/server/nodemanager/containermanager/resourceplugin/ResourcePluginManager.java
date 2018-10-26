@@ -148,6 +148,8 @@ public class ResourcePluginManager {
       Method[] expectedMethods = DevicePlugin.class.getMethods();
       for (Method method: expectedMethods) {
         try {
+          LOG.info("Find method: {}",
+              method.getName());
           pluginClazz.getMethod(
               method.getName(),method.getParameterTypes());
         } catch (NoSuchMethodException e) {
