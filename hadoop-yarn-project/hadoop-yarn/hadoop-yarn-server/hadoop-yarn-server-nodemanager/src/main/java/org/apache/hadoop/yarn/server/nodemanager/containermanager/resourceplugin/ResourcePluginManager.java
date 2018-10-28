@@ -218,6 +218,10 @@ public class ResourcePluginManager {
       throw new YarnRuntimeException("Unknown reason. Class: " + actualClass
           + " not instance of " + expectedClass.getCanonicalName());
     }
+    for (Method m : actualImplementedInterfaceClazz.getDeclaredMethods()) {
+      LOG.debug("Plugin has method: {}",
+          m);
+    }
     // Check method compatibility
     for (Method method: expectedDevicePluginMethods) {
       try {
