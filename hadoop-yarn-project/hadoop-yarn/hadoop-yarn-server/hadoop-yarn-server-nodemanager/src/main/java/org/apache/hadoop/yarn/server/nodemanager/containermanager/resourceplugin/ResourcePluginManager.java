@@ -146,17 +146,12 @@ public class ResourcePluginManager {
         throw new YarnRuntimeException("Class: " + pluginClassName
             + " not instance of " + DevicePlugin.class.getCanonicalName());
       }
+      // sanity-check before initialization
+      checkInterfaceCompatibility(DevicePlugin.class, pluginClazz);
 
       DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
           configuration);
-      // sanity-check
-      checkInterfaceCompatibility(DevicePlugin.class, pluginClazz);
 
-      for (Method m : dpInstance.getClass().getDeclaredMethods()) {
-        LOG.debug("After initialized, Class \"{}\" has method: {}",
-            pluginClazz,
-            m.getName());
-      }
       // Try to register plugin
       // TODO: handle the plugin method timeout issue
       DeviceRegisterRequest request = dpInstance.getRegisterRequestInfo();
@@ -209,6 +204,7 @@ public class ResourcePluginManager {
     Method[] expectedDevicePluginMethods = expectedClass.getMethods();
 
     // Check method compatibility
+    boolean found = false;
     for (Method method: expectedDevicePluginMethods) {
       LOG.debug("Try to find method: \"{}\"",
           method.getName());
@@ -217,8 +213,15 @@ public class ResourcePluginManager {
           LOG.debug("Class \"{}\" has method: {}",
               actualClass.getSimpleName(),
               m.getName());
+          found = true;
           break;
         }
+      }
+      if (!found) {
+        throw new YarnRuntimeException(
+            "Method \"{}\" is expected but not implemented in \"{}\"" +
+            actualClass.getCanonicalName()
+        );
       }
     }// end for
     LOG.debug("\"{}\" compatibility is ok..",
