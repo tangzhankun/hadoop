@@ -146,11 +146,12 @@ public class ResourcePluginManager {
         throw new YarnRuntimeException("Class: " + pluginClassName
             + " not instance of " + DevicePlugin.class.getCanonicalName());
       }
-      // sanity-check
-      checkInterfaceCompatibility(DevicePlugin.class, pluginClazz);
 
       DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
           configuration);
+
+      // sanity-check
+      checkInterfaceCompatibility(DevicePlugin.class, pluginClazz);
 
       // Try to register plugin
       // TODO: handle the plugin method timeout issue
@@ -203,7 +204,7 @@ public class ResourcePluginManager {
         expectedClass.getSimpleName());
     Method[] expectedDevicePluginMethods = expectedClass.getMethods();
     // Find the plugin implemented interfaces
-    Class<?>[] pluginImplementedInterfaces = actualClass.getClass().getInterfaces();
+    Class<?>[] pluginImplementedInterfaces = actualClass.getInterfaces();
     Class<?> actualImplementedInterfaceClazz = null;
     for (Class<?> piiClazz : pluginImplementedInterfaces) {
       LOG.debug("Implemented interface name: {}",
