@@ -199,13 +199,15 @@ public class ResourcePluginManager {
   // Check if the implemented interfaces' signature is compatible
   private void checkInterfaceCompatibility(Class<?> expectedClass, Class<?> actualClass)
       throws YarnRuntimeException{
-    LOG.debug("Checking implemented interface's compatibility: \" {} \"",
+    LOG.debug("Checking implemented interface's compatibility: \"{}\"",
         expectedClass.getSimpleName());
     Method[] expectedDevicePluginMethods = expectedClass.getMethods();
     // Find the plugin implemented interfaces
     Class<?>[] pluginImplementedInterfaces = actualClass.getClass().getInterfaces();
     Class<?> actualImplementedInterfaceClazz = null;
     for (Class<?> piiClazz : pluginImplementedInterfaces) {
+      LOG.debug("Implemented interface name: {}",
+          piiClazz.getSimpleName());
       if (piiClazz.getSimpleName().equals(
           expectedClass.getSimpleName())) {
         actualImplementedInterfaceClazz = piiClazz;
@@ -218,21 +220,21 @@ public class ResourcePluginManager {
     // Check method compatibility
     for (Method method: expectedDevicePluginMethods) {
       try {
-        LOG.debug("Try to find method: {}",
+        LOG.debug("Try to find method: \"{}\"",
             method.getName());
         actualImplementedInterfaceClazz.getMethod(
             method.getName(),
             method.getParameterTypes()
         );
       } catch (NoSuchMethodException e) {
-        LOG.error("No method \" {} \" found in the declared class's implemented interface: {}",
+        LOG.error("No method \"{}\" found in the declared class's implemented interface: \"{}\"",
             method, actualClass);
         throw new YarnRuntimeException("Class: " + actualClass
             + " is incompatible. "
             + "Please use compatible dependency to build the plugin");
       }
     }// end for
-    LOG.debug("\" {} \" compatibility is ok..",
+    LOG.debug("\"{}\" compatibility is ok..",
         expectedClass.getSimpleName());
   }
 
