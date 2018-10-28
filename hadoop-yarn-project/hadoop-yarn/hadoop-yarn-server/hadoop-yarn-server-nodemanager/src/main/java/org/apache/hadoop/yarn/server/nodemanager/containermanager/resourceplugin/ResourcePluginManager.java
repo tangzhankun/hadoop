@@ -204,13 +204,14 @@ public class ResourcePluginManager {
     Method[] expectedDevicePluginMethods = expectedClass.getMethods();
 
     // Check method compatibility
-    boolean found = false;
+    boolean found;
     for (Method method: expectedDevicePluginMethods) {
+      found = false;
       LOG.debug("Try to find method: \"{}\"",
           method.getName());
       for (Method m : actualClass.getDeclaredMethods()) {
         if (m.getName().equals(method.getName())) {
-          LOG.debug("Class \"{}\" has method: {}",
+          LOG.debug("Method \"{}\" found in class \"{}\"",
               actualClass.getSimpleName(),
               m.getName());
           found = true;
@@ -218,9 +219,13 @@ public class ResourcePluginManager {
         }
       }
       if (!found) {
+        LOG.debug("Method \"{}\" is not found in plugin",
+            method.getName()
+            );
         throw new YarnRuntimeException(
-            "Method \"{}\" is expected but not implemented in \"{}\"" +
-            actualClass.getCanonicalName()
+            "Method " + method.getName() +
+                "is expected but not implemented in" +
+                actualClass.getCanonicalName()
         );
       }
     }// end for
