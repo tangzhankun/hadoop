@@ -223,8 +223,8 @@ public class ResourcePluginManager {
             method.getName()
             );
         throw new YarnRuntimeException(
-            "Method " + method.getName() +
-                "is expected but not implemented in" +
+            "Method \"" + method.getName() +
+                "\" is expected but not implemented in " +
                 actualClass.getCanonicalName()
         );
       }
