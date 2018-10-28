@@ -138,7 +138,7 @@ public class ResourcePluginManager {
         YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_PREFER_CUSTOMIZED_SCHEDULER
     );
     deviceSchedulerManager.setPreferCustomizedScheduler(ifPrefer);
-    LOG.info("If the device plugin framework prefer customized device scheduler: {}",
+    LOG.info("Whether the device plugin framework prefer customized device scheduler: {}",
         ifPrefer);
     for (String pluginClassName : pluginClassNames) {
       Class<?> pluginClazz = Class.forName(pluginClassName);
@@ -219,7 +219,7 @@ public class ResourcePluginManager {
         }
       }
       if (!found) {
-        LOG.debug("Method \"{}\" is not found in plugin",
+        LOG.info("Method \"{}\" is not found in plugin",
             method.getName()
             );
         throw new YarnRuntimeException(
