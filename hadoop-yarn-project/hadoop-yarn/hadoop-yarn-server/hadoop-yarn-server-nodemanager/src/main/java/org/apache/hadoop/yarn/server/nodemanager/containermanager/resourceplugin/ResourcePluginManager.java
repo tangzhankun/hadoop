@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePluginScheduler;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
@@ -144,24 +145,8 @@ public class ResourcePluginManager {
             + " not instance of " + DevicePlugin.class.getCanonicalName());
       }
       // sanity-check
-      LOG.info("Doing sanity check to plugin..");
-      Method[] expectedMethods = DevicePlugin.class.getMethods();
-      for (Method method: expectedMethods) {
-        try {
-          LOG.info("Finding method: {}",
-              method.getName());
-          pluginClazz.getClass().getInterfaces()[0].getMethod(
-              method.getName(),
-              method.getParameterTypes()
-          );
-        } catch (NoSuchMethodException e) {
-          LOG.error("No method found: {} in the declared class: {}",
-              method, pluginClassName);
-          throw new YarnRuntimeException("Class: " + pluginClassName
-              + " is incompatible.");
-        }
-      }
-      LOG.info("Sanity check ok.");
+      checkInterfaceCompatibility(DevicePlugin.class, pluginClazz);
+
       DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
           configuration);
 
@@ -197,6 +182,8 @@ public class ResourcePluginManager {
       pluginMap.put(request.getResourceName(), pluginAdapter);
       // If the device plugin implements DevicePluginScheduler interface
       if (dpInstance instanceof DevicePluginScheduler) {
+        // check DevicePluginScheduler interface compatibility
+        checkInterfaceCompatibility(DevicePluginScheduler.class, pluginClazz);
         LOG.info("{} can schedule {} devices. Added as preferred device plugin scheduler",
             pluginClassName,
             resourceName);
@@ -205,6 +192,46 @@ public class ResourcePluginManager {
             (DevicePluginScheduler)dpInstance);
       }
     } // end for
+  }
+
+  // Check if the implemented interfaces' signature is compatible
+  private void checkInterfaceCompatibility(Class<?> expectedClass, Class<?> actualClass)
+      throws YarnRuntimeException{
+    LOG.debug("Checking implemented interface's compatibility: \" {} \"",
+        expectedClass.getSimpleName());
+    Method[] expectedDevicePluginMethods = expectedClass.getMethods();
+    // Find the plugin implemented interfaces
+    Class<?>[] pluginImplementedInterfaces = actualClass.getClass().getInterfaces();
+    Class<?> actualImplementedInterfaceClazz = null;
+    for (Class<?> piiClazz : pluginImplementedInterfaces) {
+      if (piiClazz.getSimpleName().equals(
+          expectedClass.getSimpleName())) {
+        actualImplementedInterfaceClazz = piiClazz;
+      }
+    }
+    if (null == actualImplementedInterfaceClazz) {
+      throw new YarnRuntimeException("Unknown reason. Class: " + actualClass
+          + " not instance of " + expectedClass.getCanonicalName());
+    }
+    // Check method compatibility
+    for (Method method: expectedDevicePluginMethods) {
+      try {
+        LOG.debug("Try to find method: {}",
+            method.getName());
+        actualImplementedInterfaceClazz.getMethod(
+            method.getName(),
+            method.getParameterTypes()
+        );
+      } catch (NoSuchMethodException e) {
+        LOG.error("No method \" {} \" found in the declared class's implemented interface: {}",
+            method, actualClass);
+        throw new YarnRuntimeException("Class: " + actualClass
+            + " is incompatible. "
+            + "Please use compatible dependency to build the plugin");
+      }
+    }// end for
+    LOG.debug("\" {} \" compatibility is ok..",
+        expectedClass.getSimpleName());
   }
 
   @VisibleForTesting
