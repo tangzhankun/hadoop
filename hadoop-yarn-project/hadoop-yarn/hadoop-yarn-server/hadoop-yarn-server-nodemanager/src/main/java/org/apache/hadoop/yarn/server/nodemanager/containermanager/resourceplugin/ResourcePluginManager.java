@@ -146,12 +146,17 @@ public class ResourcePluginManager {
         throw new YarnRuntimeException("Class: " + pluginClassName
             + " not instance of " + DevicePlugin.class.getCanonicalName());
       }
-      // sanity-check
-      checkInterfaceCompatibility(DevicePlugin.class, pluginClazz);
 
       DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
           configuration);
+      // sanity-check
+      checkInterfaceCompatibility(DevicePlugin.class, pluginClazz);
 
+      for (Method m : dpInstance.getClass().getDeclaredMethods()) {
+        LOG.debug("After initialized, Class \"{}\" has method: {}",
+            pluginClazz,
+            m.getName());
+      }
       // Try to register plugin
       // TODO: handle the plugin method timeout issue
       DeviceRegisterRequest request = dpInstance.getRegisterRequestInfo();
@@ -202,44 +207,18 @@ public class ResourcePluginManager {
     LOG.debug("Checking implemented interface's compatibility: \"{}\"",
         expectedClass.getSimpleName());
     Method[] expectedDevicePluginMethods = expectedClass.getMethods();
-    // Find the plugin implemented interfaces
-    Class<?>[] pluginImplementedInterfaces = actualClass.getInterfaces();
-    Class<?> actualImplementedInterfaceClazz = null;
-    for (Class<?> piiClazz : pluginImplementedInterfaces) {
-      LOG.debug("Implemented interface name: {}",
-          piiClazz.getSimpleName());
-      if (piiClazz.getSimpleName().equals(
-          expectedClass.getSimpleName())) {
-        actualImplementedInterfaceClazz = piiClazz;
-      }
-    }
-    if (null == actualImplementedInterfaceClazz) {
-      throw new YarnRuntimeException("Unknown reason. Class: " + actualClass
-          + " not instance of " + expectedClass.getCanonicalName());
-    }
-    for (Method m : actualImplementedInterfaceClazz.getDeclaredMethods()) {
-      LOG.debug("Plugin interface has method: {}",
-          m);
-    }
-    for (Method m : actualClass.getDeclaredMethods()) {
-      LOG.debug("Plugin Class has method: {}",
-          m);
-    }
+
     // Check method compatibility
     for (Method method: expectedDevicePluginMethods) {
-      try {
-        LOG.debug("Try to find method: \"{}\"",
-            method.getName());
-        actualImplementedInterfaceClazz.getMethod(
-            method.getName(),
-            method.getParameterTypes()
-        );
-      } catch (NoSuchMethodException e) {
-        LOG.error("No method \"{}\" found in the declared class's implemented interface: \"{}\"",
-            method, actualClass);
-        throw new YarnRuntimeException("Class: " + actualClass
-            + " is incompatible. "
-            + "Please use compatible dependency to build the plugin");
+      LOG.debug("Try to find method: \"{}\"",
+          method.getName());
+      for (Method m : actualClass.getDeclaredMethods()) {
+        if (m.getName().equals(method.getName())) {
+          LOG.debug("Class \"{}\" has method: {}",
+              actualClass.getSimpleName(),
+              m.getName());
+          break;
+        }
       }
     }// end for
     LOG.debug("\"{}\" compatibility is ok..",
