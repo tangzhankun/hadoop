@@ -24,7 +24,9 @@ public class DeviceRuntimeSpec {
 
   /**
    * The runtime gives device framework a hint (not forced to) on which container
-   * runtime can use this Spec.
+   * runtime can use this Spec (if empty then default "runc" is used).
+   * For instance, it could be "nvidia" in Nvidia GPU Docker v2
+   *
    * If cgroups, these fields could be empty if no special requirement
    * since the framework already knows major and minor device number
    * in {@link Device}.
