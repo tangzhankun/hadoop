@@ -156,7 +156,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     if (deviceRuntimeSpec == null) {
       Set<Device> allocated = new TreeSet<>();
       getAllocatedDevices(container, allocated);
-      deviceRuntimeSpec = devicePlugin.getDeviceRuntimeSpec(allocated,
+      deviceRuntimeSpec = devicePlugin.onDeviceUse(allocated,
           DeviceRuntimeSpec.RUNTIME_DOCKER);
       if (null == deviceRuntimeSpec) {
         LOG.error("Null DeviceRuntimeSpec value got, please check plugin logic");
