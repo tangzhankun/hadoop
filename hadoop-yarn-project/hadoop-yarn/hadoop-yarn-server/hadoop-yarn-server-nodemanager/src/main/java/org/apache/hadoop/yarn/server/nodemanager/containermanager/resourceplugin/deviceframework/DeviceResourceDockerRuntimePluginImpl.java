@@ -32,6 +32,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.Contai
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DeviceResourceDockerRuntimePluginImpl
     implements DockerCommandPlugin {
@@ -43,7 +44,11 @@ public class DeviceResourceDockerRuntimePluginImpl
   private DevicePlugin devicePlugin;
   private DevicePluginAdapter devicePluginAdapter;
 
-  private DeviceRuntimeSpec deviceRuntimeSpec;
+  private Map<ContainerId, Set<Device>> cachedAllocation =
+      new ConcurrentHashMap();
+
+  private Map<ContainerId, DeviceRuntimeSpec> cachedSpec =
+      new ConcurrentHashMap<>();
 
   public DeviceResourceDockerRuntimePluginImpl(String resourceName,
       DevicePlugin devicePlugin, DevicePluginAdapter devicePluginAdapter) {
@@ -58,22 +63,8 @@ public class DeviceResourceDockerRuntimePluginImpl
     if(!requestsDevice(resourceName, container)) {
       return;
     }
-    // get allocated devices
-    Set<Device> allocated = new TreeSet<>();
-    Map<Device, ContainerId> assignedDevice = devicePluginAdapter
-        .getDeviceSchedulerManager()
-        .getAllUsedDevices().get(resourceName);
-    for (Map.Entry<Device, ContainerId> entry : assignedDevice.entrySet()) {
-      if (entry.getValue().equals(container.getContainerId())) {
-        allocated.add(entry.getKey());
-      }
-    }
+    DeviceRuntimeSpec deviceRuntimeSpec = getRuntimeSpec(container);
     // handle device mounts
-    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.getDeviceRuntimeSpec(allocated,
-        DeviceRuntimeSpec.RUNTIME_DOCKER);
-    if (null == deviceRuntimeSpec) {
-      return;
-    }
     Set<MountDeviceSpec> deviceMounts = deviceRuntimeSpec.getDeviceMounts();
     for (MountDeviceSpec mountDeviceSpec : deviceMounts) {
       dockerRunCommand.addDevice(
@@ -103,13 +94,8 @@ public class DeviceResourceDockerRuntimePluginImpl
     if(!requestsDevice(resourceName, container)) {
       return null;
     }
-    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.getDeviceRuntimeSpec(
-        null, DeviceRuntimeSpec.RUNTIME_DOCKER);
-    if (null == deviceRuntimeSpec) {
-      return null;
-    }
+    DeviceRuntimeSpec deviceRuntimeSpec = getRuntimeSpec(container);
     Set<VolumeSpec> volumeClaims = deviceRuntimeSpec.getVolumeClaims();
-
     for (VolumeSpec volumeSec: volumeClaims) {
       if (volumeSec.getVolumeOperation().equals(VolumeSpec.CREATE)) {
         DockerVolumeCommand command = new DockerVolumeCommand(
@@ -129,17 +115,14 @@ public class DeviceResourceDockerRuntimePluginImpl
     if(!requestsDevice(resourceName, container)) {
       return null;
     }
-    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.getDeviceRuntimeSpec(
-        null, DeviceRuntimeSpec.RUNTIME_DOCKER);
-    if (null == deviceRuntimeSpec) {
-      return null;
-    }
-    Set<VolumeSpec> volumeClaims = deviceRuntimeSpec.getVolumeClaims();
-    for (VolumeSpec volumeSec: volumeClaims) {
-      if (volumeSec.getVolumeOperation().equals(VolumeSpec.DELETE)) {
-        // build DockerVolumeCommand with delete operation
-      }
-    }
+    Set<Device> allocated = new TreeSet<>();
+    getAllocatedDevices(container,allocated);
+    devicePlugin.onDevicesReleased(allocated);
+
+    // remove cache
+    ContainerId containerId = container.getContainerId();
+    cachedAllocation.remove(containerId);
+    cachedSpec.remove(containerId);
     return null;
   }
 
@@ -148,4 +131,40 @@ public class DeviceResourceDockerRuntimePluginImpl
     return DeviceSchedulerManager.
         getRequestedDeviceCount(resourceName, container.getResource()) > 0;
   }
+
+  private void getAllocatedDevices(Container container, Set<Device> allocated) {
+    // get allocated devices
+    ContainerId containerId = container.getContainerId();
+    allocated = cachedAllocation.get(containerId);
+    if (null != allocated) {
+      return;
+    }
+    Map<Device, ContainerId> assignedDevice = devicePluginAdapter
+        .getDeviceSchedulerManager()
+        .getAllUsedDevices().get(resourceName);
+    for (Map.Entry<Device, ContainerId> entry : assignedDevice.entrySet()) {
+      if (entry.getValue().equals(containerId)) {
+        allocated.add(entry.getKey());
+      }
+    }
+    cachedAllocation.put(containerId, allocated);
+  }
+
+  public synchronized DeviceRuntimeSpec getRuntimeSpec(Container container) {
+    ContainerId containerId = container.getContainerId();
+    DeviceRuntimeSpec deviceRuntimeSpec = cachedSpec.get(containerId);
+    if (deviceRuntimeSpec == null) {
+      Set<Device> allocated = new TreeSet<>();
+      getAllocatedDevices(container, allocated);
+      deviceRuntimeSpec = devicePlugin.getDeviceRuntimeSpec(allocated,
+          DeviceRuntimeSpec.RUNTIME_DOCKER);
+      if (null == deviceRuntimeSpec) {
+        LOG.error("Null DeviceRuntimeSpec value got, please check plugin logic");
+        return null;
+      }
+      cachedSpec.put(containerId, deviceRuntimeSpec);
+    }
+    return deviceRuntimeSpec;
+  }
+
 }
