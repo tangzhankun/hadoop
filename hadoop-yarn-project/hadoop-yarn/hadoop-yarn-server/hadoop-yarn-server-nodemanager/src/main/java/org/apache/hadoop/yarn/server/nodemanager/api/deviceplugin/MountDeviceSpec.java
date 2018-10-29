@@ -59,9 +59,15 @@ public class MountDeviceSpec implements Serializable, Comparable {
       return false;
     }
     MountDeviceSpec other = (MountDeviceSpec) o;
-    return Objects.equals(devicePathInHost, other.devicePathInHost) &&
-        Objects.equals(devicePathInContainer, other.devicePathInContainer) &&
-        Objects.equals(devicePermission, other.devicePermission);
+    return Objects.equals(devicePathInHost, other.getDevicePathInHost()) &&
+        Objects.equals(devicePathInContainer, other.getDevicePathInContainer()) &&
+        Objects.equals(devicePermission, other.getDevicePermission());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(devicePathInContainer,
+        devicePathInHost, devicePermission);
   }
 
   @Override

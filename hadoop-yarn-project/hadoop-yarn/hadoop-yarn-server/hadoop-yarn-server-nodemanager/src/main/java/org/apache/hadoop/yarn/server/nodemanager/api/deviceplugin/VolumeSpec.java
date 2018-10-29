@@ -59,9 +59,14 @@ public class VolumeSpec implements Serializable, Comparable {
       return false;
     }
     VolumeSpec other = (VolumeSpec) o;
-    return Objects.equals(volumeDriver, other.volumeDriver) &&
-        Objects.equals(volumeName, other.volumeName) &&
-        Objects.equals(volumeOperation, other.volumeOperation);
+    return Objects.equals(volumeDriver, other.getVolumeDriver()) &&
+        Objects.equals(volumeName, other.getVolumeName()) &&
+        Objects.equals(volumeOperation, other.getVolumeOperation());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(volumeDriver, volumeName,volumeOperation);
   }
 
   @Override

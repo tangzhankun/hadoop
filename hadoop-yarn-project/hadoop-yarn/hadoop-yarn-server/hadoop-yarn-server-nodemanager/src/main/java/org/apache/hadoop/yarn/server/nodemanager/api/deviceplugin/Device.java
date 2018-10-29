@@ -20,6 +20,8 @@ package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class Device implements Serializable, Comparable {
 
@@ -45,7 +47,12 @@ public class Device implements Serializable, Comparable {
    * Optional fields
    * */
   private String status;
-  // TODO: topology and attributes
+
+  /**
+   * A {@code Device} has a topology which
+   * represent the links to other {@code Device}s
+   * */
+  private final Set<DeviceLink> topology;
 
   private Device(Builder builder) {
     this.ID = Objects.requireNonNull(builder.ID);
@@ -54,6 +61,7 @@ public class Device implements Serializable, Comparable {
     this.minorNumber = Objects.requireNonNull(builder.minorNumber);
     this.busID = Objects.requireNonNull(builder.busID);
     this.isHealthy = Objects.requireNonNull(builder.isHealthy);
+    this.topology = builder.topology;
   }
 
   public Integer getID() {
@@ -84,6 +92,9 @@ public class Device implements Serializable, Comparable {
     return status;
   }
 
+  public Set<DeviceLink> getTopology() {
+    return topology;
+  }
 
   @Override
   public boolean equals(Object o) {
@@ -94,11 +105,11 @@ public class Device implements Serializable, Comparable {
       return false;
     }
     Device device = (Device) o;
-    return Objects.equals(ID, device.ID) &&
-        Objects.equals(devPath, device.devPath) &&
-        Objects.equals(majorNumber, device.majorNumber) &&
-        Objects.equals(minorNumber, device.minorNumber) &&
-        Objects.equals(busID, device.busID);
+    return Objects.equals(ID, device.getID()) &&
+        Objects.equals(devPath, device.getDevPath()) &&
+        Objects.equals(majorNumber, device.getMajorNumber()) &&
+        Objects.equals(minorNumber, device.getMinorNumber()) &&
+        Objects.equals(busID, device.getBusID());
   }
 
   @Override
@@ -119,22 +130,22 @@ public class Device implements Serializable, Comparable {
       return result;
     }
 
-    result = Integer.compare(majorNumber, other.majorNumber);
+    result = Integer.compare(majorNumber, other.getMajorNumber());
     if (0 != result) {
       return result;
     }
 
-    result = Integer.compare(minorNumber, other.minorNumber);
+    result = Integer.compare(minorNumber, other.getMinorNumber());
     if (0 != result) {
       return result;
     }
 
-    result = devPath.compareTo(other.devPath);
+    result = devPath.compareTo(other.getDevPath());
     if (0 != result) {
       return result;
     }
 
-    return busID.compareTo(other.busID);
+    return busID.compareTo(other.getBusID());
   }
 
   @Override
@@ -150,8 +161,11 @@ public class Device implements Serializable, Comparable {
     private String busID;
     private boolean isHealthy;
     private String status;
+    private Set<DeviceLink> topology;
 
-    private Builder() {}
+    private Builder() {
+      topology = new TreeSet<>();
+    }
 
     public static Builder newInstance() {
       return new Builder();
@@ -193,6 +207,11 @@ public class Device implements Serializable, Comparable {
 
     public Builder setStatus(String status) {
       this.status = status;
+      return this;
+    }
+
+    public Builder addDeviceLink(DeviceLink link) {
+      this.topology.add(link);
       return this;
     }
 

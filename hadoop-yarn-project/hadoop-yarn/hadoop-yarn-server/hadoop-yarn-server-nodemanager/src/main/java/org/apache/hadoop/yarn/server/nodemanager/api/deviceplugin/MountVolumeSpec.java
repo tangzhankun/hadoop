@@ -64,9 +64,14 @@ public class MountVolumeSpec implements Serializable, Comparable{
       return false;
     }
     MountVolumeSpec other = (MountVolumeSpec) o;
-    return Objects.equals(hostPath, other.hostPath) &&
-        Objects.equals(mountPath, other.mountPath) &&
-        Objects.equals(isReadOnly, other.isReadOnly);
+    return Objects.equals(hostPath, other.getHostPath()) &&
+        Objects.equals(mountPath, other.getMountPath()) &&
+        Objects.equals(isReadOnly, other.getReadOnly());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(hostPath, mountPath, isReadOnly);
   }
 
   @Override
