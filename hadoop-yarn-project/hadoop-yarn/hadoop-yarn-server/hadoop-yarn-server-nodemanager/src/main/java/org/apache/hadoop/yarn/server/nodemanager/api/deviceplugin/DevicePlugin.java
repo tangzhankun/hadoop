@@ -38,6 +38,10 @@ public interface DevicePlugin {
 
   /**
    * Asking how these devices should be prepared/used before/when container launch.
+   * A plugin can do some work in its own or define work in DeviceRuntimeSpec
+   * to let the framework do it. For instance, define {@code VolumeSpec} to let the
+   * framework to create volume before running container.
+   *
    * @param allocatedDevices A set of allocated {@link Device}.
    * @param runtime Indicate which runtime the framework will use
    *        Could be {@code RUNTIME_CGROUPS} or {@code RUNTIME_DOCKER}
