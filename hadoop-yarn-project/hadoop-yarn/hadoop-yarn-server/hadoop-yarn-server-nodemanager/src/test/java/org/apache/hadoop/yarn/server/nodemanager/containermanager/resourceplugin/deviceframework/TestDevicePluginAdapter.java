@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
+
+import org.apache.hadoop.service.ServiceOperations;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -30,7 +32,6 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Cont
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.ResourceMappings;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.examples.FakeDevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
@@ -41,6 +42,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,10 +55,15 @@ import static org.mockito.Mockito.verify;
 
 public class TestDevicePluginAdapter {
 
+  protected static final Logger LOG =
+      LoggerFactory.getLogger(TestDevicePluginAdapter.class);
+
   private YarnConfiguration conf;
   private String tempResourceTypesFile;
   private CGroupsHandler mockCGroupsHandler;
   private PrivilegedOperationExecutor mockPrivilegedExecutor;
+
+  private NodeManager nm;
 
   @Before
   public void setup() throws Exception {
@@ -69,11 +77,18 @@ public class TestDevicePluginAdapter {
   }
 
   @After
-  public void tearDown() {
+  public void tearDown() throws IOException {
     // cleanup resource-types.xml
     File dest = new File(this.tempResourceTypesFile);
     if (dest.exists()) {
       dest.delete();
+    }
+    if (nm != null) {
+      try {
+        ServiceOperations.stop(nm);
+      } catch (Throwable t) {
+        // ignore
+      }
     }
   }
 
@@ -226,6 +241,25 @@ public class TestDevicePluginAdapter {
     Assert.assertEquals(1,
         dsm.getAllAllowedDevices().get(resourceName).size());
   }
+
+  @Test
+  public void testStoreDeviceSchedulerManagerState() {
+    // container1 request some resource
+
+    // ensure container1's resource has been persistent
+
+  }
+
+  @Test
+  public void testRecoverDeviceSchedulerManagerState() {
+    // container1 request some resource
+
+    // ensure container1's resource has been persistent
+
+    // NM restart say,
+
+  }
+
 
   private static Container mockContainerWithDeviceRequest(int id,
       String resourceName,
