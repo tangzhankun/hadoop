@@ -35,6 +35,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.examples.FakeDevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
+import org.apache.hadoop.yarn.server.nodemanager.recovery.NMMemoryStateStoreService;
 import org.apache.hadoop.yarn.server.nodemanager.recovery.NMStateStoreService;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.*;
 
 import static org.mockito.Matchers.isA;
@@ -62,7 +64,6 @@ public class TestDevicePluginAdapter {
   private String tempResourceTypesFile;
   private CGroupsHandler mockCGroupsHandler;
   private PrivilegedOperationExecutor mockPrivilegedExecutor;
-
   private NodeManager nm;
 
   @Before
@@ -243,11 +244,52 @@ public class TestDevicePluginAdapter {
   }
 
   @Test
-  public void testStoreDeviceSchedulerManagerState() {
-    // container1 request some resource
+  public void testStoreDeviceSchedulerManagerState()
+      throws IOException, YarnException {
+    NodeManager.NMContext context = mock(NodeManager.NMContext.class);
+    NMStateStoreService realStoreService = new NMMemoryStateStoreService();
+    NMStateStoreService storeService = spy(realStoreService);
+    when(context.getNMStateStore()).thenReturn(storeService);
+    doNothing().when(storeService).storeAssignedResources(isA(Container.class),
+        isA(String.class),
+        isA(ArrayList.class));
 
+    // Init scheduler manager
+    DeviceSchedulerManager dsm = new DeviceSchedulerManager(context);
+
+    ResourcePluginManager rpm = mock(ResourcePluginManager.class);
+    when(rpm.getDeviceSchedulerManager()).thenReturn(dsm);
+
+    // Init an plugin
+    MyPlugin plugin = new MyPlugin();
+    MyPlugin spyPlugin = spy(plugin);
+    String resourceName = MyPlugin.resourceName;
+    // Init an adapter for the plugin
+    DevicePluginAdapter adapter = new DevicePluginAdapter(
+        resourceName,
+        spyPlugin, dsm);
+    // Bootstrap, adding device
+    adapter.initialize(context);
+    adapter.createResourceHandler(context,
+        mockCGroupsHandler, mockPrivilegedExecutor);
+    adapter.getDeviceResourceHandler().bootstrap(conf);
+
+    // A container c1 requests 1 device
+    Container c1 = mockContainerWithDeviceRequest(0,
+        resourceName,
+        1,false);
+    // preStart
+    adapter.getDeviceResourceHandler().preStart(c1);
     // ensure container1's resource has been persistent
-
+    verify(storeService).storeAssignedResources(c1, resourceName,
+        Arrays.asList(Device.Builder.newInstance()
+            .setID(0)
+            .setDevPath("/dev/hdwA0")
+            .setMajorNumber(256)
+            .setMinorNumber(0)
+            .setBusID("0000:80:00.0")
+            .setHealthy(true)
+            .build()));
   }
 
   @Test
@@ -260,6 +302,10 @@ public class TestDevicePluginAdapter {
 
   }
 
+  @Test
+  public void testAssignedDeviceCleanupWhenStoreOpFails() {
+
+  }
 
   private static Container mockContainerWithDeviceRequest(int id,
       String resourceName,
@@ -340,5 +386,6 @@ public class TestDevicePluginAdapter {
     public void onDevicesReleased(Set<Device> releasedDevices) {
 
     }
-  }
+  } // MyPlugin
+
 }
