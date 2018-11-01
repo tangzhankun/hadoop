@@ -30,11 +30,15 @@ public class Device implements Serializable, Comparable {
   /**
    * Required fields:
    * ID: an plugin specified index number
-   * devPath: device file like /dev/devicename
    * majorNumber: major device number
    * minorNumber: minor device number
-   * busID: PCI Bus ID in format [[[[<domain>]:]<bus>]:][<slot>][.[<func>]]. Can get from "lspci -D"
    * isHealthy: true or false indicating device health status
+   *
+   * Optional fields:
+   * devPath: device file like /dev/devicename
+   * busID: PCI Bus ID in format [[[[<domain>]:]<bus>]:][<slot>][.[<func>]]. Can get from "lspci -D"
+   * topology: describe connection to other devices
+   * Status: For future use
    * */
   private final Integer ID;
   private final String devPath;
@@ -56,10 +60,10 @@ public class Device implements Serializable, Comparable {
 
   private Device(Builder builder) {
     this.ID = Objects.requireNonNull(builder.ID);
-    this.devPath = Objects.requireNonNull(builder.devPath);
+    this.devPath = builder.devPath;
     this.majorNumber = Objects.requireNonNull(builder.majorNumber);
     this.minorNumber = Objects.requireNonNull(builder.minorNumber);
-    this.busID = Objects.requireNonNull(builder.busID);
+    this.busID = builder.busID;
     this.isHealthy = Objects.requireNonNull(builder.isHealthy);
     this.topology = builder.topology;
   }
@@ -150,15 +154,15 @@ public class Device implements Serializable, Comparable {
 
   @Override
   public String toString() {
-    return "(" + getDevPath() + ", " + getID() + ", " + getMajorNumber() + ":" + getMinorNumber() + ")";
+    return "(" + getID() + ", " + getDevPath() + ", " + getMajorNumber() + ":" + getMinorNumber() + ")";
   }
 
   public static class Builder {
     private Integer ID;
-    private String devPath;
+    private String devPath = "";
     private Integer majorNumber;
     private Integer minorNumber;
-    private String busID;
+    private String busID = "";
     private boolean isHealthy;
     private String status;
     private Set<DeviceLink> topology;
