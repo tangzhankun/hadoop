@@ -66,6 +66,7 @@ public class Device implements Serializable, Comparable {
     this.busID = builder.busID;
     this.isHealthy = Objects.requireNonNull(builder.isHealthy);
     this.topology = builder.topology;
+    this.status = builder.status;
   }
 
   public Integer getID() {
@@ -164,7 +165,7 @@ public class Device implements Serializable, Comparable {
     private Integer minorNumber;
     private String busID = "";
     private boolean isHealthy;
-    private String status;
+    private String status = "";
     private Set<DeviceLink> topology;
 
     private Builder() {
