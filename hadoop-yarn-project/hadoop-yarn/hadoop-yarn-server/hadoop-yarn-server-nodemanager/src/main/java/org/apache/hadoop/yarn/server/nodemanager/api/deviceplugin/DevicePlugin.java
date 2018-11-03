@@ -50,7 +50,7 @@ public interface DevicePlugin {
    * @return a {@link DeviceRuntimeSpec} description about environment,
    * {@link VolumeSpec}, {@link MountVolumeSpec}. etc
    * */
-  DeviceRuntimeSpec onDeviceAllocated(Set<Device> allocatedDevices,
+  DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
       String yarnRuntime);
 
   /**

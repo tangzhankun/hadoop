@@ -378,7 +378,7 @@ public class TestDevicePluginAdapter {
     }
 
     @Override
-    public DeviceRuntimeSpec onDeviceAllocated(Set<Device> allocatedDevices, String runtime) {
+    public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices, String runtime) {
       return null;
     }
 

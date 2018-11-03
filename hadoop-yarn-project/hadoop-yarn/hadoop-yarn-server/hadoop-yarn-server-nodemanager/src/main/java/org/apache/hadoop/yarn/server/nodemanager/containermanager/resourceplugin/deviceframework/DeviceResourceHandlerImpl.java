@@ -86,7 +86,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     LOG.debug("Allocated to " +
         containerIdStr + ": " + allocation );
 
-    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.onDeviceAllocated(
+    DeviceRuntimeSpec deviceRuntimeSpec = devicePlugin.onDevicesAllocated(
         allocation.getAllowed(), DeviceRuntimeSpec.RUNTIME_CGROUPS);
 
     // cgroups operation based on allocation
