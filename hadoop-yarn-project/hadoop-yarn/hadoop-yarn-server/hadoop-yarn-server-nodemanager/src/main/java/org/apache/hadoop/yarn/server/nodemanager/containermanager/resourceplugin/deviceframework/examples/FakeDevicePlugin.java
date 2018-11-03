@@ -48,7 +48,7 @@ public class FakeDevicePlugin
   }
 
   @Override
-  public DeviceRuntimeSpec onDeviceUse(Set<Device> allocatedDevices, String runtime) {
+  public DeviceRuntimeSpec onDeviceAllocated(Set<Device> allocatedDevices, String runtime) {
     return null;
   }
 

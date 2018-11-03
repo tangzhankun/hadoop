@@ -37,19 +37,21 @@ public interface DevicePlugin {
   Set<Device> getDevices();
 
   /**
-   * Asking how these devices should be prepared/used before/when container launch.
-   * A plugin can do some work in its own or define work in DeviceRuntimeSpec
-   * to let the framework do it. For instance, define {@code VolumeSpec} to let the
+   * Asking how these devices should be prepared/used
+   * before/when container launch. A plugin can do some tasks in its own or
+   * define it in DeviceRuntimeSpec to let the framework do it.
+   * For instance, define {@code VolumeSpec} to let the
    * framework to create volume before running container.
    *
    * @param allocatedDevices A set of allocated {@link Device}.
-   * @param runtime Indicate which runtime the framework will use
-   *        Could be {@code RUNTIME_CGROUPS} or {@code RUNTIME_DOCKER}
-   *        in {@link DeviceRuntimeSpec}
+   * @param yarnRuntime Indicate which runtime YARN will use
+   *        Could be {@code docker} or {@code default}
+   *        in {@link DeviceRuntimeSpec} constants
    * @return a {@link DeviceRuntimeSpec} description about environment,
    * {@link VolumeSpec}, {@link MountVolumeSpec}. etc
    * */
-  DeviceRuntimeSpec onDeviceUse(Set<Device> allocatedDevices, String runtime);
+  DeviceRuntimeSpec onDeviceAllocated(Set<Device> allocatedDevices,
+      String yarnRuntime);
 
   /**
    * Called after device released.

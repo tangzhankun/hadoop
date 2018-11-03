@@ -23,16 +23,19 @@ import java.util.*;
 public class DeviceRuntimeSpec {
 
   /**
-   * The runtime gives device framework a hint (not forced to) on which container
-   * runtime can use this Spec (if empty then default "runc" is used).
-   * For instance, it could be "nvidia" in Nvidia GPU Docker v2
+   * The containerRuntime gives device framework a hint (not forced to)
+   * on which container containerRuntime can use this Spec
+   * (if empty then default "runc" is used).
+   * For instance, it could be "nvidia" in Nvidia GPU Docker v2.
+   * The "nvidia" will be passed as a parameter to docker run
+   *  with --runtime "nvidia"
    *
    * If cgroups, these fields could be empty if no special requirement
    * since the framework already knows major and minor device number
    * in {@link Device}.
    * If docker, these fields below should be populated as needed
    */
-  private final String runtime;
+  private final String containerRuntime;
   private final Map<String, String> envs;
   private final Set<MountVolumeSpec> volumeMounts;
   private final Set<MountDeviceSpec> deviceMounts;
@@ -42,15 +45,15 @@ public class DeviceRuntimeSpec {
   public final static String RUNTIME_DOCKER = "docker";
 
   private DeviceRuntimeSpec(Builder builder) {
-    this.runtime = builder.runtime;
+    this.containerRuntime = builder.containerRuntime;
     this.deviceMounts = builder.deviceMounts;
     this.envs = builder.envs;
     this.volumeClaims = builder.volumeClaims;
     this.volumeMounts = builder.volumeMounts;
   }
 
-  public String getRuntime() {
-    return runtime;
+  public String getContainerRuntime() {
+    return containerRuntime;
   }
 
   public Map<String, String> getEnvs() {
@@ -70,14 +73,14 @@ public class DeviceRuntimeSpec {
   }
   public static class Builder {
 
-    private String runtime;
+    private String containerRuntime;
     private Map<String, String> envs;
     private Set<MountVolumeSpec> volumeMounts;
     private Set<MountDeviceSpec> deviceMounts;
     private Set<VolumeSpec> volumeClaims;
 
     private Builder() {
-      runtime = DeviceRuntimeSpec.RUNTIME_DOCKER;
+      containerRuntime = DeviceRuntimeSpec.RUNTIME_DOCKER;
       envs = new HashMap<>();
       volumeClaims = new TreeSet<>();
       deviceMounts = new TreeSet<>();
@@ -92,8 +95,8 @@ public class DeviceRuntimeSpec {
       return new DeviceRuntimeSpec(this);
     }
 
-    public Builder setRuntime(String runtime) {
-      this.runtime = runtime;
+    public Builder setContainerRuntime(String containerRuntime) {
+      this.containerRuntime = containerRuntime;
       return this;
     }
 
