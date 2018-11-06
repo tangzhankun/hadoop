@@ -26,9 +26,9 @@ public class Localization {
   private String localPath;
 
   public void parse(String arg) throws ParseException {
-    String[] tokens = arg.split(":");
+    String[] tokens = arg.split("->");
     if (2 != tokens.length) {
-      throw new ParseException("Should be remoteUri:localFileName format for localization");
+      throw new ParseException("Should be \"remoteUri->localFileName\" format for localization");
     }
     remoteUri = tokens[0].trim();
     localPath = tokens[1].trim();
