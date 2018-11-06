@@ -89,7 +89,7 @@ public class DeviceSchedulerManager {
     allUsedDevices.put(resourceName, new TreeMap<>());
   }
 
-  public synchronized DeviceAllocation assignDevices(String resourceName, Container container)
+  public DeviceAllocation assignDevices(String resourceName, Container container)
       throws ResourceHandlerException {
     DeviceAllocation allocation = internalAssignDevices(resourceName, container);
     // Wait for a maximum of 120 seconds if no available Devices are there which
@@ -157,7 +157,7 @@ public class DeviceSchedulerManager {
       // Use default schedule logic if not prefer or dps not exists or
       // (prefer but null instance)
       if ((!isPreferCustomizedScheduler() || null == dps)
-          || (isPreferCustomizedScheduler() && null == dps)) {
+          || isPreferCustomizedScheduler()) {
         if (!isPreferCustomizedScheduler()) {
           LOG.debug("Customized device plugin scheduler is not preferred, use default logic");
         }
@@ -176,7 +176,7 @@ public class DeviceSchedulerManager {
           }
         }
       } else {
-        if(isPreferCustomizedScheduler() && null != dps) {
+        if(isPreferCustomizedScheduler()) {
           LOG.debug("LOG.debug(\"Customized device plugin scheduler is preferred and implemented," +
               "use customized logic\");");
         }
