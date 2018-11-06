@@ -29,6 +29,8 @@ import org.apache.hadoop.yarn.service.api.records.Resource;
 import org.apache.hadoop.yarn.service.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.service.api.records.Service;
 import org.apache.hadoop.yarn.service.utils.ServiceApiUtil;
+import org.apache.hadoop.yarn.service.client.ServiceClient;
+import org.apache.hadoop.yarn.submarine.client.cli.param.Localization;
 import org.apache.hadoop.yarn.submarine.client.cli.param.Quicklink;
 import org.apache.hadoop.yarn.submarine.client.cli.param.RunJobParameters;
 import org.apache.hadoop.yarn.submarine.common.ClientContext;
@@ -298,29 +300,41 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       String fileToUpload, String destFilename, Component comp)
       throws IOException {
     FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
-
-    // Upload to remote FS under staging area
-    File localFile = new File(fileToUpload);
-    if (!localFile.exists()) {
-      throw new FileNotFoundException(
-          "Trying to upload file=" + localFile.getAbsolutePath()
-              + " to remote, but couldn't find local file.");
-    }
-    String filename = new File(fileToUpload).getName();
-
-    Path uploadedFilePath = new Path(stagingDir, filename);
-    if (!uploadedFiles.contains(uploadedFilePath)) {
-      if (SubmarineLogs.isVerbose()) {
-        LOG.info("Copying local file=" + fileToUpload + " to remote="
-            + uploadedFilePath);
+    Path uploadedFilePath;
+    FileStatus fileStatus;
+    // If it is a file path in HDFS, no upload
+    if (needHdfs(fileToUpload)) {
+      uploadedFilePath = new Path(fileToUpload);
+      if (!fs.exists(uploadedFilePath)) {
+        throw new FileNotFoundException(
+            "File " + fileToUpload
+                + " seems a HDFS file, but doesn't exists.");
       }
-      fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
-      uploadedFiles.add(uploadedFilePath);
+      fileStatus = fs.getFileStatus(uploadedFilePath);
+      LOG.info("Remote File already in HDFS, no need to upload. " + fileStatus.getPath());
+    } else {
+      // Upload to remote FS under staging area
+      File localFile = new File(fileToUpload);
+      if (!localFile.exists()) {
+        throw new FileNotFoundException(
+            "Trying to upload file=" + localFile.getAbsolutePath()
+                + " to remote, but couldn't find local file.");
+      }
+      String filename = new File(fileToUpload).getName();
+
+      uploadedFilePath = new Path(stagingDir, filename);
+      if (!uploadedFiles.contains(uploadedFilePath)) {
+        if (SubmarineLogs.isVerbose()) {
+          LOG.info("Copying local file=" + fileToUpload + " to remote="
+              + uploadedFilePath);
+        }
+        fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
+        uploadedFiles.add(uploadedFilePath);
+      }
+
+      fileStatus = fs.getFileStatus(uploadedFilePath);
+      LOG.info("Uploaded file path = " + fileStatus.getPath());
     }
-
-    FileStatus fileStatus = fs.getFileStatus(uploadedFilePath);
-    LOG.info("Uploaded file path = " + fileStatus.getPath());
-
     // Set it to component's files list
     comp.getConfiguration().getFiles().add(new ConfigFile().srcFile(
         fileStatus.getPath().toUri().toString()).destFile(destFilename)
@@ -344,6 +358,12 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     component.setLaunchCommand("./" + destScriptFileName);
     componentToLocalLaunchScriptPath.put(taskType.getComponentName(),
         localScriptFile);
+    // Handle localizations
+    List<Localization> locs = parameters.getLocalizations();
+    for (Localization loc : locs) {
+      uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir,
+          loc.getRemoteUri(), loc.getLocalPath(), component);
+    }
   }
 
   private void addWorkerComponent(Service service,

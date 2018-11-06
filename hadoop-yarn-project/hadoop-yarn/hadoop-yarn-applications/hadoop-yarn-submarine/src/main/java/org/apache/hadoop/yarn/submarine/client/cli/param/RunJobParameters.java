@@ -44,6 +44,7 @@ public class RunJobParameters extends RunParameters {
   private String workerLaunchCmd;
   private String psLaunchCmd;
   private List<Quicklink> quicklinks = new ArrayList<>();
+  private List<Localization> localizations = new ArrayList<>();
 
   private String psDockerImage = null;
   private String workerDockerImage = null;
@@ -149,6 +150,16 @@ public class RunJobParameters extends RunParameters {
     String psLaunchCommand = parsedCommandLine.getOptionValue(
         CliConstants.PS_LAUNCH_CMD);
 
+    // Localizations
+    String[] localizationsStr = parsedCommandLine.getOptionValues(
+        CliConstants.LOCALIZATIONS);
+    if (null != localizationsStr) {
+      for (String loc : localizationsStr) {
+        Localization localization = new Localization();
+        localization.parse(loc);
+        localizations.add(localization);
+      }
+    }
     this.setInputPath(input).setCheckpointPath(jobDir).setNumPS(nPS).setNumWorkers(nWorkers)
         .setPSLaunchCmd(psLaunchCommand).setWorkerLaunchCmd(workerLaunchCmd)
         .setPsResource(psResource)
@@ -270,5 +281,9 @@ public class RunJobParameters extends RunParameters {
 
   public List<Quicklink> getQuicklinks() {
     return quicklinks;
+  }
+
+  public List<Localization> getLocalizations() {
+    return localizations;
   }
 }

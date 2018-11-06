@@ -125,6 +125,12 @@ public class RunJobCli extends AbstractCli {
         + "if want to link to first worker's 7070 port, and text of quicklink "
         + "is Notebook_UI, user need to specify --quicklink "
         + "Notebook_UI=https://master-0:7070");
+    options.addOption(CliConstants.LOCALIZATIONS, true, "Specify "
+        + "localization to make remote files available to worker."
+        + "Argument format is \"File1:LocalFileName1 \""
+        + " \"File2:LocalFileName2\" ..."
+        + " The File could be local or in HDFS. The LocalFileName is"
+        + " a file name in worker's local dir");
     options.addOption("h", "help", false, "Print help");
     return options;
   }
