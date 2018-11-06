@@ -302,6 +302,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
     Path uploadedFilePath;
     FileStatus fileStatus;
+    ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
     // If it is a file path in HDFS, no upload
     if (needHdfs(fileToUpload)) {
       uploadedFilePath = new Path(fileToUpload);
@@ -311,7 +312,16 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
                 + " seems a HDFS file, but doesn't exists.");
       }
       fileStatus = fs.getFileStatus(uploadedFilePath);
-      LOG.info("Remote File already in HDFS, no need to upload. " + fileStatus.getPath());
+      LOG.info("Remote File already in HDFS, no need to upload. "
+          + fileStatus.getPath());
+      if (destFilename.endsWith(".jar") ||
+          destFilename.endsWith(".tar.gz") ||
+          destFilename.endsWith(".zip") ||
+          destFilename.endsWith(".tgz") ||
+          destFilename.endsWith(".tar") ||
+          destFilename.endsWith(".gz")) {
+        destFileType = ConfigFile.TypeEnum.ARCHIVE;
+      }
     } else {
       // Upload to remote FS under staging area
       File localFile = new File(fileToUpload);
@@ -338,7 +348,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     // Set it to component's files list
     comp.getConfiguration().getFiles().add(new ConfigFile().srcFile(
         fileStatus.getPath().toUri().toString()).destFile(destFilename)
-        .type(ConfigFile.TypeEnum.STATIC));
+        .type(destFileType));
   }
 
   private void handleLaunchCommand(RunJobParameters parameters,
