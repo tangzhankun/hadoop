@@ -266,7 +266,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     Assert.assertTrue("New ResourceHandler should be added", newHandlerAdded);
   }
 
-  // Disabled pluggable framework.
+  // Disabled pluggable framework in configuration.
   // We use spy object of real rpm to verify "initializePluggableDevicePlugins"
   // because use mock rpm will not working
   @Test(timeout = 30000)
@@ -286,9 +286,10 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
         any(Context.class), any(Configuration.class), any(Map.class));
   }
 
-  // no configuration set.
+  // No related configuration set.
   @Test(timeout = 30000)
-  public void testInitializationWithPluggableDeviceFrameworkDisabled2() throws Exception {
+  public void testInitializationWithPluggableDeviceFrameworkDisabled2()
+      throws Exception {
     ResourcePluginManager rpm = new ResourcePluginManager();
 
     ResourcePluginManager rpmSpy = spy(rpm);
@@ -304,7 +305,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
   // Enable framework and configure pluggable device classes
   @Test(timeout = 30000)
-  public void testInitializationWithPluggableDeviceFrameworkEnabled() throws Exception {
+  public void testInitializationWithPluggableDeviceFrameworkEnabled()
+      throws Exception {
     ResourcePluginManager rpm = new ResourcePluginManager();
 
     ResourcePluginManager rpmSpy = spy(rpm);
@@ -312,7 +314,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
-    conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
+    conf.setStrings(
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
         "com.cmp1.hdw1plugin");
     nm.init(conf);
     nm.start();

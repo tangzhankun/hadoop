@@ -1616,7 +1616,8 @@ public class YarnConfiguration extends Configuration {
    * The pluggable device plugin framework is disabled by default
    * */
   @Private
-  public static final boolean DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED = false;
+  public static final boolean DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED =
+      false;
 
   /**
    * This settings contains vendor plugin class names for
