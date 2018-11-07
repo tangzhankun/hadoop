@@ -53,8 +53,6 @@ public class DeviceSchedulerManager {
   private Map<String, DevicePluginScheduler> devicePluginSchedulers =
       new ConcurrentHashMap<>();
 
-  private boolean preferCustomizedScheduler = false;
-
   /**
    * Hold all type of devices
    * key is the device resource name
@@ -125,7 +123,7 @@ public class DeviceSchedulerManager {
     return allocation;
   }
 
-  public synchronized DeviceAllocation internalAssignDevices(String resourceName, Container container)
+  private synchronized DeviceAllocation internalAssignDevices(String resourceName, Container container)
       throws ResourceHandlerException {
     Resource requestedResource = container.getResource();
     ContainerId containerId = container.getContainerId();
@@ -154,32 +152,15 @@ public class DeviceSchedulerManager {
       Set<Device> allowedDevices = allAllowedDevices.get(resourceName);
 
       DevicePluginScheduler dps = devicePluginSchedulers.get(resourceName);
-      // Use default schedule logic if not prefer or dps not exists or
-      // (prefer but null instance)
-      if ((!isPreferCustomizedScheduler() || null == dps)
-          || isPreferCustomizedScheduler()) {
-        if (!isPreferCustomizedScheduler()) {
-          LOG.debug("Customized device plugin scheduler is not preferred, use default logic");
-        }
-
-        if (isPreferCustomizedScheduler() && null == dps) {
-          LOG.debug("Customized device plugin scheduler is preferred but not implemented, use default logic");
-        }
-
-        for (Device device : allowedDevices) {
-          if (!usedDevices.containsKey(device)) {
-            usedDevices.put(device, containerId);
-            assignedDevices.add(device);
-            if (assignedDevices.size() == requestedDeviceCount) {
-              break;
-            }
-          }
-        }
+      // Prefer DevicePluginScheduler logic
+      if (null == dps) {
+        LOG.debug("Customized device plugin scheduler is preferred "
+            + "but not implemented, use default logic");
+        defaultScheduleAction(allowedDevices, usedDevices,
+            assignedDevices, containerId, requestedDeviceCount);
       } else {
-        if(isPreferCustomizedScheduler()) {
-          LOG.debug("LOG.debug(\"Customized device plugin scheduler is preferred and implemented," +
-              "use customized logic\");");
-        }
+        LOG.debug("Customized device plugin implemented,"
+            + "use customized logic");
         // Use customized device scheduler
         LOG.debug("Try to schedule " + requestedDeviceCount
             + "(" + resourceName + ") using " + dps.getClass());
@@ -188,11 +169,11 @@ public class DeviceSchedulerManager {
             requestedDeviceCount);
         // TODO: should check if customized scheduler return values are real
         if (dpsAllocated.size() != requestedDeviceCount) {
-          throw new ResourceHandlerException(dps.getClass() + " should allocate "
-              + requestedDeviceCount
+          throw new ResourceHandlerException(dps.getClass()
+              + " should allocate " + requestedDeviceCount
               + " of " + resourceName + ", but actual: "
               + assignedDevices.size());
-          // TODO: fall back to default schedule logic?
+          // TODO: fall back to default schedule logic
         }
         // copy
         assignedDevices.addAll(dpsAllocated);
@@ -304,12 +285,19 @@ public class DeviceSchedulerManager {
     return releasingDevices;
   }
 
-  public boolean isPreferCustomizedScheduler() {
-    return preferCustomizedScheduler;
-  }
-
-  public void setPreferCustomizedScheduler(boolean preferCustomizedScheduler) {
-    this.preferCustomizedScheduler = preferCustomizedScheduler;
+  // default scheduling logic
+  private void defaultScheduleAction(Set<Device> allowed,
+      Map<Device, ContainerId> used, Set<Device> assigned,
+      ContainerId containerId, int count) {
+    for (Device device : allowed) {
+      if (!used.containsKey(device)) {
+        used.put(device, containerId);
+        assigned.add(device);
+        if (assigned.size() == count) {
+          return;
+        }
+      }
+    } // end for
   }
 
   static class DeviceAllocation {
