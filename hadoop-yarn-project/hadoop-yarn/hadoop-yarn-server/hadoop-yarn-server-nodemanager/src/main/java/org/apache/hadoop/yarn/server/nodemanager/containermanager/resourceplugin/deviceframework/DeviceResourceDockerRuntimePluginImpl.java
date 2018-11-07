@@ -116,7 +116,7 @@ public class DeviceResourceDockerRuntimePluginImpl
       return null;
     }
     Set<Device> allocated = new TreeSet<>();
-    getAllocatedDevices(container,allocated);
+    getAllocatedDevices(container, allocated);
     devicePlugin.onDevicesReleased(allocated);
 
     // remove cache
@@ -136,7 +136,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     // get allocated devices
     ContainerId containerId = container.getContainerId();
     allocated = cachedAllocation.get(containerId);
-    if (null != allocated) {
+    if (null == allocated) {
       return;
     }
     Map<Device, ContainerId> assignedDevice = devicePluginAdapter
