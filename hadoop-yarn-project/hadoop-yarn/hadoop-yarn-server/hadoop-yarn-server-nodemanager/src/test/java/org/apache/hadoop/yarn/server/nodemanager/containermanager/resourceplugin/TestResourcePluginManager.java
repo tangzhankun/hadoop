@@ -146,7 +146,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     @Override
     protected NodeStatusUpdater createNodeStatusUpdater(Context context,
         Dispatcher dispatcher, NodeHealthCheckerService healthChecker) {
-      ((NodeManager.NMContext) context).setResourcePluginManager(rpm);
+      ((NodeManager.NMContext)context).setResourcePluginManager(rpm);
       return new BaseNodeStatusUpdaterForTest(context, dispatcher, healthChecker,
           metrics, new BaseResourceTrackerForTest());
     }
@@ -158,7 +158,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
         ApplicationACLsManager aclsManager,
         LocalDirsHandlerService diskhandler) {
       return new MyContainerManager(context, exec, del, nodeStatusUpdater,
-          metrics, diskhandler);
+      metrics, diskhandler);
     }
 
     @Override
@@ -184,7 +184,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     final ResourcePluginManager rpm = stubResourcePluginmanager();
     nm = new MyMockNM(rpm);
 
-    YarnConfiguration conf = createNMConfig();
     nm.init(conf);
     verify(rpm, times(1)).initialize(
         any(Context.class));
@@ -199,7 +198,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
     nm = new MyMockNM(rpm);
 
-    YarnConfiguration conf = createNMConfig();
     nm.init(conf);
     nm.start();
 
@@ -223,7 +221,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
       @Override
       protected NodeStatusUpdater createNodeStatusUpdater(Context context,
           Dispatcher dispatcher, NodeHealthCheckerService healthChecker) {
-        ((NMContext) context).setResourcePluginManager(rpm);
+        ((NMContext)context).setResourcePluginManager(rpm);
         return new BaseNodeStatusUpdaterForTest(context, dispatcher, healthChecker,
             metrics, new BaseResourceTrackerForTest());
       }
@@ -240,13 +238,11 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
       @Override
       protected ContainerExecutor createContainerExecutor(Configuration conf) {
-        ((NMContext) this.getNMContext()).setResourcePluginManager(rpm);
+        ((NMContext)this.getNMContext()).setResourcePluginManager(rpm);
         lce.setConf(conf);
         return lce;
       }
     };
-
-    YarnConfiguration conf = createNMConfig();
 
     nm.init(conf);
     nm.start();
@@ -270,7 +266,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
   // We use spy object of real rpm to verify "initializePluggableDevicePlugins"
   // because use mock rpm will not working
   @Test(timeout = 30000)
-  public void testInitializationWithPluggableDeviceFrameworkDisabled() throws Exception {
+  public void testInitializationWithPluggableDeviceFrameworkDisabled()
+      throws Exception {
     ResourcePluginManager rpm = new ResourcePluginManager();
 
     ResourcePluginManager rpmSpy = spy(rpm);
@@ -335,7 +332,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     nm = new MyMockNM(rpmSpy);
     Boolean fail = false;
     try {
-      YarnConfiguration conf = createNMConfig();
       conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
           true);
 

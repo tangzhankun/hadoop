@@ -1620,7 +1620,7 @@ public class YarnConfiguration extends Configuration {
       false;
 
   /**
-   * This settings contains vendor plugin class names for
+   * This setting contains vendor plugin class names for
    * device plugin framework to load. Split by comma
    * */
   @Private
@@ -1669,7 +1669,7 @@ public class YarnConfiguration extends Configuration {
       NVIDIA_DOCKER_V1;
 
   /**
-   * This setting controls end point of nvidia-docker-v1 plugin
+   * This setting controls end point of nvidia-docker-v1 plugin.
    */
   @Private
   public static final String NVIDIA_DOCKER_PLUGIN_V1_ENDPOINT =
