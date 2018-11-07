@@ -114,7 +114,8 @@ public class ResourcePluginManager {
     if (puggableDeviceFrameworkEnabled) {
       initializePluggableDevicePlugins(context, conf, pluginMap);
     } else {
-      LOG.info("The pluggable device framework is not enabled. If you want, please set true to {}",
+      LOG.info("The pluggable device framework is not enabled."
+              + " If you want, please set true to {}",
           YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
     }
     configuredPlugins = Collections.unmodifiableMap(pluginMap);
@@ -124,7 +125,8 @@ public class ResourcePluginManager {
       Configuration configuration,
       Map<String, ResourcePlugin> pluginMap)
       throws YarnRuntimeException, ClassNotFoundException {
-    LOG.info("The pluggable device framework enabled, trying to load the vendor plugins");
+    LOG.info("The pluggable device framework enabled," +
+        "trying to load the vendor plugins");
     deviceSchedulerManager = new DeviceSchedulerManager(context);
     String[] pluginClassNames = configuration.getStrings(
         YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
