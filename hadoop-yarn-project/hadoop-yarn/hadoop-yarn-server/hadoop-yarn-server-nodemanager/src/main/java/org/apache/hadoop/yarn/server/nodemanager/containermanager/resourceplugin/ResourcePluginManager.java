@@ -97,18 +97,22 @@ public class ResourcePluginManager {
     boolean puggableDeviceFrameworkEnabled = conf.getBoolean(
         YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
+
     if (puggableDeviceFrameworkEnabled) {
-      LOG.info("The pluggable device framework is not enabled. If you want, set true to " +
-          YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
       initializePluggableDevicePlugins(context, conf, pluginMap);
+    } else {
+      LOG.info("The pluggable device framework is not enabled. If you want, please set true to {}",
+          YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
     }
     configuredPlugins = Collections.unmodifiableMap(pluginMap);
   }
 
   public void initializePluggableDevicePlugins(Context context,
       Configuration configuration,
-      Map<String, ResourcePlugin> pluginMap) throws YarnRuntimeException{
+      Map<String, ResourcePlugin> pluginMap)
+      throws YarnRuntimeException {
     LOG.info("The pluggable device framework enabled, trying to load the vendor plugins");
+
     String[] pluginClassNames = configuration.getStrings(
         YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
     if (null == pluginClassNames) {

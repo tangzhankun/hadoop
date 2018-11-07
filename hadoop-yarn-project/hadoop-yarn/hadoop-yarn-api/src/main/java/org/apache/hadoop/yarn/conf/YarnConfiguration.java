@@ -1619,8 +1619,8 @@ public class YarnConfiguration extends Configuration {
   public static final boolean DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED = false;
 
   /**
-   * This settings contains vendor plugin class names for device plugin framework to load.
-   * Split by comma
+   * This settings contains vendor plugin class names for
+   * device plugin framework to load. Split by comma
    * */
   @Private
   public static final String NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES =

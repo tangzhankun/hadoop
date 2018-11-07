@@ -42,24 +42,26 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerChain;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.NodeResourceUpdaterPlugin;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 public class TestResourcePluginManager extends NodeManagerTestBase {
   private NodeManager nm;
+
+  private YarnConfiguration conf;
+
+  @Before
+  public void setup() throws Exception {
+    this.conf = createNMConfig();
+  }
 
   ResourcePluginManager stubResourcePluginmanager() {
     // Stub ResourcePluginManager
@@ -274,7 +276,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     ResourcePluginManager rpmSpy = spy(rpm);
     nm = new MyMockNM(rpmSpy);
 
-    YarnConfiguration conf = createNMConfig();
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         false);
     nm.init(conf);
@@ -293,7 +294,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     ResourcePluginManager rpmSpy = spy(rpm);
     nm = new MyMockNM(rpmSpy);
 
-    YarnConfiguration conf = createNMConfig();
     nm.init(conf);
     nm.start();
     verify(rpmSpy, times(1)).initialize(
@@ -310,7 +310,6 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     ResourcePluginManager rpmSpy = spy(rpm);
     nm = new MyMockNM(rpmSpy);
 
-    YarnConfiguration conf = createNMConfig();
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
     conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
