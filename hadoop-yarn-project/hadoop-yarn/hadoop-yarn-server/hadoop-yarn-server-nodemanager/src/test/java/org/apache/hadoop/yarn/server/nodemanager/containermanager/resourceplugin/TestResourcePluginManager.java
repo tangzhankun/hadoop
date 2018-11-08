@@ -35,6 +35,7 @@ import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManagerTestBase;
 import org.apache.hadoop.yarn.server.nodemanager.NodeStatusUpdater;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.*;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.ContainerManagerImpl;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperation;
@@ -43,11 +44,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerChain;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.FakeTestDevicePlugin1;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.FakeTestDevicePlugin2;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.FakeTestDevicePlugin3;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.examples.FakeDevicePlugin;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.*;
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
@@ -75,7 +72,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     // setup resource-types.xml
     ResourceUtils.resetResourceTypes();
     String resourceTypesFile = "resource-types-pluggable-devices.xml";
-    this.tempResourceTypesFile = TestResourceUtils.setupResourceTypes(this.conf, resourceTypesFile);
+    this.tempResourceTypesFile =
+        TestResourceUtils.setupResourceTypes(this.conf, resourceTypesFile);
   }
 
   ResourcePluginManager stubResourcePluginmanager() {
@@ -167,8 +165,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     protected NodeStatusUpdater createNodeStatusUpdater(Context context,
         Dispatcher dispatcher, NodeHealthCheckerService healthChecker) {
       ((NodeManager.NMContext)context).setResourcePluginManager(rpm);
-      return new BaseNodeStatusUpdaterForTest(context, dispatcher, healthChecker,
-          metrics, new BaseResourceTrackerForTest());
+      return new BaseNodeStatusUpdaterForTest(context, dispatcher,
+      healthChecker, metrics, new BaseResourceTrackerForTest());
     }
 
     @Override
@@ -188,7 +186,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
   }
 
   public class MyLCE extends LinuxContainerExecutor {
-    private PrivilegedOperationExecutor poe = mock(PrivilegedOperationExecutor.class);
+    private PrivilegedOperationExecutor poe =
+        mock(PrivilegedOperationExecutor.class);
 
     @Override
     protected PrivilegedOperationExecutor getPrivilegedOperationExecutor() {
@@ -213,7 +212,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
    * Make sure ResourcePluginManager is invoked during NM update.
    */
   @Test(timeout = 30000)
-  public void testNodeStatusUpdaterWithResourcePluginsEnabled() throws Exception {
+  public void testNodeStatusUpdaterWithResourcePluginsEnabled()
+      throws Exception {
     final ResourcePluginManager rpm = stubResourcePluginmanager();
 
     nm = new MyMockNM(rpm);
@@ -225,7 +225,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
         rpm.getNameToPlugins().get("resource1")
             .getNodeResourceHandlerInstance();
 
-    verify(nodeResourceUpdaterPlugin, times(1)).updateConfiguredResource(
+    verify(nodeResourceUpdaterPlugin, times(1))
+        .updateConfiguredResource(
         any(Resource.class));
   }
 
@@ -233,7 +234,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
    * Make sure ResourcePluginManager is used to initialize ResourceHandlerChain
    */
   @Test(timeout = 30000)
-  public void testLinuxContainerExecutorWithResourcePluginsEnabled() throws Exception {
+  public void testLinuxContainerExecutorWithResourcePluginsEnabled()
+      throws Exception {
     final ResourcePluginManager rpm = stubResourcePluginmanager();
     final LinuxContainerExecutor lce = new MyLCE();
 
@@ -382,17 +384,19 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
-    conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
-        FakeTestDevicePlugin1.class.getCanonicalName() + "," +
-        FakeDevicePlugin.class.getCanonicalName());
+    conf.setStrings(
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
+        FakeTestDevicePlugin1.class.getCanonicalName());
     nm.init(conf);
     nm.start();
     Map<String, ResourcePlugin> pluginMap = rpmSpy.getNameToPlugins();
-    Assert.assertEquals(2,pluginMap.size());
-    ResourcePlugin rp = pluginMap.get("cmp.com/cmp");
-    if (! (rp instanceof DevicePluginAdapter)) {
+    Assert.assertEquals(1, pluginMap.size());
+    ResourcePlugin rp = pluginMap.get("cmpA.com/hdwA");
+    if (!(rp instanceof DevicePluginAdapter)) {
       Assert.assertTrue(false);
     }
+    verify(rpmSpy,times(1)).checkInterfaceCompatibility(
+        DevicePlugin.class, FakeTestDevicePlugin1.class);
   }
 
   // Fail to load a class which doesn't implement interface DevicePlugin
@@ -406,10 +410,12 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
-    conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
+    conf.setStrings(
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
         FakeTestDevicePlugin2.class.getCanonicalName());
 
-    String expectedMessage = "Class: " + FakeTestDevicePlugin2.class.getCanonicalName()
+    String expectedMessage = "Class: "
+        + FakeTestDevicePlugin2.class.getCanonicalName()
         + " not instance of " + DevicePlugin.class.getCanonicalName();
     String actualMessage = "";
     try {
@@ -421,6 +427,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     Assert.assertEquals(expectedMessage, actualMessage);
   }
 
+  // Fail to register duplicated resource name.
   @Test(timeout = 30000)
   public void testLoadDuplicateResourceNameDevicePlugin()
       throws Exception{
@@ -431,12 +438,44 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
     conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
         true);
-    conf.setStrings(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
+    conf.setStrings(
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
         FakeTestDevicePlugin1.class.getCanonicalName() + "," +
             FakeTestDevicePlugin3.class.getCanonicalName());
 
     String expectedMessage = "cmpA.com/hdwA" +
-        " has already been registered! Please change a resource type name";
+        " already registered! Please change resource type name";
+    String actualMessage = "";
+    try {
+      nm.init(conf);
+      nm.start();
+    } catch (YarnRuntimeException e) {
+      actualMessage = e.getMessage();
+    }
+    Assert.assertEquals(expectedMessage, actualMessage);
+  }
+
+  /**
+   * Fail a plugin due to incompatible interface implemented.
+   * It doesn't implement the "getRegisterRequestInfo"
+   */
+  @Test(timeout = 30000)
+  public void testIncompatibleDevicePlugin()
+      throws Exception{
+    ResourcePluginManager rpm = new ResourcePluginManager();
+
+    ResourcePluginManager rpmSpy = spy(rpm);
+    nm = new MyMockNM(rpmSpy);
+
+    conf.setBoolean(YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
+        true);
+    conf.setStrings(
+        YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
+        FakeTestDevicePlugin4.class.getCanonicalName());
+
+    String expectedMessage = "Method \"getRegisterRequestInfo" +
+        "\" is expected but not implemented in "
+        + FakeTestDevicePlugin4.class.getCanonicalName();
     String actualMessage = "";
     try {
       nm.init(conf);
@@ -452,10 +491,9 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
       throws Exception{
     ResourcePluginManager rpm = new ResourcePluginManager();
     String resourceName = "a.com/a";
-    Assert.assertFalse(rpm.isValidAndConfiguredResourceName(resourceName));
+    Assert.assertFalse(rpm.isConfiguredResourceName(resourceName));
     resourceName = "cmp.com/cmp";
-    Assert.assertTrue(rpm.isValidAndConfiguredResourceName(resourceName));
+    Assert.assertTrue(rpm.isConfiguredResourceName(resourceName));
   }
-
 
 }

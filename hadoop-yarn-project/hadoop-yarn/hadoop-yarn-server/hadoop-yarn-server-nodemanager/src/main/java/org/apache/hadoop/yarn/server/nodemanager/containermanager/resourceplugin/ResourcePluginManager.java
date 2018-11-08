@@ -28,11 +28,8 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePluginScheduler;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DeviceSchedulerManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.FpgaResourcePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.gpu.GpuResourcePlugin;
@@ -61,7 +58,6 @@ public class ResourcePluginManager {
   private Map<String, ResourcePlugin> configuredPlugins =
           Collections.emptyMap();
 
-  private DeviceSchedulerManager deviceSchedulerManager = null;
 
   public synchronized void initialize(Context context)
       throws YarnException, ClassNotFoundException {
@@ -127,7 +123,7 @@ public class ResourcePluginManager {
       throws YarnRuntimeException, ClassNotFoundException {
     LOG.info("The pluggable device framework enabled," +
         "trying to load the vendor plugins");
-    deviceSchedulerManager = new DeviceSchedulerManager(context);
+
     String[] pluginClassNames = configuration.getStrings(
         YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
     if (null == pluginClassNames) {
@@ -154,10 +150,10 @@ public class ResourcePluginManager {
       // check if someone has already registered this resource type name
       if (pluginMap.containsKey(resourceName)) {
         throw new YarnRuntimeException(resourceName +
-            " has already been registered! Please change a resource type name");
+            " already registered! Please change resource type name");
       }
       // check resource name is valid and configured in resource-types.xml
-      if (!isValidAndConfiguredResourceName(resourceName)) {
+      if (!isConfiguredResourceName(resourceName)) {
         throw new YarnRuntimeException(resourceName
             + " is not configured inside "
             + YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE +
@@ -167,32 +163,23 @@ public class ResourcePluginManager {
           resourceName,
           pluginClassName);
       DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(
-          resourceName, dpInstance, deviceSchedulerManager);
+          resourceName, dpInstance);
       LOG.info("Adapter of {} created. Initializing..", pluginClassName);
       try {
         pluginAdapter.initialize(context);
       } catch (YarnException e) {
-        throw new YarnRuntimeException("Adapter of " + pluginClassName + " init failed!");
+        throw new YarnRuntimeException("Adapter of "
+            + pluginClassName + " init failed!");
       }
       LOG.info("Adapter of {} init success!", pluginClassName);
       // Store plugin as adapter instance
       pluginMap.put(request.getResourceName(), pluginAdapter);
-      // If the device plugin implements DevicePluginScheduler interface
-      if (dpInstance instanceof DevicePluginScheduler) {
-        // check DevicePluginScheduler interface compatibility
-        checkInterfaceCompatibility(DevicePluginScheduler.class, pluginClazz);
-        LOG.info("{} can schedule {} devices. Added as preferred device plugin scheduler",
-            pluginClassName,
-            resourceName);
-        deviceSchedulerManager.addDevicePluginScheduler(
-            resourceName,
-            (DevicePluginScheduler)dpInstance);
-      }
     } // end for
   }
 
+  @VisibleForTesting
   // Check if the implemented interfaces' signature is compatible
-  private void checkInterfaceCompatibility(Class<?> expectedClass, Class<?> actualClass)
+  public void checkInterfaceCompatibility(Class<?> expectedClass, Class<?> actualClass)
       throws YarnRuntimeException{
     LOG.debug("Checking implemented interface's compatibility: \"{}\"",
         expectedClass.getSimpleName());
@@ -214,7 +201,7 @@ public class ResourcePluginManager {
         }
       }
       if (!found) {
-        LOG.info("Method \"{}\" is not found in plugin",
+        LOG.error("Method \"{}\" is not found in plugin",
             method.getName()
             );
         throw new YarnRuntimeException(
@@ -224,13 +211,12 @@ public class ResourcePluginManager {
         );
       }
     }// end for
-    LOG.debug("\"{}\" compatibility is ok..",
+    LOG.info("\"{}\" compatibility is ok..",
         expectedClass.getSimpleName());
   }
 
   @VisibleForTesting
-  public boolean isValidAndConfiguredResourceName(String resourceName) {
-    // check pattern match
+  public boolean isConfiguredResourceName(String resourceName) {
     // check configured
     Map<String, ResourceInformation> configuredResourceTypes =
         ResourceUtils.getResourceTypes();
@@ -238,10 +224,6 @@ public class ResourcePluginManager {
       return false;
     }
     return true;
-  }
-
-  public DeviceSchedulerManager getDeviceSchedulerManager() {
-    return deviceSchedulerManager;
   }
 
   public synchronized void cleanup() throws YarnException {

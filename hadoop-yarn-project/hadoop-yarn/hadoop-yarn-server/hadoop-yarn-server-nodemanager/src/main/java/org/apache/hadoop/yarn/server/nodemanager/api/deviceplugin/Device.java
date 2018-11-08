@@ -52,12 +52,6 @@ public class Device implements Serializable, Comparable {
    * */
   private String status;
 
-  /**
-   * A {@code Device} has a topology which
-   * represent the links to other {@code Device}s
-   * */
-  private final Set<DeviceLink> topology;
-
   private Device(Builder builder) {
     this.ID = Objects.requireNonNull(builder.ID);
     this.devPath = builder.devPath;
@@ -65,7 +59,6 @@ public class Device implements Serializable, Comparable {
     this.minorNumber = Objects.requireNonNull(builder.minorNumber);
     this.busID = builder.busID;
     this.isHealthy = Objects.requireNonNull(builder.isHealthy);
-    this.topology = builder.topology;
     this.status = builder.status;
   }
 
@@ -95,10 +88,6 @@ public class Device implements Serializable, Comparable {
 
   public String getStatus() {
     return status;
-  }
-
-  public Set<DeviceLink> getTopology() {
-    return topology;
   }
 
   @Override
@@ -166,11 +155,6 @@ public class Device implements Serializable, Comparable {
     private String busID = "";
     private boolean isHealthy;
     private String status = "";
-    private Set<DeviceLink> topology;
-
-    private Builder() {
-      topology = new TreeSet<>();
-    }
 
     public static Builder newInstance() {
       return new Builder();
@@ -212,11 +196,6 @@ public class Device implements Serializable, Comparable {
 
     public Builder setStatus(String status) {
       this.status = status;
-      return this;
-    }
-
-    public Builder addDeviceLink(DeviceLink link) {
-      this.topology.add(link);
       return this;
     }
 

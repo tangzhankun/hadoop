@@ -20,10 +20,8 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
@@ -31,11 +29,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.DockerCommandPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.NodeResourceUpdaterPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
-import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMDeviceResourceInfo;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
-
-import java.util.*;
 
 
 /**
@@ -48,30 +42,16 @@ public class DevicePluginAdapter implements ResourcePlugin {
 
   private String resourceName;
   private DevicePlugin devicePlugin;
-
-  private DeviceSchedulerManager deviceSchedulerManager;
-
-  private DeviceResourceDockerRuntimePluginImpl deviceDockerCommandPlugin;
-
-  private DeviceResourceHandlerImpl deviceResourceHandler;
   private DeviceResourceUpdaterImpl deviceResourceUpdater;
 
-  public DevicePluginAdapter(String name, DevicePlugin dp,
-      DeviceSchedulerManager dsm) {
-    deviceSchedulerManager = dsm;
+  public DevicePluginAdapter(String name, DevicePlugin dp) {
     resourceName = name;
     devicePlugin = dp;
   }
 
-  public DeviceSchedulerManager getDeviceSchedulerManager() {
-    return deviceSchedulerManager;
-  }
 
   @Override
   public void initialize(Context context) throws YarnException {
-    deviceDockerCommandPlugin = new DeviceResourceDockerRuntimePluginImpl(
-        resourceName,
-        devicePlugin, this);
     deviceResourceUpdater = new DeviceResourceUpdaterImpl(
         resourceName, devicePlugin);
     LOG.info(resourceName + " plugin adapter initialized");
@@ -81,10 +61,7 @@ public class DevicePluginAdapter implements ResourcePlugin {
   @Override
   public ResourceHandler createResourceHandler(Context nmContext, CGroupsHandler cGroupsHandler,
       PrivilegedOperationExecutor privilegedOperationExecutor) {
-    this.deviceResourceHandler = new DeviceResourceHandlerImpl(resourceName,
-        devicePlugin, this, deviceSchedulerManager,
-        cGroupsHandler, privilegedOperationExecutor);
-    return deviceResourceHandler;
+    return null;
   }
 
   @Override
@@ -99,25 +76,12 @@ public class DevicePluginAdapter implements ResourcePlugin {
 
   @Override
   public DockerCommandPlugin getDockerCommandPluginInstance() {
-    return deviceDockerCommandPlugin;
+    return null;
   }
 
   @Override
   public NMResourceInfo getNMResourceInfo() throws YarnException {
-    List<Device> allowed = new ArrayList<>(
-        deviceSchedulerManager.getAllAllowedDevices().get(resourceName));
-    List<AssignedDevice> assigned = new ArrayList<>();
-    Map<Device, ContainerId> assignedMap =
-        deviceSchedulerManager.getAllUsedDevices().get(resourceName);
-    for (Map.Entry<Device, ContainerId> entry : assignedMap.entrySet()) {
-      assigned.add(new AssignedDevice(entry.getValue(),
-          entry.getKey()));
-    }
-    return new NMDeviceResourceInfo(allowed, assigned);
-  }
-
-  public DeviceResourceHandlerImpl getDeviceResourceHandler() {
-    return deviceResourceHandler;
+    return null;
   }
 
 }

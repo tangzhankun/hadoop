@@ -18,40 +18,35 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.NodeResourceUpdaterPlugin;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
 
 import java.util.Set;
 
-public class DeviceResourceUpdaterImpl extends NodeResourceUpdaterPlugin {
+/**
+ * Implement the interface but missed getRegisterRequestInfo method.
+ * This is equivalent to implements a old version of DevicePlugin
+ */
+public abstract class FakeTestDevicePlugin4 implements DevicePlugin {
 
-  final static Log LOG = LogFactory.getLog(DeviceResourceUpdaterImpl.class);
-
-  private String resourceName;
-  private DevicePlugin devicePlugin;
-
-  public DeviceResourceUpdaterImpl(String resourceName,
-      DevicePlugin devicePlugin) {
-    this.devicePlugin = devicePlugin;
-    this.resourceName = resourceName;
+  public DeviceRegisterRequest getOldRegisterRequestInfo() {
+    return null;
   }
 
   @Override
-  public void updateConfiguredResource(Resource res)
-      throws YarnException {
-    LOG.info(resourceName + " plugin update resource ");
-    Set<Device> devices = devicePlugin.getDevices();
-    if (devices == null) {
-      LOG.warn(resourceName
-          + " plugin failed to discover resource ( null value got)." );
-      return;
-    }
-    res.setResourceValue(resourceName, devices.size());
+  public Set<Device> getDevices() {
+    return null;
   }
 
+  @Override
+  public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices, String yarnRuntime) {
+    return null;
+  }
+
+  @Override
+  public void onDevicesReleased(Set<Device> releasedDevices) {
+
+  }
 }
