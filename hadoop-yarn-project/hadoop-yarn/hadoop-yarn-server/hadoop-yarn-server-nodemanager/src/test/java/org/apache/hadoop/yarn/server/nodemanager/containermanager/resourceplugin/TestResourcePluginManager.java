@@ -237,9 +237,10 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
       }
 
       @Override
-      protected ContainerExecutor createContainerExecutor(Configuration conf) {
+      protected ContainerExecutor createContainerExecutor(
+          Configuration configuration) {
         ((NMContext)this.getNMContext()).setResourcePluginManager(rpm);
-        lce.setConf(conf);
+        lce.setConf(configuration);
         return lce;
       }
     };
