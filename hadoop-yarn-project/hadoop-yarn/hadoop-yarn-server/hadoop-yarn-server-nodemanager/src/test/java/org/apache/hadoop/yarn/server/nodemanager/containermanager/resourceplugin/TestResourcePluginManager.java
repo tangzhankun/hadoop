@@ -356,7 +356,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
   // initializePluggableDevicePlugins invoked but it should throw an exception
   @Test(timeout = 30000)
   public void testInitializationWithPluggableDeviceFrameworkEnabled2()
-      throws ClassNotFoundException{
+      throws ClassNotFoundException {
     ResourcePluginManager rpm = new ResourcePluginManager();
 
     ResourcePluginManager rpmSpy = spy(rpm);
@@ -380,7 +380,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
 
   @Test(timeout = 30000)
   public void testNormalInitializationOfPluggableDeviceClasses()
-      throws Exception{
+      throws Exception {
 
     ResourcePluginManager rpm = new ResourcePluginManager();
 
@@ -466,7 +466,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
    */
   @Test(timeout = 30000)
   public void testIncompatibleDevicePlugin()
-      throws Exception{
+      throws Exception {
     ResourcePluginManager rpm = new ResourcePluginManager();
 
     ResourcePluginManager rpmSpy = spy(rpm);
