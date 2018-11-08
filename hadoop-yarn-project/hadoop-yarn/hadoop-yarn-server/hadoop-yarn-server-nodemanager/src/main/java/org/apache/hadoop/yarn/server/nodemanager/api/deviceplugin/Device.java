@@ -20,8 +20,6 @@ package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
 import java.io.Serializable;
 import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
 
 public class Device implements Serializable, Comparable {
 
@@ -30,15 +28,16 @@ public class Device implements Serializable, Comparable {
   /**
    * Required fields:
    * ID: an plugin specified index number
-   * majorNumber: major device number
-   * minorNumber: minor device number
    * isHealthy: true or false indicating device health status
    *
    * Optional fields:
+   * majorNumber: major device number
+   * minorNumber: minor device number
    * devPath: device file like /dev/devicename
-   * busID: PCI Bus ID in format [[[[<domain>]:]<bus>]:][<slot>][.[<func>]]. Can get from "lspci -D"
+   * busID: PCI Bus ID in format [[[[<domain>]:]<bus>]:][<slot>][.[<func>]].
+   * Can get from "lspci -D"
    * topology: describe connection to other devices
-   * Status: For future use
+   * Status: For future use to display plugin specific info
    * */
   private final Integer ID;
   private final String devPath;
@@ -55,8 +54,8 @@ public class Device implements Serializable, Comparable {
   private Device(Builder builder) {
     this.ID = Objects.requireNonNull(builder.ID);
     this.devPath = builder.devPath;
-    this.majorNumber = Objects.requireNonNull(builder.majorNumber);
-    this.minorNumber = Objects.requireNonNull(builder.minorNumber);
+    this.majorNumber = builder.majorNumber;
+    this.minorNumber = builder.minorNumber;
     this.busID = builder.busID;
     this.isHealthy = Objects.requireNonNull(builder.isHealthy);
     this.status = builder.status;
@@ -144,7 +143,8 @@ public class Device implements Serializable, Comparable {
 
   @Override
   public String toString() {
-    return "(" + getID() + ", " + getDevPath() + ", " + getMajorNumber() + ":" + getMinorNumber() + ")";
+    return "(" + getID() + ", " + getDevPath() + ", "
+        + getMajorNumber() + ":" + getMinorNumber() + ")";
   }
 
   public static class Builder {

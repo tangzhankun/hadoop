@@ -60,7 +60,8 @@ public class MountDeviceSpec implements Serializable, Comparable {
     }
     MountDeviceSpec other = (MountDeviceSpec) o;
     return Objects.equals(devicePathInHost, other.getDevicePathInHost()) &&
-        Objects.equals(devicePathInContainer, other.getDevicePathInContainer()) &&
+        Objects.equals(devicePathInContainer,
+            other.getDevicePathInContainer()) &&
         Objects.equals(devicePermission, other.getDevicePermission());
   }
 

@@ -28,7 +28,7 @@ public class DeviceRuntimeSpec {
    * (if empty then default "runc" is used).
    * For instance, it could be "nvidia" in Nvidia GPU Docker v2.
    * The "nvidia" will be passed as a parameter to docker run
-   *  with --runtime "nvidia"
+   * with --runtime "nvidia"
    *
    * If cgroups, these fields could be empty if no special requirement
    * since the framework already knows major and minor device number
@@ -41,7 +41,7 @@ public class DeviceRuntimeSpec {
   private final Set<MountDeviceSpec> deviceMounts;
   private final Set<VolumeSpec> volumeClaims;
 
-  public final static String RUNTIME_CGROUPS = "cgroups";
+  public final static String RUNTIME_CGROUPS = "default";
   public final static String RUNTIME_DOCKER = "docker";
 
   private DeviceRuntimeSpec(Builder builder) {
