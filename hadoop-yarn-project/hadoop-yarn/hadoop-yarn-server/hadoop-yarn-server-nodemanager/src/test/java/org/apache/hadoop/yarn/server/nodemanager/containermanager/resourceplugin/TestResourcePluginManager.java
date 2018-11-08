@@ -34,7 +34,6 @@ import org.apache.hadoop.yarn.server.nodemanager.NodeHealthCheckerService;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManagerTestBase;
 import org.apache.hadoop.yarn.server.nodemanager.NodeStatusUpdater;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.*;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.ContainerManagerImpl;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
@@ -259,9 +258,10 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
       }
 
       @Override
-      protected ContainerExecutor createContainerExecutor(Configuration conf) {
+      protected ContainerExecutor createContainerExecutor(
+          Configuration configuration) {
         ((NMContext)this.getNMContext()).setResourcePluginManager(rpm);
-        lce.setConf(conf);
+        lce.setConf(configuration);
         return lce;
       }
     };
