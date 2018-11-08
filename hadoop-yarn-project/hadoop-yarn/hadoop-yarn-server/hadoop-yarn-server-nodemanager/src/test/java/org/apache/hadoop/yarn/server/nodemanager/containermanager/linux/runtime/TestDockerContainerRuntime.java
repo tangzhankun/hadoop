@@ -1958,16 +1958,16 @@ public class TestDockerContainerRuntime {
     ArgumentCaptor<PrivilegedOperation> opCaptor = ArgumentCaptor.forClass(
         PrivilegedOperation.class);
 
-    //Three invocations expected (volume creation, volume check, run container)
+    //single invocation expected
     //due to type erasure + mocking, this verification requires a suppress
     // warning annotation on the entire method
-    verify(mockExecutor, times(3))
+    verify(mockExecutor, times(2))
         .executePrivilegedOperation(anyList(), opCaptor.capture(), any(
             File.class), anyMap(), anyBoolean(), anyBoolean());
 
     //verification completed. we need to isolate specific invications.
     // hence, reset mock here
-    //Mockito.reset(mockExecutor);
+    Mockito.reset(mockExecutor);
 
     List<PrivilegedOperation> allCaptures = opCaptor.getAllValues();
 
@@ -2070,8 +2070,10 @@ public class TestDockerContainerRuntime {
 
     try {
       runtime.prepareContainer(containerRuntimeContext);
-      runtime.launchContainer(containerRuntimeContext);
+
       checkVolumeCreateCommand();
+
+      runtime.launchContainer(containerRuntimeContext);
     } catch (ContainerExecutionException e) {
       if (expectFail) {
         // Expected
@@ -2164,11 +2166,10 @@ public class TestDockerContainerRuntime {
     ContainerRuntimeContext containerRuntimeContext = builder.build();
 
     runtime.prepareContainer(containerRuntimeContext);
-
-    runtime.launchContainer(containerRuntimeContext);
     checkVolumeCreateCommand();
 
-    List<String> dockerCommands = readDockerCommands(3);
+    runtime.launchContainer(containerRuntimeContext);
+    List<String> dockerCommands = readDockerCommands();
 
     int expected = 14;
     int counter = 0;
