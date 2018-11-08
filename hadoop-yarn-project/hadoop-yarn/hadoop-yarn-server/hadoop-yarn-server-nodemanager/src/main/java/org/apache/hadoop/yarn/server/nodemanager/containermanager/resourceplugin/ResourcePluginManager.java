@@ -127,8 +127,8 @@ public class ResourcePluginManager {
     String[] pluginClassNames = configuration.getStrings(
         YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
     if (null == pluginClassNames) {
-      throw new YarnRuntimeException("Null value found in configuration: " +
-          YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
+      throw new YarnRuntimeException("Null value found in configuration: "
+          + YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
     }
 
     for (String pluginClassName : pluginClassNames) {
@@ -150,15 +150,15 @@ public class ResourcePluginManager {
       String resourceName = request.getResourceName();
       // check if someone has already registered this resource type name
       if (pluginMap.containsKey(resourceName)) {
-        throw new YarnRuntimeException(resourceName +
-            " already registered! Please change resource type name");
+        throw new YarnRuntimeException(resourceName
+            + " already registered! Please change resource type name");
       }
       // check resource name is valid and configured in resource-types.xml
       if (!isConfiguredResourceName(resourceName)) {
         throw new YarnRuntimeException(resourceName
             + " is not configured inside "
-            + YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE +
-            " , please configure it first");
+            + YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE
+            + " , please configure it first");
       }
       LOG.info("New resource type: {} registered successfully by {}",
           resourceName,
@@ -206,13 +206,13 @@ public class ResourcePluginManager {
             method.getName()
             );
         throw new YarnRuntimeException(
-            "Method \"" + method.getName() +
-                "\" is expected but not implemented in " +
-                actualClass.getCanonicalName()
+            "Method \"" + method.getName()
+                + "\" is expected but not implemented in "
+                + actualClass.getCanonicalName()
         );
       }
     }// end for
-    LOG.info("\"{}\" compatibility is ok..",
+    LOG.info("\"{}\" compatibility is ok.",
         expectedClass.getSimpleName());
   }
 

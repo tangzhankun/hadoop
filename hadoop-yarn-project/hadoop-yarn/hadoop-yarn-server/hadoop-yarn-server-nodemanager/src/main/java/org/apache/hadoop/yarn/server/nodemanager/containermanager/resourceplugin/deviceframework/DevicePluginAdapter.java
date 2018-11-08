@@ -33,7 +33,8 @@ import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
 
 
 /**
- * The {@link DevicePluginAdapter} will adapt existing hooks into vendor plugin's logic.
+ * The {@link DevicePluginAdapter} will adapt existing hooks
+ * into vendor plugin's logic.
  * It decouples the vendor plugin from YARN's device framework
  *
  * */
@@ -58,7 +59,8 @@ public class DevicePluginAdapter implements ResourcePlugin {
   }
 
   @Override
-  public ResourceHandler createResourceHandler(Context nmContext, CGroupsHandler cGroupsHandler,
+  public ResourceHandler createResourceHandler(Context nmContext,
+      CGroupsHandler cGroupsHandler,
       PrivilegedOperationExecutor privilegedOperationExecutor) {
     return null;
   }

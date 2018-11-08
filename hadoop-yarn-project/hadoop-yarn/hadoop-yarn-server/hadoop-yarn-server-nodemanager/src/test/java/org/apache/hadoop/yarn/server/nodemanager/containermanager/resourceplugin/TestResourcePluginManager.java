@@ -231,8 +231,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
             .getNodeResourceHandlerInstance();
 
     verify(nodeResourceUpdaterPlugin, times(1))
-        .updateConfiguredResource(
-        any(Resource.class));
+        .updateConfiguredResource(any(Resource.class));
   }
 
   /*

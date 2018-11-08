@@ -46,7 +46,7 @@ public class DeviceResourceUpdaterImpl extends NodeResourceUpdaterPlugin {
       throws YarnException {
     LOG.info(resourceName + " plugin update resource ");
     Set<Device> devices = devicePlugin.getDevices();
-    if (devices == null) {
+    if (null == devices) {
       LOG.warn(resourceName
           + " plugin failed to discover resource ( null value got)." );
       return;

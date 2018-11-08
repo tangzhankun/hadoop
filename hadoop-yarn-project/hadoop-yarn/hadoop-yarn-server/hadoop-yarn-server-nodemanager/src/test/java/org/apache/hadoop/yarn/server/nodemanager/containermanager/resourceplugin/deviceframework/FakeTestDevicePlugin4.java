@@ -41,7 +41,8 @@ public abstract class FakeTestDevicePlugin4 implements DevicePlugin {
   }
 
   @Override
-  public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices, String yarnRuntime) {
+  public DeviceRuntimeSpec onDevicesAllocated(
+      Set<Device> allocatedDevices, String yarnRuntime) {
     return null;
   }
 
