@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
-
-import org.apache.hadoop.service.ServiceOperations;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -28,19 +26,9 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.ResourceMappings;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
-import org.apache.hadoop.yarn.server.nodemanager.recovery.NMMemoryStateStoreService;
-import org.apache.hadoop.yarn.server.nodemanager.recovery.NMStateStoreService;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -48,12 +36,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
+import java.util.TreeSet;
 
-import static org.mockito.Matchers.isA;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 public class TestDevicePluginAdapter {
 
@@ -62,9 +51,6 @@ public class TestDevicePluginAdapter {
 
   private YarnConfiguration conf;
   private String tempResourceTypesFile;
-  private CGroupsHandler mockCGroupsHandler;
-  private PrivilegedOperationExecutor mockPrivilegedExecutor;
-  private NodeManager nm;
 
   @Before
   public void setup() throws Exception {
@@ -72,9 +58,8 @@ public class TestDevicePluginAdapter {
     // setup resource-types.xml
     ResourceUtils.resetResourceTypes();
     String resourceTypesFile = "resource-types-pluggable-devices.xml";
-    this.tempResourceTypesFile = TestResourceUtils.setupResourceTypes(this.conf, resourceTypesFile);
-    mockCGroupsHandler = mock(CGroupsHandler.class);
-    mockPrivilegedExecutor = mock(PrivilegedOperationExecutor.class);
+    this.tempResourceTypesFile =
+        TestResourceUtils.setupResourceTypes(this.conf, resourceTypesFile);
   }
 
   @After
@@ -83,13 +68,6 @@ public class TestDevicePluginAdapter {
     File dest = new File(this.tempResourceTypesFile);
     if (dest.exists()) {
       dest.delete();
-    }
-    if (nm != null) {
-      try {
-        ServiceOperations.stop(nm);
-      } catch (Throwable t) {
-        // ignore
-      }
     }
   }
 

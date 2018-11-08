@@ -140,8 +140,9 @@ public class ResourcePluginManager {
       // sanity-check before initialization
       checkInterfaceCompatibility(DevicePlugin.class, pluginClazz);
 
-      DevicePlugin dpInstance = (DevicePlugin) ReflectionUtils.newInstance(pluginClazz,
-          configuration);
+      DevicePlugin dpInstance =
+          (DevicePlugin) ReflectionUtils.newInstance(
+              pluginClazz, configuration);
 
       // Try to register plugin
       // TODO: handle the plugin method timeout issue
@@ -179,8 +180,8 @@ public class ResourcePluginManager {
 
   @VisibleForTesting
   // Check if the implemented interfaces' signature is compatible
-  public void checkInterfaceCompatibility(Class<?> expectedClass, Class<?> actualClass)
-      throws YarnRuntimeException{
+  public void checkInterfaceCompatibility(Class<?> expectedClass,
+      Class<?> actualClass) throws YarnRuntimeException{
     LOG.debug("Checking implemented interface's compatibility: \"{}\"",
         expectedClass.getSimpleName());
     Method[] expectedDevicePluginMethods = expectedClass.getMethods();

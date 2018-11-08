@@ -49,7 +49,6 @@ public class DevicePluginAdapter implements ResourcePlugin {
     devicePlugin = dp;
   }
 
-
   @Override
   public void initialize(Context context) throws YarnException {
     deviceResourceUpdater = new DeviceResourceUpdaterImpl(
