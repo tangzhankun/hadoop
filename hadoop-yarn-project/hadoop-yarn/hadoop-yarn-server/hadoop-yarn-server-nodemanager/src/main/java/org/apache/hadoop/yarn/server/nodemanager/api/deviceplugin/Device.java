@@ -170,6 +170,9 @@ public final class Device implements Serializable, Comparable {
         + getMajorNumber() + ":" + getMinorNumber() + ")";
   }
 
+  /**
+   * Builder for Device.
+   * */
   public final static class Builder {
     private Integer id;
     private String devPath = "";

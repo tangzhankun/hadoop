@@ -78,7 +78,7 @@ public final class VolumeSpec implements Serializable, Comparable {
   }
 
   /**
-   * Builder for VolumeSpec
+   * Builder for VolumeSpec.
    * */
   public final static class Builder {
     private String volumeDriver;

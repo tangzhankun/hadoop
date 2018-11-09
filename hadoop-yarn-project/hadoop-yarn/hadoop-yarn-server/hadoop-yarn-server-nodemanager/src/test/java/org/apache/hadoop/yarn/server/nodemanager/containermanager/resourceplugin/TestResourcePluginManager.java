@@ -400,7 +400,7 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
     if (!(rp instanceof DevicePluginAdapter)) {
       Assert.assertTrue(false);
     }
-    verify(rpmSpy,times(1)).checkInterfaceCompatibility(
+    verify(rpmSpy, times(1)).checkInterfaceCompatibility(
         DevicePlugin.class, FakeTestDevicePlugin1.class);
   }
 

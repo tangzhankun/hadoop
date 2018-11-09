@@ -25,13 +25,13 @@ import java.util.Set;
  * */
 public interface DevicePlugin {
   /**
-   * Called first when device plugin framework wants to register
+   * Called first when device plugin framework wants to register.
    * @return DeviceRegisterRequest {@link DeviceRegisterRequest}
    * */
   DeviceRegisterRequest getRegisterRequestInfo();
 
   /**
-   * Called when update node resource
+   * Called when update node resource.
    * @return a set of {@link Device}, {@link java.util.TreeSet} recommended
    * */
   Set<Device> getDevices();

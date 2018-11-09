@@ -82,7 +82,7 @@ public final class MountDeviceSpec implements Serializable, Comparable {
   }
 
   /**
-   * Builder for MountDeviceSpec
+   * Builder for MountDeviceSpec.
    * */
   public final static class Builder {
     private String devicePathInHost;
