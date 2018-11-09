@@ -38,7 +38,7 @@ public class FakeTestDevicePlugin1 implements DevicePlugin {
   public Set<Device> getDevices() {
     TreeSet<Device> r = new TreeSet<>();
     r.add(Device.Builder.newInstance()
-        .setID(0)
+        .setId(0)
         .setDevPath("/dev/hdwA0")
         .setMajorNumber(243)
         .setMinorNumber(0)

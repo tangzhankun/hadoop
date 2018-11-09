@@ -21,7 +21,10 @@ package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class MountVolumeSpec implements Serializable, Comparable {
+/**
+ * Describe one volume mount.
+ * */
+public final class MountVolumeSpec implements Serializable, Comparable {
 
   private static final long serialVersionUID = 1L;
 
@@ -37,7 +40,7 @@ public class MountVolumeSpec implements Serializable, Comparable {
 
   public final static String READONLYOPTION = "ro";
 
-  private MountVolumeSpec (Builder builder) {
+  private MountVolumeSpec(Builder builder) {
     this.hostPath = builder.hostPath;
     this.mountPath = builder.mountPath;
     this.isReadOnly = builder.isReadOnly;
@@ -64,9 +67,9 @@ public class MountVolumeSpec implements Serializable, Comparable {
       return false;
     }
     MountVolumeSpec other = (MountVolumeSpec) o;
-    return Objects.equals(hostPath, other.getHostPath()) &&
-        Objects.equals(mountPath, other.getMountPath()) &&
-        Objects.equals(isReadOnly, other.getReadOnly());
+    return Objects.equals(hostPath, other.getHostPath())
+        && Objects.equals(mountPath, other.getMountPath())
+        && Objects.equals(isReadOnly, other.getReadOnly());
   }
 
   @Override
@@ -79,7 +82,10 @@ public class MountVolumeSpec implements Serializable, Comparable {
     return 0;
   }
 
-  public static class Builder {
+  /**
+   * Builder for MountVolumeSpec.
+   * */
+  public final static class Builder {
     private String hostPath;
     private String mountPath;
     private Boolean isReadOnly;
@@ -94,13 +100,13 @@ public class MountVolumeSpec implements Serializable, Comparable {
       return new MountVolumeSpec(this);
     }
 
-    public Builder setHostPath(String hostPath) {
-      this.hostPath = hostPath;
+    public Builder setHostPath(String hPath) {
+      this.hostPath = hPath;
       return this;
     }
 
-    public Builder setMountPath(String mountPath) {
-      this.mountPath = mountPath;
+    public Builder setMountPath(String mPath) {
+      this.mountPath = mPath;
       return this;
     }
 

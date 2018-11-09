@@ -21,7 +21,10 @@ package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class VolumeSpec implements Serializable, Comparable {
+/**
+ * Describe one volume creation or deletion.
+ * */
+public final class VolumeSpec implements Serializable, Comparable {
 
   private static final long serialVersionUID = 1L;
 
@@ -59,14 +62,14 @@ public class VolumeSpec implements Serializable, Comparable {
       return false;
     }
     VolumeSpec other = (VolumeSpec) o;
-    return Objects.equals(volumeDriver, other.getVolumeDriver()) &&
-        Objects.equals(volumeName, other.getVolumeName()) &&
-        Objects.equals(volumeOperation, other.getVolumeOperation());
+    return Objects.equals(volumeDriver, other.getVolumeDriver())
+        && Objects.equals(volumeName, other.getVolumeName())
+        && Objects.equals(volumeOperation, other.getVolumeOperation());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(volumeDriver, volumeName,volumeOperation);
+    return Objects.hash(volumeDriver, volumeName, volumeOperation);
   }
 
   @Override
@@ -74,14 +77,17 @@ public class VolumeSpec implements Serializable, Comparable {
     return 0;
   }
 
-  public static class Builder {
+  /**
+   * Builder for VolumeSpec
+   * */
+  public final static class Builder {
     private String volumeDriver;
     private String volumeName;
     private String volumeOperation;
 
     private Builder(){}
 
-    public static Builder newInstance () {
+    public static Builder newInstance() {
       return new Builder();
     }
 
@@ -89,18 +95,18 @@ public class VolumeSpec implements Serializable, Comparable {
       return new VolumeSpec(this);
     }
 
-    public Builder setVolumeDriver(String volumeDriver) {
-      this.volumeDriver = volumeDriver;
+    public Builder setVolumeDriver(String volDriver) {
+      this.volumeDriver = volDriver;
       return this;
     }
 
-    public Builder setVolumeName(String volumeName) {
-      this.volumeName = volumeName;
+    public Builder setVolumeName(String volName) {
+      this.volumeName = volName;
       return this;
     }
 
-    public Builder setVolumeOperation(String volumeOperation) {
-      this.volumeOperation = volumeOperation;
+    public Builder setVolumeOperation(String volOperation) {
+      this.volumeOperation = volOperation;
       return this;
     }
 

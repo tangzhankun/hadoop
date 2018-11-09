@@ -18,22 +18,29 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class DeviceRuntimeSpec {
+/**
+ * This is a spec used to prepare & run container.
+ * It's return value of onDeviceAllocated invoked by the framework.
+ * For preparation, if volumeClaim is populated then the framework will
+ * create the volume before using the device
+ * When running container, the envs indicates environment variable needed.
+ * The containerRuntime indicates what Docker runtime to use.
+ * The volume & device mounts describes key isolation requirements
+ * */
+public final class DeviceRuntimeSpec implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   /**
-   * The containerRuntime gives device framework a hint (not forced to)
-   * on which container containerRuntime can use this Spec
+   * The containerRuntime gives device framework a hint (not forced to).
+   * On which containerRuntime be used
    * (if empty then default "runc" is used).
    * For instance, it could be "nvidia" in Nvidia GPU Docker v2.
    * The "nvidia" will be passed as a parameter to docker run
    * with --runtime "nvidia"
-   *
-   * If cgroups, these fields could be empty if no special requirement
-   * since the framework already knows major and minor device number
-   * in {@link Device}.
-   * If docker, these fields below should be populated as needed
    */
   private final String containerRuntime;
   private final Map<String, String> envs;
@@ -71,7 +78,10 @@ public class DeviceRuntimeSpec {
   public Set<VolumeSpec> getVolumeClaims() {
     return volumeClaims;
   }
-  public static class Builder {
+  /**
+   * Builder for DeviceRuntimeSpec.
+   * */
+  public final static class Builder {
 
     private String containerRuntime;
     private Map<String, String> envs;
@@ -95,8 +105,8 @@ public class DeviceRuntimeSpec {
       return new DeviceRuntimeSpec(this);
     }
 
-    public Builder setContainerRuntime(String containerRuntime) {
-      this.containerRuntime = containerRuntime;
+    public Builder setContainerRuntime(String cRuntime) {
+      this.containerRuntime = cRuntime;
       return this;
     }
 

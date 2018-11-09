@@ -203,13 +203,11 @@ public class ResourcePluginManager {
       }
       if (!found) {
         LOG.error("Method \"{}\" is not found in plugin",
-            method.getName()
-            );
+            method.getName());
         throw new YarnRuntimeException(
             "Method \"" + method.getName()
                 + "\" is expected but not implemented in "
-                + actualClass.getCanonicalName()
-        );
+                + actualClass.getCanonicalName());
       }
     }// end for
     LOG.info("\"{}\" compatibility is ok.",

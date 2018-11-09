@@ -28,6 +28,9 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin
 
 import java.util.Set;
 
+/**
+ * Hooks into NodeStatusUpdater to update resource.
+ * */
 public class DeviceResourceUpdaterImpl extends NodeResourceUpdaterPlugin {
 
   final static Log LOG = LogFactory.getLog(DeviceResourceUpdaterImpl.class);
@@ -48,7 +51,7 @@ public class DeviceResourceUpdaterImpl extends NodeResourceUpdaterPlugin {
     Set<Device> devices = devicePlugin.getDevices();
     if (null == devices) {
       LOG.warn(resourceName
-          + " plugin failed to discover resource ( null value got)." );
+          + " plugin failed to discover resource ( null value got).");
       return;
     }
     res.setResourceValue(resourceName, devices.size());

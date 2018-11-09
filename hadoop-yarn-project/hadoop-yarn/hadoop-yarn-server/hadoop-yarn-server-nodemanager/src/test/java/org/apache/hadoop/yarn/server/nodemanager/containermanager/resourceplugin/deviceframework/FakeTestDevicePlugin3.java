@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Only used for testing
+ * Only used for testing.
  * This plugin register a same name with FakeTestDevicePlugin1
  * */
 public class FakeTestDevicePlugin3 implements DevicePlugin {
@@ -38,7 +38,7 @@ public class FakeTestDevicePlugin3 implements DevicePlugin {
   public Set<Device> getDevices() {
     TreeSet<Device> r = new TreeSet<>();
     r.add(Device.Builder.newInstance()
-        .setID(0)
+        .setId(0)
         .setDevPath("/dev/hdwA0")
         .setMajorNumber(243)
         .setMinorNumber(0)

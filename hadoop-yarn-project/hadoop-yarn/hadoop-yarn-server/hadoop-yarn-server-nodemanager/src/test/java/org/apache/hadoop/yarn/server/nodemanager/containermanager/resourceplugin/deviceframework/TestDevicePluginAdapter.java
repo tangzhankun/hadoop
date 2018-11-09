@@ -44,6 +44,10 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 
+/**
+ * Unit tests for DevicePluginAdapter.
+ * About interaction with vendor plugin
+ * */
 public class TestDevicePluginAdapter {
 
   protected static final Logger LOG =
@@ -77,7 +81,7 @@ public class TestDevicePluginAdapter {
     // Init an plugin
     MyPlugin plugin = new MyPlugin();
     MyPlugin spyPlugin = spy(plugin);
-    String resourceName = MyPlugin.resourceName;
+    String resourceName = MyPlugin.RESOURCE_NAME;
     // Init an adapter for the plugin
     DevicePluginAdapter adapter = new DevicePluginAdapter(
         resourceName,
@@ -91,11 +95,11 @@ public class TestDevicePluginAdapter {
   }
 
   private class MyPlugin implements DevicePlugin {
-    private final static String resourceName = "cmpA.com/hdwA";
+    private final static String RESOURCE_NAME = "cmpA.com/hdwA";
     @Override
     public DeviceRegisterRequest getRegisterRequestInfo() {
       return DeviceRegisterRequest.Builder.newInstance()
-          .setResourceName(resourceName)
+          .setResourceName(RESOURCE_NAME)
           .setPluginVersion("v1.0").build();
     }
 
@@ -103,7 +107,7 @@ public class TestDevicePluginAdapter {
     public Set<Device> getDevices() {
       TreeSet<Device> r = new TreeSet<>();
       r.add(Device.Builder.newInstance()
-          .setID(0)
+          .setId(0)
           .setDevPath("/dev/hdwA0")
           .setMajorNumber(256)
           .setMinorNumber(0)
@@ -111,7 +115,7 @@ public class TestDevicePluginAdapter {
           .setHealthy(true)
           .build());
       r.add(Device.Builder.newInstance()
-          .setID(1)
+          .setId(1)
           .setDevPath("/dev/hdwA1")
           .setMajorNumber(256)
           .setMinorNumber(0)
@@ -119,7 +123,7 @@ public class TestDevicePluginAdapter {
           .setHealthy(true)
           .build());
       r.add(Device.Builder.newInstance()
-          .setID(2)
+          .setId(2)
           .setDevPath("/dev/hdwA2")
           .setMajorNumber(256)
           .setMinorNumber(0)

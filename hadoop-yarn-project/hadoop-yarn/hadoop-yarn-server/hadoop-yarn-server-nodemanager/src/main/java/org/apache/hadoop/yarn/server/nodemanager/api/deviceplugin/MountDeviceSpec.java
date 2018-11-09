@@ -21,7 +21,12 @@ package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class MountDeviceSpec implements Serializable, Comparable {
+/**
+ * Describe one device mount.
+ * */
+public final class MountDeviceSpec implements Serializable, Comparable {
+
+  private static final long serialVersionUID = 1L;
 
   private final String devicePathInHost;
   private final String devicePathInContainer;
@@ -59,10 +64,10 @@ public class MountDeviceSpec implements Serializable, Comparable {
       return false;
     }
     MountDeviceSpec other = (MountDeviceSpec) o;
-    return Objects.equals(devicePathInHost, other.getDevicePathInHost()) &&
-        Objects.equals(devicePathInContainer,
-            other.getDevicePathInContainer()) &&
-        Objects.equals(devicePermission, other.getDevicePermission());
+    return Objects.equals(devicePathInHost, other.getDevicePathInHost())
+        && Objects.equals(devicePathInContainer,
+            other.getDevicePathInContainer())
+        && Objects.equals(devicePermission, other.getDevicePermission());
   }
 
   @Override
@@ -76,7 +81,10 @@ public class MountDeviceSpec implements Serializable, Comparable {
     return 0;
   }
 
-  public static class Builder {
+  /**
+   * Builder for MountDeviceSpec
+   * */
+  public final static class Builder {
     private String devicePathInHost;
     private String devicePathInContainer;
     private String devicePermission;
@@ -96,13 +104,13 @@ public class MountDeviceSpec implements Serializable, Comparable {
       return this;
     }
 
-    public Builder setDevicePathInContainer(String devicePathInContainer) {
-      this.devicePathInContainer = devicePathInContainer;
+    public Builder setDevicePathInContainer(String pathInContainer) {
+      this.devicePathInContainer = pathInContainer;
       return this;
     }
 
-    public Builder setDevicePathInHost(String devicePathInHost) {
-      this.devicePathInHost = devicePathInHost;
+    public Builder setDevicePathInHost(String pathInHost) {
+      this.devicePathInHost = pathInHost;
       return this;
     }
   }

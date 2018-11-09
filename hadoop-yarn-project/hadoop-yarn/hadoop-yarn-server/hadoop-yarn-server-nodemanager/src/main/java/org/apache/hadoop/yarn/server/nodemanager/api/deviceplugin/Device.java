@@ -21,38 +21,61 @@ package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Device implements Serializable, Comparable {
+/**
+ * Represent one "device" resource.
+ * */
+public final class Device implements Serializable, Comparable {
 
   private static final long serialVersionUID = 1L;
 
   /**
-   * Required fields:
-   * ID: an plugin specified index number
-   * isHealthy: true or false indicating device health status
-   *
-   * Optional fields:
-   * majorNumber: major device number
-   * minorNumber: minor device number
-   * devPath: device file like /dev/devicename
-   * busID: PCI Bus ID in format [[[[<domain>]:]<bus>]:][<slot>][.[<func>]].
-   * Can get from "lspci -D"
-   * topology: describe connection to other devices
-   * Status: For future use to display plugin specific info
+   * An plugin specified index number.
+   * Must set. Recommend starting from 0
    * */
-  private final Integer ID;
+  private final Integer id;
+
+  /**
+   * The device node like "/dev/devname".
+   * Optional
+   * */
   private final String devPath;
+
+  /**
+   * The major device number.
+   * Optional
+   * */
   private final Integer majorNumber;
+
+  /**
+   * The minor device number.
+   * Optional
+   * */
   private final Integer minorNumber;
+
+  /**
+   * PCI Bus ID in format [[[[<domain>]:]<bus>]:][<slot>][.[<func>]].
+   * Optional. Can get from "lspci -D" in Linux
+   * */
   private final String busID;
+
+  /**
+   * Is healthy or not.
+   * false by default
+   * */
   private boolean isHealthy;
 
   /**
-   * Optional fields
+   * Plugin customized status info.
+   * Optional
    * */
   private String status;
 
+  /**
+   * Private constructor.
+   * @param builder
+   */
   private Device(Builder builder) {
-    this.ID = Objects.requireNonNull(builder.ID);
+    this.id = Objects.requireNonNull(builder.id);
     this.devPath = builder.devPath;
     this.majorNumber = builder.majorNumber;
     this.minorNumber = builder.minorNumber;
@@ -61,8 +84,8 @@ public class Device implements Serializable, Comparable {
     this.status = builder.status;
   }
 
-  public Integer getID() {
-    return ID;
+  public Integer getId() {
+    return id;
   }
 
   public String getDevPath() {
@@ -94,20 +117,20 @@ public class Device implements Serializable, Comparable {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()){
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     Device device = (Device) o;
-    return Objects.equals(ID, device.getID()) &&
-        Objects.equals(devPath, device.getDevPath()) &&
-        Objects.equals(majorNumber, device.getMajorNumber()) &&
-        Objects.equals(minorNumber, device.getMinorNumber()) &&
-        Objects.equals(busID, device.getBusID());
+    return Objects.equals(id, device.getId())
+        && Objects.equals(devPath, device.getDevPath())
+        && Objects.equals(majorNumber, device.getMajorNumber())
+        && Objects.equals(minorNumber, device.getMinorNumber())
+        && Objects.equals(busID, device.getBusID());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(ID, devPath, majorNumber, minorNumber, busID);
+    return Objects.hash(id, devPath, majorNumber, minorNumber, busID);
   }
 
   @Override
@@ -118,7 +141,7 @@ public class Device implements Serializable, Comparable {
 
     Device other = (Device) o;
 
-    int result = Integer.compare(ID, other.getID());
+    int result = Integer.compare(id, other.getId());
     if (0 != result) {
       return result;
     }
@@ -143,12 +166,12 @@ public class Device implements Serializable, Comparable {
 
   @Override
   public String toString() {
-    return "(" + getID() + ", " + getDevPath() + ", "
+    return "(" + getId() + ", " + getDevPath() + ", "
         + getMajorNumber() + ":" + getMinorNumber() + ")";
   }
 
-  public static class Builder {
-    private Integer ID;
+  public final static class Builder {
+    private Integer id;
     private String devPath = "";
     private Integer majorNumber;
     private Integer minorNumber;
@@ -160,32 +183,32 @@ public class Device implements Serializable, Comparable {
       return new Builder();
     }
 
-    public Device build(){
+    public Device build() {
       return new Device(this);
     }
 
-    public Builder setID(Integer ID) {
-      this.ID = ID;
+    public Builder setId(Integer i) {
+      this.id = i;
       return this;
     }
 
-    public Builder setDevPath(String devPath) {
-      this.devPath = devPath;
+    public Builder setDevPath(String dp) {
+      this.devPath = dp;
       return this;
     }
 
-    public Builder setMajorNumber(Integer majorNumber) {
-      this.majorNumber = majorNumber;
+    public Builder setMajorNumber(Integer maN) {
+      this.majorNumber = maN;
       return this;
     }
 
-    public Builder setMinorNumber(Integer minorNumber) {
-      this.minorNumber = minorNumber;
+    public Builder setMinorNumber(Integer miN) {
+      this.minorNumber = miN;
       return this;
     }
 
-    public Builder setBusID(String busID) {
-      this.busID = busID;
+    public Builder setBusID(String bI) {
+      this.busID = bI;
       return this;
     }
 
@@ -194,8 +217,8 @@ public class Device implements Serializable, Comparable {
       return this;
     }
 
-    public Builder setStatus(String status) {
-      this.status = status;
+    public Builder setStatus(String s) {
+      this.status = s;
       return this;
     }
 

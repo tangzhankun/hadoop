@@ -18,19 +18,21 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * A vendor device plugin use this object to register
- * to NM device plugin framework
+ * Contains plugin register request info.
  * */
-public class DeviceRegisterRequest {
+public final class DeviceRegisterRequest implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   // plugin's own version
   private final String pluginVersion;
   private final String resourceName;
 
-  public DeviceRegisterRequest(Builder builder) {
+  private DeviceRegisterRequest(Builder builder) {
     this.resourceName = Objects.requireNonNull(builder.resourceName);
     this.pluginVersion = builder.pluginVersion;
   }
@@ -43,8 +45,10 @@ public class DeviceRegisterRequest {
     return pluginVersion;
   }
 
-
-  public static class Builder {
+  /**
+   * Builder class for construct {@link DeviceRegisterRequest}.
+   * */
+  public final static class Builder {
     private String pluginVersion;
     private String resourceName;
 
@@ -58,13 +62,13 @@ public class DeviceRegisterRequest {
       return new DeviceRegisterRequest(this);
     }
 
-    public Builder setResourceName(String resourceName) {
-      this.resourceName = resourceName;
+    public Builder setResourceName(String resName) {
+      this.resourceName = resName;
       return this;
     }
 
-    public Builder setPluginVersion(String pluginVersion) {
-      this.pluginVersion = pluginVersion;
+    public Builder setPluginVersion(String plVersion) {
+      this.pluginVersion = plVersion;
       return this;
     }
 
