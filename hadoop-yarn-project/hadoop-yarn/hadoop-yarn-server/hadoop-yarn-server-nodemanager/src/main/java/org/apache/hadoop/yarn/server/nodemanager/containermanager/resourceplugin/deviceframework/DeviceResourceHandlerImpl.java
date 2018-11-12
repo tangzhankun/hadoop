@@ -72,7 +72,6 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     }
     /**
      * We won't fail the NM if plugin returns invalid value here.
-     * TODO: we should update RM's resource count if something wrong
      * */
     if (availableDevices == null) {
       LOG.error("Bootstrap " + resourceName
