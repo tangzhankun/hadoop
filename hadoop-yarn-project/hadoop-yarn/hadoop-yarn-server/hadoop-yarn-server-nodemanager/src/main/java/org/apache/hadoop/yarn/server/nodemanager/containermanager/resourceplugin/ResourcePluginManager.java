@@ -146,7 +146,14 @@ public class ResourcePluginManager {
 
       // Try to register plugin
       // TODO: handle the plugin method timeout issue
-      DeviceRegisterRequest request = dpInstance.getRegisterRequestInfo();
+      DeviceRegisterRequest request = null;
+      try {
+        request = dpInstance.getRegisterRequestInfo();
+      } catch (Exception e) {
+        throw new YarnRuntimeException("Exception thrown from plugin's"
+            + " \"getRegisterRequestInfo\":"
+            + e.getMessage());
+      }
       String resourceName = request.getResourceName();
       // check if someone has already registered this resource type name
       if (pluginMap.containsKey(resourceName)) {

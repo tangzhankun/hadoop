@@ -28,13 +28,14 @@ public interface DevicePlugin {
    * Called first when device plugin framework wants to register.
    * @return DeviceRegisterRequest {@link DeviceRegisterRequest}
    * */
-  DeviceRegisterRequest getRegisterRequestInfo();
+  DeviceRegisterRequest getRegisterRequestInfo()
+      throws Exception;
 
   /**
    * Called when update node resource.
    * @return a set of {@link Device}, {@link java.util.TreeSet} recommended
    * */
-  Set<Device> getDevices();
+  Set<Device> getDevices() throws Exception;
 
   /**
    * Asking how these devices should be prepared/used
@@ -53,11 +54,12 @@ public interface DevicePlugin {
    * {@link         VolumeSpec}, {@link MountVolumeSpec}. etc
    * */
   DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
-      String yarnRuntime);
+      String yarnRuntime) throws Exception;
 
   /**
    * Called after device released.
    * @param releasedDevices A set of released devices
    * */
-  void onDevicesReleased(Set<Device> releasedDevices);
+  void onDevicesReleased(Set<Device> releasedDevices)
+      throws Exception;
 }
