@@ -137,6 +137,8 @@ public class DeviceMappingManager {
     ContainerId containerId = container.getContainerId();
     int requestedDeviceCount = getRequestedDeviceCount(resourceName,
         requestedResource);
+    LOG.debug("Try allocating " + requestedDeviceCount
+        + " " + resourceName);
     // Assign devices to container if requested some.
     if (requestedDeviceCount > 0) {
       if (requestedDeviceCount > getAvailableDevices(resourceName)) {
@@ -275,6 +277,8 @@ public class DeviceMappingManager {
   private void defaultScheduleAction(Set<Device> allowed,
       Map<Device, ContainerId> used, Set<Device> assigned,
       ContainerId containerId, int count) {
+    LOG.debug("Using default scheduler. Allowed:" + allowed
+        + ",Used:" + used +", containerId:" + containerId);
     for (Device device : allowed) {
       if (!used.containsKey(device)) {
         used.put(device, containerId);
