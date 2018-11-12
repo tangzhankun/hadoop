@@ -195,6 +195,28 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
+
+    // A container c3 request 0 device
+    Container c3 = mockContainerWithDeviceRequest(1,
+        resourceName,
+        0,false);
+    // preStart
+    adapter.getDeviceResourceHandler().preStart(c3);
+    // check book keeping
+    Assert.assertEquals(3,
+        dmm.getAvailableDevices(resourceName));
+    Assert.assertEquals(0,
+        dmm.getAllUsedDevices().get(resourceName).size());
+    Assert.assertEquals(3,
+        dmm.getAllAllowedDevices().get(resourceName).size());
+    // postComplete
+    adapter.getDeviceResourceHandler().postComplete(getContainerId(1));
+    Assert.assertEquals(3,
+        dmm.getAvailableDevices(resourceName));
+    Assert.assertEquals(0,
+        dmm.getAllUsedDevices().get(resourceName).size());
+    Assert.assertEquals(3,
+        dmm.getAllAllowedDevices().get(resourceName).size());
   }
 
   @Test
@@ -250,7 +272,7 @@ public class TestDevicePluginAdapter {
     adapter.getDeviceResourceHandler().bootstrap(conf);
 
     // A container c0 requests 1 device
-    org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container c0 = mockContainerWithDeviceRequest(0,
+    Container c0 = mockContainerWithDeviceRequest(0,
         resourceName,
         1,false);
     // preStart
