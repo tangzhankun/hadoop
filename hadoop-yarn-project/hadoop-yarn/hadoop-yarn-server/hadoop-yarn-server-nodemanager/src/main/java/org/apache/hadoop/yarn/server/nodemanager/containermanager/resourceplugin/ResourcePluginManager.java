@@ -28,11 +28,10 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePluginScheduler;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DeviceSchedulerManager;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DeviceMappingManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga.FpgaResourcePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.gpu.GpuResourcePlugin;
@@ -61,7 +60,7 @@ public class ResourcePluginManager {
   private Map<String, ResourcePlugin> configuredPlugins =
           Collections.emptyMap();
 
-  private DeviceSchedulerManager deviceSchedulerManager = null;
+  private DeviceMappingManager deviceMappingManager = null;
 
   public synchronized void initialize(Context context)
       throws YarnException, ClassNotFoundException {
@@ -127,7 +126,7 @@ public class ResourcePluginManager {
       throws YarnRuntimeException, ClassNotFoundException {
     LOG.info("The pluggable device framework enabled," +
         "trying to load the vendor plugins");
-    deviceSchedulerManager = new DeviceSchedulerManager(context);
+    deviceMappingManager = new DeviceMappingManager(context);
     String[] pluginClassNames = configuration.getStrings(
         YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES);
     if (null == pluginClassNames) {
@@ -167,7 +166,7 @@ public class ResourcePluginManager {
           resourceName,
           pluginClassName);
       DevicePluginAdapter pluginAdapter = new DevicePluginAdapter(
-          resourceName, dpInstance, deviceSchedulerManager);
+          resourceName, dpInstance, deviceMappingManager);
       LOG.info("Adapter of {} created. Initializing..", pluginClassName);
       try {
         pluginAdapter.initialize(context);
@@ -184,7 +183,7 @@ public class ResourcePluginManager {
         LOG.info("{} can schedule {} devices. Added as preferred device plugin scheduler",
             pluginClassName,
             resourceName);
-        deviceSchedulerManager.addDevicePluginScheduler(
+        deviceMappingManager.addDevicePluginScheduler(
             resourceName,
             (DevicePluginScheduler)dpInstance);
       }
@@ -240,8 +239,8 @@ public class ResourcePluginManager {
     return true;
   }
 
-  public DeviceSchedulerManager getDeviceSchedulerManager() {
-    return deviceSchedulerManager;
+  public DeviceMappingManager getDeviceMappingManager() {
+    return deviceMappingManager;
   }
 
   public synchronized void cleanup() throws YarnException {

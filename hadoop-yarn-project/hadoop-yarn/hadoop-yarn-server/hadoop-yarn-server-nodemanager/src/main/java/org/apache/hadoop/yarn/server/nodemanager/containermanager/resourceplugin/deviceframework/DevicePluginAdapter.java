@@ -31,7 +31,6 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.DockerCommandPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.NodeResourceUpdaterPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMDeviceResourceInfo;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
 
@@ -49,7 +48,7 @@ public class DevicePluginAdapter implements ResourcePlugin {
   private String resourceName;
   private DevicePlugin devicePlugin;
 
-  private DeviceSchedulerManager deviceSchedulerManager;
+  private DeviceMappingManager deviceMappingManager;
 
   private DeviceResourceDockerRuntimePluginImpl deviceDockerCommandPlugin;
 
@@ -57,14 +56,14 @@ public class DevicePluginAdapter implements ResourcePlugin {
   private DeviceResourceUpdaterImpl deviceResourceUpdater;
 
   public DevicePluginAdapter(String name, DevicePlugin dp,
-      DeviceSchedulerManager dsm) {
-    deviceSchedulerManager = dsm;
+      DeviceMappingManager dmm) {
+    deviceMappingManager = dmm;
     resourceName = name;
     devicePlugin = dp;
   }
 
-  public DeviceSchedulerManager getDeviceSchedulerManager() {
-    return deviceSchedulerManager;
+  public DeviceMappingManager getDeviceMappingManager() {
+    return deviceMappingManager;
   }
 
   @Override
@@ -82,7 +81,7 @@ public class DevicePluginAdapter implements ResourcePlugin {
   public ResourceHandler createResourceHandler(Context nmContext, CGroupsHandler cGroupsHandler,
       PrivilegedOperationExecutor privilegedOperationExecutor) {
     this.deviceResourceHandler = new DeviceResourceHandlerImpl(resourceName,
-        devicePlugin, this, deviceSchedulerManager,
+        devicePlugin, this, deviceMappingManager,
         cGroupsHandler, privilegedOperationExecutor);
     return deviceResourceHandler;
   }
@@ -105,10 +104,10 @@ public class DevicePluginAdapter implements ResourcePlugin {
   @Override
   public NMResourceInfo getNMResourceInfo() throws YarnException {
     List<Device> allowed = new ArrayList<>(
-        deviceSchedulerManager.getAllAllowedDevices().get(resourceName));
+        deviceMappingManager.getAllAllowedDevices().get(resourceName));
     List<AssignedDevice> assigned = new ArrayList<>();
     Map<Device, ContainerId> assignedMap =
-        deviceSchedulerManager.getAllUsedDevices().get(resourceName);
+        deviceMappingManager.getAllUsedDevices().get(resourceName);
     for (Map.Entry<Device, ContainerId> entry : assignedMap.entrySet()) {
       assigned.add(new AssignedDevice(entry.getValue(),
           entry.getKey()));

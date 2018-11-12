@@ -128,7 +128,7 @@ public class DeviceResourceDockerRuntimePluginImpl
 
   @VisibleForTesting
   protected boolean requestsDevice(String resourceName, Container container) {
-    return DeviceSchedulerManager.
+    return DeviceMappingManager.
         getRequestedDeviceCount(resourceName, container.getResource()) > 0;
   }
 
@@ -140,7 +140,7 @@ public class DeviceResourceDockerRuntimePluginImpl
       return;
     }
     Map<Device, ContainerId> assignedDevice = devicePluginAdapter
-        .getDeviceSchedulerManager()
+        .getDeviceMappingManager()
         .getAllUsedDevices().get(resourceName);
     for (Map.Entry<Device, ContainerId> entry : assignedDevice.entrySet()) {
       if (entry.getValue().equals(containerId)) {

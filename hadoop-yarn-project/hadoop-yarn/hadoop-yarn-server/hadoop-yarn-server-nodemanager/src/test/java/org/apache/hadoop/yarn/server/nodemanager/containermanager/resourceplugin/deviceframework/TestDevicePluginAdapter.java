@@ -49,7 +49,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -113,10 +112,10 @@ public class TestDevicePluginAdapter {
         isA(ArrayList.class));
 
     // Init scheduler manager
-    DeviceSchedulerManager dsm = new DeviceSchedulerManager(context);
+    DeviceMappingManager dmm = new DeviceMappingManager(context);
 
     ResourcePluginManager rpm = mock(ResourcePluginManager.class);
-    when(rpm.getDeviceSchedulerManager()).thenReturn(dsm);
+    when(rpm.getDeviceMappingManager()).thenReturn(dmm);
 
     // Init an plugin
     MyPlugin plugin = new MyPlugin();
@@ -125,13 +124,13 @@ public class TestDevicePluginAdapter {
     // Init an adapter for the plugin
     DevicePluginAdapter adapter = new DevicePluginAdapter(
         resourceName,
-        spyPlugin, dsm);
+        spyPlugin, dmm);
     // Bootstrap, adding device
     adapter.initialize(context);
     adapter.createResourceHandler(context,
         mockCGroupsHandler, mockPrivilegedExecutor);
     adapter.getDeviceResourceHandler().bootstrap(conf);
-    int size = dsm.getAvailableDevices(resourceName);
+    int size = dmm.getAvailableDevices(resourceName);
     Assert.assertEquals(3, size);
 
     // A container c1 requests 1 device
@@ -142,19 +141,19 @@ public class TestDevicePluginAdapter {
     adapter.getDeviceResourceHandler().preStart(c1);
     // check book keeping
     Assert.assertEquals(2,
-        dsm.getAvailableDevices(resourceName));
+        dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(1,
-        dsm.getAllUsedDevices().get(resourceName).size());
+        dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
     // postComplete
     adapter.getDeviceResourceHandler().postComplete(getContainerId(0));
     Assert.assertEquals(3,
-        dsm.getAvailableDevices(resourceName));
+        dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(0,
-        dsm.getAllUsedDevices().get(resourceName).size());
+        dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
 
     // A container c2 requests 3 device
     Container c2 = mockContainerWithDeviceRequest(1,
@@ -164,19 +163,19 @@ public class TestDevicePluginAdapter {
     adapter.getDeviceResourceHandler().preStart(c2);
     // check book keeping
     Assert.assertEquals(0,
-        dsm.getAvailableDevices(resourceName));
+        dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(3,
-        dsm.getAllUsedDevices().get(resourceName).size());
+        dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
     // postComplete
     adapter.getDeviceResourceHandler().postComplete(getContainerId(1));
     Assert.assertEquals(3,
-        dsm.getAvailableDevices(resourceName));
+        dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(0,
-        dsm.getAllUsedDevices().get(resourceName).size());
+        dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
   }
 
   /**
@@ -195,27 +194,27 @@ public class TestDevicePluginAdapter {
         isA(String.class),
         isA(ArrayList.class));
     // Init scheduler manager
-    DeviceSchedulerManager dsm = new DeviceSchedulerManager(context);
+    DeviceMappingManager dmm = new DeviceMappingManager(context);
 
     ResourcePluginManager rpm = mock(ResourcePluginManager.class);
-    when(rpm.getDeviceSchedulerManager()).thenReturn(dsm);
+    when(rpm.getDeviceMappingManager()).thenReturn(dmm);
 
     // Init an plugin
     FakeDevicePlugin plugin = new FakeDevicePlugin();
     FakeDevicePlugin spyPlugin = spy(plugin);
     String resourceName = FakeDevicePlugin.resourceName;
     // Add customized device plugin scheduler
-    dsm.addDevicePluginScheduler(resourceName,spyPlugin);
+    dmm.addDevicePluginScheduler(resourceName,spyPlugin);
     // Init an adapter for the plugin
     DevicePluginAdapter adapter = new DevicePluginAdapter(
         resourceName,
-        spyPlugin, dsm);
+        spyPlugin, dmm);
     // Bootstrap, adding device
     adapter.initialize(context);
     adapter.createResourceHandler(context,
         mockCGroupsHandler, mockPrivilegedExecutor);
     adapter.getDeviceResourceHandler().bootstrap(conf);
-    int size = dsm.getAvailableDevices(resourceName);
+    int size = dmm.getAvailableDevices(resourceName);
     Assert.assertEquals(1, size);
 
     // A container requests 1 device
@@ -229,19 +228,19 @@ public class TestDevicePluginAdapter {
         .allocateDevices(isA(Set.class),isA(Integer.class));
     // check book keeping
     Assert.assertEquals(0,
-        dsm.getAvailableDevices(resourceName));
+        dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(1,
-        dsm.getAllUsedDevices().get(resourceName).size());
+        dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(1,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
     // postComplete
     adapter.getDeviceResourceHandler().postComplete(getContainerId(0));
     Assert.assertEquals(1,
-        dsm.getAvailableDevices(resourceName));
+        dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(0,
-        dsm.getAllUsedDevices().get(resourceName).size());
+        dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(1,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
   }
 
   @Test
@@ -256,10 +255,10 @@ public class TestDevicePluginAdapter {
         isA(ArrayList.class));
 
     // Init scheduler manager
-    DeviceSchedulerManager dsm = new DeviceSchedulerManager(context);
+    DeviceMappingManager dmm = new DeviceMappingManager(context);
 
     ResourcePluginManager rpm = mock(ResourcePluginManager.class);
-    when(rpm.getDeviceSchedulerManager()).thenReturn(dsm);
+    when(rpm.getDeviceMappingManager()).thenReturn(dmm);
 
     // Init an plugin
     MyPlugin plugin = new MyPlugin();
@@ -268,7 +267,7 @@ public class TestDevicePluginAdapter {
     // Init an adapter for the plugin
     DevicePluginAdapter adapter = new DevicePluginAdapter(
         resourceName,
-        spyPlugin, dsm);
+        spyPlugin, dmm);
     // Bootstrap, adding device
     adapter.initialize(context);
     adapter.createResourceHandler(context,
@@ -304,10 +303,10 @@ public class TestDevicePluginAdapter {
         isA(ArrayList.class));
 
     // Init scheduler manager
-    DeviceSchedulerManager dsm = new DeviceSchedulerManager(context);
+    DeviceMappingManager dmm = new DeviceMappingManager(context);
 
     ResourcePluginManager rpm = mock(ResourcePluginManager.class);
-    when(rpm.getDeviceSchedulerManager()).thenReturn(dsm);
+    when(rpm.getDeviceMappingManager()).thenReturn(dmm);
 
     // Init an plugin
     MyPlugin plugin = new MyPlugin();
@@ -316,14 +315,14 @@ public class TestDevicePluginAdapter {
     // Init an adapter for the plugin
     DevicePluginAdapter adapter = new DevicePluginAdapter(
         resourceName,
-        spyPlugin, dsm);
+        spyPlugin, dmm);
     // Bootstrap, adding device
     adapter.initialize(context);
     adapter.createResourceHandler(context,
         mockCGroupsHandler, mockPrivilegedExecutor);
     adapter.getDeviceResourceHandler().bootstrap(conf);
     Assert.assertEquals(3,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
     // mock NMStateStore
     Device storedDevice = Device.Builder.newInstance()
         .setID(0)
@@ -350,12 +349,12 @@ public class TestDevicePluginAdapter {
     adapter.getDeviceResourceHandler().reacquireContainer(
         getContainerId(0));
     Assert.assertEquals(3,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
     Assert.assertEquals(1,
-        dsm.getAllUsedDevices().get(resourceName).size());
+        dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(2,
-        dsm.getAvailableDevices(resourceName));
-    Map<Device, ContainerId> used = dsm.getAllUsedDevices().get(resourceName);
+        dmm.getAvailableDevices(resourceName));
+    Map<Device, ContainerId> used = dmm.getAllUsedDevices().get(resourceName);
     Assert.assertTrue(used.keySet().contains(storedDevice));
 
     // Test case 2. c1 wants get recovered. But stored device is already allocated to c2
@@ -378,12 +377,12 @@ public class TestDevicePluginAdapter {
         caughtException);
     // don't affect c0 allocation state
     Assert.assertEquals(3,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
     Assert.assertEquals(1,
-        dsm.getAllUsedDevices().get(resourceName).size());
+        dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(2,
-        dsm.getAvailableDevices(resourceName));
-    used = dsm.getAllUsedDevices().get(resourceName);
+        dmm.getAvailableDevices(resourceName));
+    used = dmm.getAllUsedDevices().get(resourceName);
     Assert.assertTrue(used.keySet().contains(storedDevice));
   }
 
@@ -398,10 +397,10 @@ public class TestDevicePluginAdapter {
         isA(ArrayList.class));
 
     // Init scheduler manager
-    DeviceSchedulerManager dsm = new DeviceSchedulerManager(context);
+    DeviceMappingManager dmm = new DeviceMappingManager(context);
 
     ResourcePluginManager rpm = mock(ResourcePluginManager.class);
-    when(rpm.getDeviceSchedulerManager()).thenReturn(dsm);
+    when(rpm.getDeviceMappingManager()).thenReturn(dmm);
 
     // Init an plugin
     MyPlugin plugin = new MyPlugin();
@@ -410,7 +409,7 @@ public class TestDevicePluginAdapter {
     // Init an adapter for the plugin
     DevicePluginAdapter adapter = new DevicePluginAdapter(
         resourceName,
-        spyPlugin, dsm);
+        spyPlugin, dmm);
     // Bootstrap, adding device
     adapter.initialize(context);
     adapter.createResourceHandler(context,
@@ -431,11 +430,11 @@ public class TestDevicePluginAdapter {
     Assert.assertTrue("Should throw exception in preStart", exception);
     // no device assigned
     Assert.assertEquals(3,
-        dsm.getAllAllowedDevices().get(resourceName).size());
+        dmm.getAllAllowedDevices().get(resourceName).size());
     Assert.assertEquals(0,
-        dsm.getAllUsedDevices().get(resourceName).size());
+        dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
-        dsm.getAvailableDevices(resourceName));
+        dmm.getAvailableDevices(resourceName));
 
   }
 

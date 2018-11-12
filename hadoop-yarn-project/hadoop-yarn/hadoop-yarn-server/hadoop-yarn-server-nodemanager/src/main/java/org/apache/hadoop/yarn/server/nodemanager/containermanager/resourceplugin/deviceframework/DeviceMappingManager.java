@@ -43,8 +43,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * It holds all device type resource and can do scheduling as a default scheduler
  * If one resource type brings its own scheduler. That will be used.
  * */
-public class DeviceSchedulerManager {
-  final static Log LOG = LogFactory.getLog(DeviceSchedulerManager.class);
+public class DeviceMappingManager {
+  final static Log LOG = LogFactory.getLog(DeviceMappingManager.class);
 
   private Context nmContext;
   private static final int WAIT_MS_PER_LOOP = 1000;
@@ -67,7 +67,7 @@ public class DeviceSchedulerManager {
    * */
   private Map<String, Map<Device,ContainerId>> allUsedDevices = new ConcurrentHashMap<>();
 
-  public DeviceSchedulerManager(Context context) {
+  public DeviceMappingManager(Context context) {
     nmContext = context;
   }
 

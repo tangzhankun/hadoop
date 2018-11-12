@@ -41,7 +41,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
 
   private String resourceName;
   private DevicePlugin devicePlugin;
-  private DeviceSchedulerManager deviceSchedulerManager;
+  private DeviceMappingManager deviceMappingManager;
   private CGroupsHandler cGroupsHandler;
   private PrivilegedOperationExecutor privilegedOperationExecutor;
   private DevicePluginAdapter devicePluginAdapter;
@@ -49,7 +49,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   public DeviceResourceHandlerImpl(String resourceName,
       DevicePlugin devicePlugin,
       DevicePluginAdapter devicePluginAdapter,
-      DeviceSchedulerManager deviceSchedulerManager,
+      DeviceMappingManager deviceMappingManager,
       CGroupsHandler cGroupsHandler,
       PrivilegedOperationExecutor privilegedOperation) {
     this.devicePluginAdapter = devicePluginAdapter;
@@ -57,7 +57,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     this.devicePlugin = devicePlugin;
     this.cGroupsHandler = cGroupsHandler;
     this.privilegedOperationExecutor = privilegedOperation;
-    this.deviceSchedulerManager = deviceSchedulerManager;
+    this.deviceMappingManager = deviceMappingManager;
   }
 
   @Override
@@ -72,7 +72,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
       return null;
     }
     // Add device set. Here we trust the plugin's return value
-    deviceSchedulerManager.addDeviceSet(resourceName, availableDevices);
+    deviceMappingManager.addDeviceSet(resourceName, availableDevices);
     // TODO: Init cgroups
 
     return null;
@@ -81,7 +81,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   @Override
   public List<PrivilegedOperation> preStart(Container container) throws ResourceHandlerException {
     String containerIdStr = container.getContainerId().toString();
-    DeviceSchedulerManager.DeviceAllocation allocation = deviceSchedulerManager.assignDevices(
+    DeviceMappingManager.DeviceAllocation allocation = deviceMappingManager.assignDevices(
         resourceName, container);
     LOG.debug("Allocated to " +
         containerIdStr + ": " + allocation );
@@ -99,7 +99,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
 
   @Override
   public List<PrivilegedOperation> reacquireContainer(ContainerId containerId) throws ResourceHandlerException {
-    deviceSchedulerManager.recoverAssignedDevices(resourceName, containerId);
+    deviceMappingManager.recoverAssignedDevices(resourceName, containerId);
     return null;
   }
 
@@ -110,7 +110,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
 
   @Override
   public List<PrivilegedOperation> postComplete(ContainerId containerId) throws ResourceHandlerException {
-    deviceSchedulerManager.cleanupAssignedDevices(resourceName, containerId);
+    deviceMappingManager.cleanupAssignedDevices(resourceName, containerId);
     return null;
   }
 
