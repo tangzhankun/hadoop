@@ -295,10 +295,10 @@ public class DeviceMappingManager {
     DeviceAllocation(String resName, Set<Device> a,
         Set<Device> d) {
       this.resourceName = resName;
-      if (allowed != null) {
+      if (a != null) {
         this.allowed = ImmutableSet.copyOf(a);
       }
-      if (denied != null) {
+      if (d != null) {
         this.denied = ImmutableSet.copyOf(d);
       }
     }
