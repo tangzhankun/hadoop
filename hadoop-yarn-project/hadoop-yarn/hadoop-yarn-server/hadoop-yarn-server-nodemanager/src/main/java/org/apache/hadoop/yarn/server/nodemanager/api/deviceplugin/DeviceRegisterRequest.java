@@ -18,15 +18,12 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * Contains plugin register request info.
  * */
-public final class DeviceRegisterRequest implements Serializable {
-
-  private static final long serialVersionUID = 1L;
+public final class DeviceRegisterRequest {
 
   // plugin's own version
   private final String pluginVersion;

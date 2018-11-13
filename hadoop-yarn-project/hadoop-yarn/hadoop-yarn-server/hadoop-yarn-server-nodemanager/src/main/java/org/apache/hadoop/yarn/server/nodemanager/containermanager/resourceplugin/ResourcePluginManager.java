@@ -158,7 +158,10 @@ public class ResourcePluginManager {
       // check if someone has already registered this resource type name
       if (pluginMap.containsKey(resourceName)) {
         throw new YarnRuntimeException(resourceName
-            + " already registered! Please change resource type name");
+            + " already registered! Please change resource type name"
+            + " or configure correct resource type name "
+            + "in resource-types.xml for "
+            + DevicePlugin.class.getCanonicalName());
       }
       // check resource name is valid and configured in resource-types.xml
       if (!isConfiguredResourceName(resourceName)) {
