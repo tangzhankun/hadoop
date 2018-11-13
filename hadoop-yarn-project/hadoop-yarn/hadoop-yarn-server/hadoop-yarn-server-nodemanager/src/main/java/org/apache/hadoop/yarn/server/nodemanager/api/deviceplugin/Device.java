@@ -32,7 +32,7 @@ public final class Device implements Serializable, Comparable {
    * An plugin specified index number.
    * Must set. Recommend starting from 0
    * */
-  private final Integer id;
+  private final int id;
 
   /**
    * The device node like "/dev/devname".
@@ -44,13 +44,13 @@ public final class Device implements Serializable, Comparable {
    * The major device number.
    * Optional
    * */
-  private final Integer majorNumber;
+  private final int majorNumber;
 
   /**
    * The minor device number.
    * Optional
    * */
-  private final Integer minorNumber;
+  private final int minorNumber;
 
   /**
    * PCI Bus ID in format [[[[<domain>]:]<bus>]:][<slot>][.[<func>]].
@@ -75,16 +75,19 @@ public final class Device implements Serializable, Comparable {
    * @param builder
    */
   private Device(Builder builder) {
-    this.id = Objects.requireNonNull(builder.id);
+    if (-1 == builder.id) {
+      throw new IllegalArgumentException("Please set the id for Device");
+    }
+    this.id = builder.id;
     this.devPath = builder.devPath;
     this.majorNumber = builder.majorNumber;
     this.minorNumber = builder.minorNumber;
     this.busID = builder.busID;
-    this.isHealthy = Objects.requireNonNull(builder.isHealthy);
+    this.isHealthy = builder.isHealthy;
     this.status = builder.status;
   }
 
-  public Integer getId() {
+  public int getId() {
     return id;
   }
 
@@ -92,11 +95,11 @@ public final class Device implements Serializable, Comparable {
     return devPath;
   }
 
-  public Integer getMajorNumber() {
+  public int getMajorNumber() {
     return majorNumber;
   }
 
-  public Integer getMinorNumber() {
+  public int getMinorNumber() {
     return minorNumber;
   }
 
@@ -174,10 +177,11 @@ public final class Device implements Serializable, Comparable {
    * Builder for Device.
    * */
   public final static class Builder {
-    private Integer id;
+    // default -1 representing the value is not set
+    private int id = -1;
     private String devPath = "";
-    private Integer majorNumber;
-    private Integer minorNumber;
+    private int majorNumber;
+    private int minorNumber;
     private String busID = "";
     private boolean isHealthy;
     private String status = "";
@@ -190,7 +194,7 @@ public final class Device implements Serializable, Comparable {
       return new Device(this);
     }
 
-    public Builder setId(Integer i) {
+    public Builder setId(int i) {
       this.id = i;
       return this;
     }
@@ -200,12 +204,12 @@ public final class Device implements Serializable, Comparable {
       return this;
     }
 
-    public Builder setMajorNumber(Integer maN) {
+    public Builder setMajorNumber(int maN) {
       this.majorNumber = maN;
       return this;
     }
 
-    public Builder setMinorNumber(Integer miN) {
+    public Builder setMinorNumber(int miN) {
       this.minorNumber = miN;
       return this;
     }
