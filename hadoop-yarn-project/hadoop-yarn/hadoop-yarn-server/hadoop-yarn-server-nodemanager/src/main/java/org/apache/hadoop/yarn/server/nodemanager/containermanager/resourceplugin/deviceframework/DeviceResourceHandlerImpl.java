@@ -86,7 +86,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   }
 
   @Override
-  public List<PrivilegedOperation> preStart(Container container)
+  public synchronized List<PrivilegedOperation> preStart(Container container)
       throws ResourceHandlerException {
     String containerIdStr = container.getContainerId().toString();
     DeviceMappingManager.DeviceAllocation allocation =
@@ -111,7 +111,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   }
 
   @Override
-  public List<PrivilegedOperation> reacquireContainer(ContainerId containerId)
+  public synchronized List<PrivilegedOperation> reacquireContainer(ContainerId containerId)
       throws ResourceHandlerException {
     deviceMappingManager.recoverAssignedDevices(resourceName, containerId);
     return null;
@@ -124,7 +124,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   }
 
   @Override
-  public List<PrivilegedOperation> postComplete(ContainerId containerId)
+  public synchronized List<PrivilegedOperation> postComplete(ContainerId containerId)
       throws ResourceHandlerException {
     deviceMappingManager.cleanupAssignedDevices(resourceName, containerId);
     return null;
