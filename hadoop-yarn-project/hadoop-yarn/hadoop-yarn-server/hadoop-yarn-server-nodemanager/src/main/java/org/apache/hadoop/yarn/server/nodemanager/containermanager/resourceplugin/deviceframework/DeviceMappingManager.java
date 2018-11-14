@@ -84,7 +84,7 @@ public class DeviceMappingManager {
     return allUsedDevices;
   }
 
-  public synchronized void addDeviceSet(String resourceName,
+  public void addDeviceSet(String resourceName,
       Set<Device> deviceSet) {
     LOG.info("Adding new resource: " + "type:"
         + resourceName + "," + deviceSet);
@@ -130,7 +130,7 @@ public class DeviceMappingManager {
     return allocation;
   }
 
-  private synchronized DeviceAllocation internalAssignDevices(
+  private DeviceAllocation internalAssignDevices(
       String resourceName, Container container)
       throws ResourceHandlerException {
     Resource requestedResource = container.getResource();
@@ -186,7 +186,7 @@ public class DeviceMappingManager {
         allAllowedDevices.get(resourceName));
   }
 
-  public synchronized void recoverAssignedDevices(String resourceName,
+  public void recoverAssignedDevices(String resourceName,
       ContainerId containerId)
       throws ResourceHandlerException {
     Container c = nmContext.getContainers().get(containerId);
@@ -229,7 +229,7 @@ public class DeviceMappingManager {
     }
   }
 
-  public synchronized void cleanupAssignedDevices(String resourceName,
+  public void cleanupAssignedDevices(String resourceName,
       ContainerId containerId) {
     Iterator<Map.Entry<Device, ContainerId>> iter =
         allUsedDevices.get(resourceName).entrySet().iterator();
@@ -250,12 +250,12 @@ public class DeviceMappingManager {
     }
   }
 
-  public synchronized int getAvailableDevices(String resourceName) {
+  public int getAvailableDevices(String resourceName) {
     return allAllowedDevices.get(resourceName).size()
         - allUsedDevices.get(resourceName).size();
   }
 
-  private synchronized long getReleasingDevices(String resourceName) {
+  private long getReleasingDevices(String resourceName) {
     long releasingDevices = 0;
     Map<Device, ContainerId> used = allUsedDevices.get(resourceName);
     Iterator<Map.Entry<Device, ContainerId>> iter = used.entrySet()
