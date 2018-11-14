@@ -84,7 +84,7 @@ public class DeviceMappingManager {
     return allUsedDevices;
   }
 
-  public void addDeviceSet(String resourceName,
+  public synchronized void addDeviceSet(String resourceName,
       Set<Device> deviceSet) {
     LOG.info("Adding new resource: " + "type:"
         + resourceName + "," + deviceSet);
@@ -130,7 +130,7 @@ public class DeviceMappingManager {
     return allocation;
   }
 
-  private DeviceAllocation internalAssignDevices(
+  private synchronized DeviceAllocation internalAssignDevices(
       String resourceName, Container container)
       throws ResourceHandlerException {
     Resource requestedResource = container.getResource();
@@ -186,7 +186,7 @@ public class DeviceMappingManager {
         allAllowedDevices.get(resourceName));
   }
 
-  public void recoverAssignedDevices(String resourceName,
+  public synchronized void recoverAssignedDevices(String resourceName,
       ContainerId containerId)
       throws ResourceHandlerException {
     Container c = nmContext.getContainers().get(containerId);
@@ -229,7 +229,7 @@ public class DeviceMappingManager {
     }
   }
 
-  public void cleanupAssignedDevices(String resourceName,
+  public synchronized void cleanupAssignedDevices(String resourceName,
       ContainerId containerId) {
     Iterator<Map.Entry<Device, ContainerId>> iter =
         allUsedDevices.get(resourceName).entrySet().iterator();
@@ -278,7 +278,7 @@ public class DeviceMappingManager {
       Map<Device, ContainerId> used, Set<Device> assigned,
       ContainerId containerId, int count) {
     LOG.debug("Using default scheduler. Allowed:" + allowed
-        + ",Used:" + used +", containerId:" + containerId);
+        + ",Used:" + used + ", containerId:" + containerId);
     for (Device device : allowed) {
       if (!used.containsKey(device)) {
         used.put(device, containerId);
