@@ -22,10 +22,7 @@ import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.nodemanager.*;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.*;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
 import org.junit.After;
@@ -134,8 +131,8 @@ public class TestDevicePluginAdapter {
     }
 
     @Override
-    public DeviceRuntimeSpec onDevicesAllocated(
-        Set<Device> allocatedDevices, String runtime) {
+    public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
+        YarnRuntimeType yarnRuntime) throws Exception {
       return null;
     }
 
