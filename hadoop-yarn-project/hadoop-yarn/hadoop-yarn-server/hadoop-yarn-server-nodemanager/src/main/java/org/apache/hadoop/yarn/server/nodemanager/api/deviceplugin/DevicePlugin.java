@@ -46,7 +46,7 @@ public interface DevicePlugin {
    *
    * @param allocatedDevices A set of allocated {@link Device}.
    * @param yarnRuntime Indicate which runtime YARN will use
-   *        Could be {@code docker} or {@code default}
+   *        Could be {@code RUNTIME_DEFAULT} or {@code RUNTIME_DOCKER}
    *        in {@link DeviceRuntimeSpec} constants. The default means YARN's
    *        non-docker container runtime is used. The docker means YARN's
    *        docker container runtime is used.
@@ -54,7 +54,7 @@ public interface DevicePlugin {
    * {@link         VolumeSpec}, {@link MountVolumeSpec}. etc
    * */
   DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
-      String yarnRuntime) throws Exception;
+      YarnRuntimeType yarnRuntime) throws Exception;
 
   /**
    * Called after device released.
