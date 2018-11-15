@@ -44,6 +44,7 @@ public class DevicePluginAdapter implements ResourcePlugin {
   private final String resourceName;
   private final DevicePlugin devicePlugin;
   private DeviceMappingManager deviceMappingManager;
+  private DeviceResourceHandlerImpl deviceResourceHandler;
   private DeviceResourceUpdaterImpl deviceResourceUpdater;
 
   public DevicePluginAdapter(String name, DevicePlugin dp,
