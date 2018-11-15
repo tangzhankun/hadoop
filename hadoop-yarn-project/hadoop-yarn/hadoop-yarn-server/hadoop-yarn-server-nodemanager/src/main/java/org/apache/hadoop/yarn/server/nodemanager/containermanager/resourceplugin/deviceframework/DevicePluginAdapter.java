@@ -39,10 +39,10 @@ import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
  *
  * */
 public class DevicePluginAdapter implements ResourcePlugin {
-  final static Log LOG = LogFactory.getLog(DevicePluginAdapter.class);
+  private final static Log LOG = LogFactory.getLog(DevicePluginAdapter.class);
 
-  private String resourceName;
-  private DevicePlugin devicePlugin;
+  private final String resourceName;
+  private final DevicePlugin devicePlugin;
   private DeviceResourceUpdaterImpl deviceResourceUpdater;
 
   public DevicePluginAdapter(String name, DevicePlugin dp) {

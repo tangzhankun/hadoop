@@ -151,7 +151,7 @@ public class ResourcePluginManager {
         request = dpInstance.getRegisterRequestInfo();
       } catch (Exception e) {
         throw new YarnRuntimeException("Exception thrown from plugin's"
-            + " \"getRegisterRequestInfo\":"
+            + " getRegisterRequestInfo:"
             + e.getMessage());
       }
       String resourceName = request.getResourceName();
@@ -159,9 +159,9 @@ public class ResourcePluginManager {
       if (pluginMap.containsKey(resourceName)) {
         throw new YarnRuntimeException(resourceName
             + " already registered! Please change resource type name"
-            + " or configure correct resource type name "
-            + "in resource-types.xml for "
-            + DevicePlugin.class.getCanonicalName());
+            + " or configure correct resource type name"
+            + " in resource-types.xml for "
+            + pluginClassName);
       }
       // check resource name is valid and configured in resource-types.xml
       if (!isConfiguredResourceName(resourceName)) {
@@ -192,7 +192,7 @@ public class ResourcePluginManager {
   // Check if the implemented interfaces' signature is compatible
   public void checkInterfaceCompatibility(Class<?> expectedClass,
       Class<?> actualClass) throws YarnRuntimeException{
-    LOG.debug("Checking implemented interface's compatibility: \"{}\"",
+    LOG.debug("Checking implemented interface's compatibility: {}",
         expectedClass.getSimpleName());
     Method[] expectedDevicePluginMethods = expectedClass.getMethods();
 
@@ -200,11 +200,11 @@ public class ResourcePluginManager {
     boolean found;
     for (Method method: expectedDevicePluginMethods) {
       found = false;
-      LOG.debug("Try to find method: \"{}\"",
+      LOG.debug("Try to find method: {}",
           method.getName());
       for (Method m : actualClass.getDeclaredMethods()) {
         if (m.getName().equals(method.getName())) {
-          LOG.debug("Method \"{}\" found in class \"{}\"",
+          LOG.debug("Method {} found in class {}",
               actualClass.getSimpleName(),
               m.getName());
           found = true;
@@ -212,15 +212,15 @@ public class ResourcePluginManager {
         }
       }
       if (!found) {
-        LOG.error("Method \"{}\" is not found in plugin",
+        LOG.error("Method {} is not found in plugin",
             method.getName());
         throw new YarnRuntimeException(
-            "Method \"" + method.getName()
-                + "\" is expected but not implemented in "
+            "Method " + method.getName()
+                + " is expected but not implemented in "
                 + actualClass.getCanonicalName());
       }
     }// end for
-    LOG.info("\"{}\" compatibility is ok.",
+    LOG.info("{} compatibility is ok.",
         expectedClass.getSimpleName());
   }
 

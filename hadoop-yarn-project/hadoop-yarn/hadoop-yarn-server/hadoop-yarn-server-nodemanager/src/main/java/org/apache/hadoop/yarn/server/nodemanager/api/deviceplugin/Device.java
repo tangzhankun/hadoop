@@ -26,7 +26,7 @@ import java.util.Objects;
  * */
 public final class Device implements Serializable, Comparable {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = -7270474563684671656L;
 
   /**
    * An plugin specified index number.
