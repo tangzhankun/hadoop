@@ -22,13 +22,18 @@ import org.apache.commons.cli.ParseException;
 
 public class Localization {
 
+  /**
+   *
+   * */
+  private String regexPattern = "^(hdfs:|/|.).+:.+";
   private String remoteUri;
   private String localPath;
 
   public void parse(String arg) throws ParseException {
-    String[] tokens = arg.split("->");
-    if (2 != tokens.length) {
-      throw new ParseException("Should be \"remoteUri->localFileName\" format for localization");
+    String regexPattern = "^(hdfs:|/|.).+:.+";
+    String[] tokens = arg.split(":");
+    if (tokens.length > 2) {
+      throw new ParseException("Should be \"remoteUri:localFileName\" format for localization");
     }
     remoteUri = tokens[0].trim();
     localPath = tokens[1].trim();
