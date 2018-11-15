@@ -374,4 +374,5 @@ public class DeviceMappingManager {
     this.devicePluginSchedulers.put(resourceName,
         Objects.requireNonNull(s));
   }
+
 }

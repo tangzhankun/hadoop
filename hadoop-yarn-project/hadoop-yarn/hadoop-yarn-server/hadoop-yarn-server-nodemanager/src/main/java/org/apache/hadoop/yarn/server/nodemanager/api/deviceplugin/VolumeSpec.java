@@ -26,7 +26,7 @@ import java.util.Objects;
  * */
 public final class VolumeSpec implements Serializable, Comparable {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 3483619025106416736L;
 
   private final String volumeDriver;
   private final String volumeName;

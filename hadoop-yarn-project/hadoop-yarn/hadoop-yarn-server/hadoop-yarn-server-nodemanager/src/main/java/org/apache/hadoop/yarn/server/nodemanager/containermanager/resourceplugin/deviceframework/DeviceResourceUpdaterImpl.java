@@ -52,7 +52,7 @@ public class DeviceResourceUpdaterImpl extends NodeResourceUpdaterPlugin {
     try {
       devices = devicePlugin.getDevices();
     } catch (Exception e) {
-      throw new YarnException("Exception thrown from plugin's \"getDevices\""
+      throw new YarnException("Exception thrown from plugin's getDevices"
           + e.getMessage());
     }
     if (null == devices) {

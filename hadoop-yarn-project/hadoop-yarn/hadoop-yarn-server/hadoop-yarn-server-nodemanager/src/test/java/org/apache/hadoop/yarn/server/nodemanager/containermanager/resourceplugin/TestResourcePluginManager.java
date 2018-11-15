@@ -451,7 +451,10 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
             FakeTestDevicePlugin3.class.getCanonicalName());
 
     String expectedMessage = "cmpA.com/hdwA" +
-        " already registered! Please change resource type name";
+        " already registered! Please change resource type name"
+        + " or configure correct resource type name"
+        + " in resource-types.xml for "
+        + FakeTestDevicePlugin3.class.getCanonicalName();
     String actualMessage = "";
     try {
       nm.init(conf);
@@ -480,8 +483,8 @@ public class TestResourcePluginManager extends NodeManagerTestBase {
         YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_DEVICE_CLASSES,
         FakeTestDevicePlugin4.class.getCanonicalName());
 
-    String expectedMessage = "Method \"getRegisterRequestInfo" +
-        "\" is expected but not implemented in "
+    String expectedMessage = "Method getRegisterRequestInfo" +
+        " is expected but not implemented in "
         + FakeTestDevicePlugin4.class.getCanonicalName();
     String actualMessage = "";
     try {
