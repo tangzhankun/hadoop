@@ -26,7 +26,7 @@ import java.util.Objects;
  * */
 public final class MountVolumeSpec implements Serializable, Comparable {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 2479676805545997492L;
 
   // host path or volume name
   private final String hostPath;

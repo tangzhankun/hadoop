@@ -46,15 +46,11 @@ import java.util.Map;
  *
  * */
 public class DevicePluginAdapter implements ResourcePlugin {
-  static final Log LOG = LogFactory.getLog(DevicePluginAdapter.class);
+  private final static Log LOG = LogFactory.getLog(DevicePluginAdapter.class);
 
-  private String resourceName;
-  private DevicePlugin devicePlugin;
-
+  private final String resourceName;
+  private final DevicePlugin devicePlugin;
   private DeviceMappingManager deviceMappingManager;
-
-
-  private DeviceResourceHandlerImpl deviceResourceHandler;
   private DeviceResourceUpdaterImpl deviceResourceUpdater;
 
   public DevicePluginAdapter(String name, DevicePlugin dp,

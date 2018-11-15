@@ -26,7 +26,7 @@ import java.util.Objects;
  * */
 public final class MountDeviceSpec implements Serializable, Comparable {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = -160806358136943052L;
 
   private final String devicePathInHost;
   private final String devicePathInContainer;

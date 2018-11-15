@@ -32,7 +32,7 @@ import java.util.*;
  * */
 public final class DeviceRuntimeSpec implements Serializable {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 554704120015467660L;
 
   /**
    * The containerRuntime gives device framework a hint (not forced to).
