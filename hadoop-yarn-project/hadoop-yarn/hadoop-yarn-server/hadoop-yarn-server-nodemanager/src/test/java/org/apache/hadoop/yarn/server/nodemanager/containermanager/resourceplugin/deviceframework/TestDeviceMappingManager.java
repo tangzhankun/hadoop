@@ -214,7 +214,7 @@ public class TestDeviceMappingManager {
    * */
   @Test
   public void testAllocationAndCleanup()
-      throws InterruptedException, ResourceHandlerException, IOException {
+      throws InterruptedException, ResourceHandlerException {
     int totalContainerCount = 10;
     String resourceName1 = "cmpA.com/hdwA";
     String resourceName2 = "cmp.com/cmp";
