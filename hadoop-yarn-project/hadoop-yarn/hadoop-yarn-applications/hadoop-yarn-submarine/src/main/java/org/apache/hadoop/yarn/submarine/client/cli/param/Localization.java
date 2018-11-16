@@ -22,23 +22,58 @@ import org.apache.commons.cli.ParseException;
 
 public class Localization {
 
-  private String hdfsPathPattern = "^hdfs://(/[^/ ]*)+/?$";
-  private String filePathPattern = "^(/[^/ ]*)+/?$";
+  private String linuxFilePathPattern = "^(/[^/ ]*)+/?$";
+  private String fsPathPattern = "(^hdfs://|.*)(/[^/ ]*)+/?$";
   private String mountPattern = "(wr|rw|ro)$";
   private String remoteUri;
   private String localPath;
+  // Read only by default
+  private String mountPermission = "ro";
 
   public void parse(String arg) throws ParseException {
-    if (arg.startsWith("hdfs://")) {
-      int index = arg.in
+    String[] tokens = arg.split(":");
+    int minimumParts = 2;
+    if (tokens[0].equals("hdfs")) {
+      minimumParts = 3;
+    }
+    if (tokens.length < minimumParts || tokens.length > 4) {
+      throw new ParseException("Invalid parameter,"
+          + "Should be \"remoteUri:localPath:[ro|rw|wr]\" "
+          + "format for --localizations");
     }
 
-    String[] tokens = arg.split(":");
-    if (tokens.length > 2) {
-      throw new ParseException("Should be \"remoteUri:localFileName\" format for localization");
+    /**
+     * RemoteUri starts with hdfs://.
+     * Merge part 0 and 1 to build a hdfs path in token[0].
+     * toke[1] will be localPath
+     * */
+    if (minimumParts == 3) {
+      tokens[0] = tokens[0] + tokens[1];
+      tokens[1] = tokens[2];
+      if (tokens.length == 4) {
+        // Has permission part
+        mountPermission = tokens[3];
+      }
     }
-    remoteUri = tokens[0].trim();
-    localPath = tokens[1].trim();
+    // RemoteUri starts with linux file path
+    if (minimumParts == 2 && tokens.length == 3) {
+      // Has permission part
+      mountPermission = tokens[2];
+    }
+    remoteUri = tokens[0];
+    if (!remoteUri.matches(fsPathPattern)) {
+      throw new ParseException("Invalid remoteUri," +
+          remoteUri);
+    }
+    localPath = tokens[1];
+    if (!localPath.matches(linuxFilePathPattern)) {
+      throw new ParseException("Invalid localPath," +
+          localPath);
+    }
+    if (!mountPermission.matches(mountPattern)) {
+      throw new ParseException("Invalid mount permission," +
+          mountPermission);
+    }
   }
 
   public String getRemoteUri() {
