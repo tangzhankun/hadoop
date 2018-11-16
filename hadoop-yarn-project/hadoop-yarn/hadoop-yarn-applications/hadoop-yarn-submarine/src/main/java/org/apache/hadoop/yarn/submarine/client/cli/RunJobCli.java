@@ -126,11 +126,14 @@ public class RunJobCli extends AbstractCli {
         + "is Notebook_UI, user need to specify --quicklink "
         + "Notebook_UI=https://master-0:7070");
     options.addOption(CliConstants.LOCALIZATIONS, true, "Specify "
-        + "localization to make remote files available to worker."
-        + "Argument format is \"File1->LocalFileName1 \""
-        + " \"File2->LocalFileName2\" ..."
-        + " The File could be local or in HDFS. The LocalFileName is"
-        + " a file name in worker's local dir");
+        + "localization to make remote files available to "
+        + "worker container(Docker)."
+        + "Argument format is \"RemoteUri1:LocalFilePath1[:rw|:ro] \""
+        + " \"RemoteUri2->LocalFilePath2[:rw|:ro]\" ..."
+        + " The RemoteUri can be a local or HDFS file or directory."
+        + " The LocalFilePath can be a file path."
+        + " If it's a relative path, it'll be put"
+        + " under container's implied working directory");
     options.addOption("h", "help", false, "Print help");
     return options;
   }

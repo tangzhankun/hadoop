@@ -15,9 +15,12 @@
 package org.apache.hadoop.yarn.submarine.runtimes.yarnservice;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.client.api.AppAdminClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -29,7 +32,6 @@ import org.apache.hadoop.yarn.service.api.records.Resource;
 import org.apache.hadoop.yarn.service.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.service.api.records.Service;
 import org.apache.hadoop.yarn.service.utils.ServiceApiUtil;
-import org.apache.hadoop.yarn.service.client.ServiceClient;
 import org.apache.hadoop.yarn.submarine.client.cli.param.Localization;
 import org.apache.hadoop.yarn.submarine.client.cli.param.Quicklink;
 import org.apache.hadoop.yarn.submarine.client.cli.param.RunJobParameters;
@@ -42,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -54,6 +57,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION;
 import static org.apache.hadoop.yarn.service.exceptions.LauncherExitCodes.EXIT_SUCCESS;
@@ -181,9 +186,11 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
           "Failed to locate core-site.xml / hdfs-site.xml from class path");
     }
     uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir,
-        coreSite.getAbsolutePath(), "core-site.xml", comp);
+        coreSite.getAbsolutePath(), "core-site.xml", comp,
+        ConfigFile.TypeEnum.STATIC);
     uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir,
-        hdfsSite.getAbsolutePath(), "hdfs-site.xml", comp);
+        hdfsSite.getAbsolutePath(), "hdfs-site.xml", comp ,
+        ConfigFile.TypeEnum.STATIC);
 
     // DEBUG
     if (SubmarineLogs.isVerbose()) {
@@ -297,58 +304,14 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   }
 
   private void uploadToRemoteFileAndLocalizeToContainerWorkDir(Path stagingDir,
-      String fileToUpload, String destFilename, Component comp)
+      String fileToUpload, String destFilename, Component comp,
+      ConfigFile.TypeEnum type)
       throws IOException {
-    FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
-    Path uploadedFilePath;
-    FileStatus fileStatus;
-    ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
-    // If it is a file path in HDFS, no upload
-    if (needHdfs(fileToUpload)) {
-      uploadedFilePath = new Path(fileToUpload);
-      if (!fs.exists(uploadedFilePath)) {
-        throw new FileNotFoundException(
-            "File " + fileToUpload
-                + " seems a HDFS file, but doesn't exists.");
-      }
-      fileStatus = fs.getFileStatus(uploadedFilePath);
-      LOG.info("Remote File already in HDFS, no need to upload. "
-          + fileStatus.getPath());
-      if (destFilename.endsWith(".jar") ||
-          destFilename.endsWith(".tar.gz") ||
-          destFilename.endsWith(".zip") ||
-          destFilename.endsWith(".tgz") ||
-          destFilename.endsWith(".tar") ||
-          destFilename.endsWith(".gz")) {
-        destFileType = ConfigFile.TypeEnum.ARCHIVE;
-      }
-    } else {
-      // Upload to remote FS under staging area
-      File localFile = new File(fileToUpload);
-      if (!localFile.exists()) {
-        throw new FileNotFoundException(
-            "Trying to upload file=" + localFile.getAbsolutePath()
-                + " to remote, but couldn't find local file.");
-      }
-      String filename = new File(fileToUpload).getName();
-
-      uploadedFilePath = new Path(stagingDir, filename);
-      if (!uploadedFiles.contains(uploadedFilePath)) {
-        if (SubmarineLogs.isVerbose()) {
-          LOG.info("Copying local file=" + fileToUpload + " to remote="
-              + uploadedFilePath);
-        }
-        fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
-        uploadedFiles.add(uploadedFilePath);
-      }
-
-      fileStatus = fs.getFileStatus(uploadedFilePath);
-      LOG.info("Uploaded file path = " + fileStatus.getPath());
-    }
+    String hdfsDstUri = uploadToHdfs(stagingDir, fileToUpload);
     // Set it to component's files list
     comp.getConfiguration().getFiles().add(new ConfigFile().srcFile(
-        fileStatus.getPath().toUri().toString()).destFile(destFilename)
-        .type(destFileType));
+        hdfsDstUri).destFile(destFilename)
+        .type(type));
   }
 
   private void handleLaunchCommand(RunJobParameters parameters,
@@ -363,17 +326,80 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         component);
     String destScriptFileName = getScriptFileName(taskType);
     uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir, localScriptFile,
-        destScriptFileName, component);
+        destScriptFileName, component, ConfigFile.TypeEnum.STATIC);
 
     component.setLaunchCommand("./" + destScriptFileName);
     componentToLocalLaunchScriptPath.put(taskType.getComponentName(),
         localScriptFile);
-    // Handle localizations
-    List<Localization> locs = parameters.getLocalizations();
-    for (Localization loc : locs) {
-      uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir,
-          loc.getRemoteUri(), loc.getLocalPath(), component);
+  }
+
+  private String getLastNameFromPath(String srcFileStr) {
+    return new Path(srcFileStr).getName();
+  }
+
+  private String mayDownloadAndZipIt(String remoteDir, String zipFileName)
+      throws IOException {
+    String srcDir = remoteDir;
+    String zipDirName = zipFileName;
+    String zipDirPath = System.getProperty("java.io.tmpdir") + "/";
+    if (needHdfs(remoteDir)) {
+      // download it
+      FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
+      srcDir = zipDirPath + zipDirName;
+      boolean downloaded = FileUtil.copy(fs, new Path(remoteDir),
+          new File(srcDir), false,
+          clientContext.getYarnConfig());
+      if (!downloaded) {
+        throw new IOException("Failed to download files from "
+            + remoteDir);
+      }
     }
+    // zip a dir
+    return zipDir(srcDir, zipDirPath + zipDirName + ".zip");
+  }
+
+  private String zipDir(String srcDir, String dstFile) throws IOException {
+    FileOutputStream fos = new FileOutputStream(dstFile);
+    ZipOutputStream zos = new ZipOutputStream(fos);
+    File srcFile = new File(srcDir);
+    addDirToZip(zos, srcFile);
+    // close the ZipOutputStream
+    zos.close();
+    return dstFile;
+  }
+
+  private void addDirToZip(ZipOutputStream zos, File srcFile) throws IOException {
+    File[] files = srcFile.listFiles();
+    if (null == files) {
+      return;
+    }
+    FileInputStream fis = null;
+    for (int i = 0; i < files.length; i++) {
+      // if it's directory, add recursively
+      if (files[i].isDirectory()) {
+        addDirToZip(zos, files[i]);
+        continue;
+      }
+      byte[] buffer = new byte[1024];
+      try {
+        fis = new FileInputStream(files[i]);
+        zos.putNextEntry(new ZipEntry(files[i].getName()));
+        int length;
+        while ((length = fis.read(buffer)) > 0) {
+          zos.write(buffer, 0, length);
+        }
+        zos.flush();
+      } finally {
+        if (fis != null) {
+          fis.close();
+        }
+        zos.closeEntry();
+      }
+    }
+  }
+
+  private boolean isDir(String remoteUri) {
+    return true;
   }
 
   private void addWorkerComponent(Service service,
@@ -505,6 +531,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
 
     handleServiceEnvs(serviceSpec, parameters);
 
+    handleLocalizations(serviceSpec, parameters);
+
     if (parameters.getNumWorkers() > 0) {
       addWorkerComponents(serviceSpec, parameters);
     }
@@ -558,6 +586,94 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     handleQuicklinks(parameters);
 
     return serviceSpec;
+  }
+
+  /**
+   * Localize dependencies for all containers.
+   * If remoteUri is a local directory,
+   * we'll compress it and upload to staging dir in HDFS
+   * If remoteUri is a HDFS directory, we'll download, compress it
+   * and upload to staging dir in HDFS
+   * If localFilePath is ".", we'll use remote file/dir name
+   * */
+  private void handleLocalizations(Service serviceSpec,
+      RunJobParameters parameters) throws IOException {
+    // Handle localizations
+    Path stagingDir =
+        clientContext.getRemoteDirectoryManager().getJobStagingArea(
+            parameters.getName(), true);
+    List<Localization> locs = parameters.getLocalizations();
+    String remoteUri;
+    String containerLocalPath;
+    for (Localization loc : locs) {
+      remoteUri = loc.getRemoteUri();
+      containerLocalPath = loc.getLocalPath();
+      String srcFileStr = remoteUri;
+      String localFileStr = containerLocalPath;
+      ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
+      // If remote is a dir, may download from hdfs and compress files
+      if (isDir(remoteUri)) {
+        if (containerLocalPath.equals(".")
+            ||containerLocalPath.equals("./")) {
+          localFileStr = getLastNameFromPath(srcFileStr);
+          destFileType = ConfigFile.TypeEnum.ARCHIVE;
+        }
+        srcFileStr = mayDownloadAndZipIt(
+            remoteUri, getLastNameFromPath(localFileStr));
+      }
+      String hdfsDestUri = uploadToHdfs(stagingDir, srcFileStr);
+      serviceSpec.getConfiguration().getFiles().add(new ConfigFile().srcFile(
+          hdfsDestUri).destFile(getLastNameFromPath(localFileStr))
+          .type(destFileType));
+      // set mounts
+      String mountStr = ApplicationConstants.Environment.PWD.$$()
+          + "/" + getLastNameFromPath(localFileStr) + ":"
+          + containerLocalPath + ":" + loc.getMountPermission();
+      appendToEnv(serviceSpec, "YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS",
+          mountStr, ",");
+    }
+  }
+
+  private String uploadToHdfs(Path stagingDir, String fileToUpload)
+      throws IOException {
+    FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
+    Path uploadedFilePath;
+    FileStatus fileStatus;
+    // If it is a file path in HDFS, no upload
+    if (needHdfs(fileToUpload)) {
+      uploadedFilePath = new Path(fileToUpload);
+      if (!fs.exists(uploadedFilePath)) {
+        throw new FileNotFoundException(
+            "File " + fileToUpload
+                + " seems a HDFS file, but doesn't exists.");
+      }
+      fileStatus = fs.getFileStatus(uploadedFilePath);
+      LOG.info("Remote File already in HDFS, no need to upload. "
+          + fileStatus.getPath());
+    } else {
+      // Upload to remote FS under staging area
+      File localFile = new File(fileToUpload);
+      if (!localFile.exists()) {
+        throw new FileNotFoundException(
+            "Trying to upload file=" + localFile.getAbsolutePath()
+                + " to remote, but couldn't find local file.");
+      }
+      String filename = new File(fileToUpload).getName();
+
+      uploadedFilePath = new Path(stagingDir, filename);
+      if (!uploadedFiles.contains(uploadedFilePath)) {
+        if (SubmarineLogs.isVerbose()) {
+          LOG.info("Copying local file=" + fileToUpload + " to remote="
+              + uploadedFilePath);
+        }
+        fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
+        uploadedFiles.add(uploadedFilePath);
+      }
+
+      fileStatus = fs.getFileStatus(uploadedFilePath);
+      LOG.info("Uploaded file path = " + fileStatus.getPath());
+    }
+    return fileStatus.getPath().toUri().toString();
   }
 
   private String generateServiceSpecFile(Service service) throws IOException {

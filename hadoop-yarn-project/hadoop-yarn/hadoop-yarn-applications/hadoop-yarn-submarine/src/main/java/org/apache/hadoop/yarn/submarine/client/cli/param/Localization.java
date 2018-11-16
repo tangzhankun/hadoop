@@ -27,6 +27,7 @@ public class Localization {
   private String mountPattern = "(wr|rw|ro)$";
   private String remoteUri;
   private String localPath;
+
   // Read only by default
   private String mountPermission = "ro";
 
@@ -45,7 +46,7 @@ public class Localization {
     /**
      * RemoteUri starts with hdfs://.
      * Merge part 0 and 1 to build a hdfs path in token[0].
-     * toke[1] will be localPath
+     * toke[1] will be localPath to ease following logic
      * */
     if (minimumParts == 3) {
       tokens[0] = tokens[0] + tokens[1];
@@ -90,6 +91,14 @@ public class Localization {
 
   public void setLocalPath(String localPath) {
     this.localPath = localPath;
+  }
+
+  public String getMountPermission() {
+    return mountPermission;
+  }
+
+  public void setMountPermission(String mountPermission) {
+    this.mountPermission = mountPermission;
   }
 
 }
