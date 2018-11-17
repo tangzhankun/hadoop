@@ -22,7 +22,7 @@ import org.apache.commons.cli.ParseException;
 
 public class Localization {
 
-  private String linuxFilePathPattern = "^(/[^/ ]*)+/?$";
+  private String linuxFilePathPattern = "^((.|/)[^/ ]*)+/?$";
   private String fsPathPattern = "(^hdfs://|.*)(/[^/ ]*)+/?$";
   private String mountPattern = "(wr|rw|ro)$";
   private String remoteUri;
@@ -39,7 +39,7 @@ public class Localization {
     }
     if (tokens.length < minimumParts || tokens.length > 4) {
       throw new ParseException("Invalid parameter,"
-          + "Should be \"remoteUri:localPath:[ro|rw|wr]\" "
+          + "should be \"remoteUri:localPath[:ro|:rw|:wr]\" "
           + "format for --localizations");
     }
 
@@ -49,7 +49,7 @@ public class Localization {
      * toke[1] will be localPath to ease following logic
      * */
     if (minimumParts == 3) {
-      tokens[0] = tokens[0] + tokens[1];
+      tokens[0] = tokens[0] + ":" + tokens[1];
       tokens[1] = tokens[2];
       if (tokens.length == 4) {
         // Has permission part

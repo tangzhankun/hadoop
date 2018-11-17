@@ -152,7 +152,7 @@ public class RunJobParameters extends RunParameters {
 
     // Localizations
     String[] localizationsStr = parsedCommandLine.getOptionValues(
-        CliConstants.LOCALIZATIONS);
+        CliConstants.LOCALIZATION);
     if (null != localizationsStr) {
       for (String loc : localizationsStr) {
         Localization localization = new Localization();

@@ -23,6 +23,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AppAdminClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.api.records.Component;
+import org.apache.hadoop.yarn.service.api.records.ConfigFile;
 import org.apache.hadoop.yarn.service.api.records.Service;
 import org.apache.hadoop.yarn.submarine.client.cli.RunJobCli;
 import org.apache.hadoop.yarn.submarine.common.MockClientContext;
@@ -42,6 +43,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.hadoop.yarn.service.exceptions.LauncherExitCodes.EXIT_SUCCESS;
@@ -129,6 +131,12 @@ public class TestYarnServiceRunJobCli {
     }
   }
 
+  private void verifyLocalization(Service spec) {
+    List<ConfigFile> files = spec.getConfiguration().getFiles();
+    Assert.assertEquals(2, files.size());
+    Assert.assertEquals(2, spec.getConfiguration().getEnv().size());
+  }
+
   @Test
   public void testBasicRunJobForDistributedTraining() throws Exception {
     MockClientContext mockClientContext =
@@ -143,7 +151,7 @@ public class TestYarnServiceRunJobCli {
             "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
             "--ps_resources", "memory=4096M,vcores=4", "--ps_docker_image",
             "ps.image", "--worker_docker_image", "worker.image",
-            "--ps_launch_cmd", "python run-ps.py", "--verbose" });
+            "--ps_launch_cmd", "python run-ps.py", "--verbose"});
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
@@ -151,6 +159,32 @@ public class TestYarnServiceRunJobCli {
     commonVerifyDistributedTrainingSpec(serviceSpec);
 
     verifyQuicklink(serviceSpec, null);
+  }
+
+  @Test
+  public void testBasicRunJobWithLocalization() throws Exception {
+    MockClientContext mockClientContext =
+        YarnServiceCliTestUtils.getMockClientContext();
+    RunJobCli runJobCli = new RunJobCli(mockClientContext);
+    Assert.assertFalse(SubmarineLogs.isVerbose());
+
+    runJobCli.run(
+        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+            "--input_path", "s3://input", "--checkpoint_path", "s3://output",
+            "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
+            "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
+            "--ps_resources", "memory=4096M,vcores=4", "--ps_docker_image",
+            "ps.image", "--worker_docker_image", "worker.image",
+            "--ps_launch_cmd", "python run-ps.py", "--verbose",
+            "--localization",
+            "hdfs:///user/yarn/script1.py:.:ro",
+            "--localization",
+            "/temp/script2.py:."});
+    Service serviceSpec = getServiceSpecFromJobSubmitter(
+        runJobCli.getJobSubmitter());
+    Assert.assertEquals(3, serviceSpec.getComponents().size());
+
+    verifyLocalization(serviceSpec);
   }
 
   @Test

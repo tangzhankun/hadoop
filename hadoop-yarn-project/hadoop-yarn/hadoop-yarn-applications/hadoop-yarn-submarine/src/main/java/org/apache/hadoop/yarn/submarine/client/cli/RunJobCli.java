@@ -125,11 +125,10 @@ public class RunJobCli extends AbstractCli {
         + "if want to link to first worker's 7070 port, and text of quicklink "
         + "is Notebook_UI, user need to specify --quicklink "
         + "Notebook_UI=https://master-0:7070");
-    options.addOption(CliConstants.LOCALIZATIONS, true, "Specify "
+    options.addOption(CliConstants.LOCALIZATION, true, "Specify "
         + "localization to make remote files available to "
         + "worker container(Docker)."
-        + "Argument format is \"RemoteUri1:LocalFilePath1[:rw|:ro] \""
-        + " \"RemoteUri2->LocalFilePath2[:rw|:ro]\" ..."
+        + "Argument format is \"RemoteUri:LocalFilePath[:rw|:ro] \""
         + " The RemoteUri can be a local or HDFS file or directory."
         + " The LocalFilePath can be a file path."
         + " If it's a relative path, it'll be put"

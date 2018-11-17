@@ -39,6 +39,7 @@ import org.apache.hadoop.yarn.submarine.common.ClientContext;
 import org.apache.hadoop.yarn.submarine.common.Envs;
 import org.apache.hadoop.yarn.submarine.common.api.TaskType;
 import org.apache.hadoop.yarn.submarine.common.conf.SubmarineLogs;
+import org.apache.hadoop.yarn.submarine.common.fs.DefaultRemoteDirectoryManager;
 import org.apache.hadoop.yarn.submarine.runtimes.common.JobSubmitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -344,7 +345,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     String zipDirPath = System.getProperty("java.io.tmpdir") + "/";
     if (needHdfs(remoteDir)) {
       // download it
-      FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
+      FileSystem fs = clientContext.getRemoteDirectoryManager()
+          .getFileSystem();
       srcDir = zipDirPath + zipDirName;
       boolean downloaded = FileUtil.copy(fs, new Path(remoteDir),
           new File(srcDir), false,
@@ -398,8 +400,13 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     }
   }
 
-  private boolean isDir(String remoteUri) {
-    return true;
+  private boolean isDir(String remoteUri) throws IOException {
+    if (needHdfs(remoteUri)) {
+      return clientContext.getRemoteDirectoryManager()
+          .getFileSystem().getFileStatus(new Path(remoteUri)).isDirectory();
+    } else {
+      return new File(remoteUri).isDirectory();
+    }
   }
 
   private void addWorkerComponent(Service service,
@@ -636,7 +643,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
 
   private String uploadToHdfs(Path stagingDir, String fileToUpload)
       throws IOException {
-    FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
+    FileSystem fs = clientContext.getRemoteDirectoryManager()
+        .getFileSystem();
     Path uploadedFilePath;
     FileStatus fileStatus;
     // If it is a file path in HDFS, no upload
