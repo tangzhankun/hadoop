@@ -16,10 +16,12 @@ package org.apache.hadoop.yarn.submarine.common.fs;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.submarine.client.cli.CliConstants;
 import org.apache.hadoop.yarn.submarine.common.ClientContext;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -81,6 +83,32 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
     // Get a file status to make sure it is a absolute path.
     FileStatus fStatus = fs.getFileStatus(rootPath);
     return fStatus.getPath();
+  }
+
+  @Override
+  public boolean isHdfsDir(String url) throws IOException {
+    if (url.startsWith("hdfs://")) {
+      return getFileSystem().getFileStatus(new Path(url)).isDirectory();
+    } else {
+      return new File(url).isDirectory();
+    }
+  }
+
+  @Override
+  public boolean copyFilesFromHdfs(String remoteDir, String localDir) throws IOException {
+    return FileUtil.copy(fs, new Path(remoteDir),
+        new File(localDir), false,
+        getFileSystem().getConf());
+  }
+
+  @Override
+  public boolean existsHdfsFile(Path url) throws IOException {
+    return getFileSystem().exists(url);
+  }
+
+  @Override
+  public FileStatus getHdfsFileStatus(Path url) throws IOException {
+    return getFileSystem().getFileStatus(url);
   }
 
   private Path getJobRootFolder(String jobName) throws IOException {

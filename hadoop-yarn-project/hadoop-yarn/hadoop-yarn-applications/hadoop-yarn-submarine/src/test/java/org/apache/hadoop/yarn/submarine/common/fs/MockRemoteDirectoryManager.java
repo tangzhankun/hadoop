@@ -19,7 +19,9 @@
 package org.apache.hadoop.yarn.submarine.common.fs;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 
 import java.io.File;
@@ -29,6 +31,7 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
   private File jobsParentDir = null;
   private File modelParentDir = null;
 
+  private File jobDir = null;
   @Override
   public Path getJobStagingArea(String jobName, boolean create)
       throws IOException {
@@ -41,7 +44,7 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
       }
     }
 
-    File jobDir = new File(jobsParentDir.getAbsolutePath(), jobName);
+    this.jobDir = new File(jobsParentDir.getAbsolutePath(), jobName);
     if (create && !jobDir.exists()) {
       if (!jobDir.mkdirs()) {
         throw new IOException("Failed to mkdirs for " + jobDir.getAbsolutePath());
@@ -85,4 +88,43 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
   public Path getUserRootFolder() throws IOException {
     return new Path("s3://generated_root_dir");
   }
+
+  @Override
+  public boolean isHdfsDir(String url) throws IOException {
+    if (url.startsWith("hdfs://")) {
+      String dirName = new Path(url).getName();
+      return getFileSystem().getFileStatus(new Path(
+          this.jobDir.getAbsolutePath()
+          + "/" + dirName)).isDirectory();
+    } else {
+      return new File(url).isDirectory();
+    }
+  }
+
+  @Override
+  public boolean copyFilesFromHdfs(String remoteDir, String localDir) throws IOException {
+    return FileUtil.copy(getFileSystem(), new Path(remoteDir),
+        new File(localDir), false,
+        getFileSystem().getConf());
+  }
+
+  @Override
+  public boolean existsHdfsFile(Path url) throws IOException {
+    String fakeLocalFilePath = this.jobDir.getAbsolutePath()
+        + "/" + url.getName();
+    return new File(fakeLocalFilePath).exists();
+  }
+
+  @Override
+  public FileStatus getHdfsFileStatus(Path url) throws IOException {
+    String path = url.toUri().toString();
+    if (path.startsWith("hdfs://")) {
+      String fakeLocalFilePath = this.jobDir.getAbsolutePath()
+          + "/" + url.getName();
+      new File(fakeLocalFilePath).createNewFile();
+      return getFileSystem().getFileStatus(new Path(fakeLocalFilePath));
+    }
+    return  getFileSystem().getFileStatus(url);
+  }
+
 }

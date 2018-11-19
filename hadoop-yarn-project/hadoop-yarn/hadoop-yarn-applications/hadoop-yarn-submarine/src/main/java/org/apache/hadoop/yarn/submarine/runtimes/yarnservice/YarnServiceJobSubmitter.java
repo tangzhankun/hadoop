@@ -15,7 +15,6 @@
 package org.apache.hadoop.yarn.submarine.runtimes.yarnservice;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -39,7 +38,7 @@ import org.apache.hadoop.yarn.submarine.common.ClientContext;
 import org.apache.hadoop.yarn.submarine.common.Envs;
 import org.apache.hadoop.yarn.submarine.common.api.TaskType;
 import org.apache.hadoop.yarn.submarine.common.conf.SubmarineLogs;
-import org.apache.hadoop.yarn.submarine.common.fs.DefaultRemoteDirectoryManager;
+import org.apache.hadoop.yarn.submarine.common.fs.RemoteDirectoryManager;
 import org.apache.hadoop.yarn.submarine.runtimes.common.JobSubmitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -617,25 +616,39 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       containerLocalPath = loc.getLocalPath();
       String srcFileStr = remoteUri;
       String localFileStr = containerLocalPath;
+      String containerLocalFilePath = containerLocalPath;
       ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
       // If remote is a dir, may download from hdfs and compress files
-      if (isDir(remoteUri)) {
+      if (clientContext.getRemoteDirectoryManager().isHdfsDir(remoteUri)) {
         if (containerLocalPath.equals(".")
             ||containerLocalPath.equals("./")) {
-          localFileStr = getLastNameFromPath(srcFileStr);
           destFileType = ConfigFile.TypeEnum.ARCHIVE;
         }
         srcFileStr = mayDownloadAndZipIt(
             remoteUri, getLastNameFromPath(localFileStr));
+      }
+      if (containerLocalPath.equals(".")
+          ||containerLocalPath.equals("./")) {
+        localFileStr = getLastNameFromPath(srcFileStr);
+        containerLocalFilePath = ApplicationConstants.Environment.PWD.$$()
+            + "/" + getLastNameFromPath(localFileStr);
       }
       String hdfsDestUri = uploadToHdfs(stagingDir, srcFileStr);
       serviceSpec.getConfiguration().getFiles().add(new ConfigFile().srcFile(
           hdfsDestUri).destFile(getLastNameFromPath(localFileStr))
           .type(destFileType));
       // set mounts
+      // mount path should be absolute
+      if (containerLocalPath.startsWith("/")) {
+        containerLocalFilePath = containerLocalPath;
+      } else if (!containerLocalPath.startsWith(".")){
+        // add container local dir path to be absolute one
+        containerLocalFilePath = ApplicationConstants.Environment.PWD.$$()
+            + "/" + containerLocalFilePath;
+      }
       String mountStr = ApplicationConstants.Environment.PWD.$$()
           + "/" + getLastNameFromPath(localFileStr) + ":"
-          + containerLocalPath + ":" + loc.getMountPermission();
+          + containerLocalFilePath + ":" + loc.getMountPermission();
       appendToEnv(serviceSpec, "YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS",
           mountStr, ",");
     }
@@ -643,19 +656,19 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
 
   private String uploadToHdfs(Path stagingDir, String fileToUpload)
       throws IOException {
-    FileSystem fs = clientContext.getRemoteDirectoryManager()
-        .getFileSystem();
+    RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
+    FileSystem fs = rdm.getFileSystem();
     Path uploadedFilePath;
     FileStatus fileStatus;
     // If it is a file path in HDFS, no upload
     if (needHdfs(fileToUpload)) {
       uploadedFilePath = new Path(fileToUpload);
-      if (!fs.exists(uploadedFilePath)) {
+      if (!rdm.existsHdfsFile(uploadedFilePath)) {
         throw new FileNotFoundException(
             "File " + fileToUpload
                 + " seems a HDFS file, but doesn't exists.");
       }
-      fileStatus = fs.getFileStatus(uploadedFilePath);
+      fileStatus = rdm.getHdfsFileStatus(uploadedFilePath);
       LOG.info("Remote File already in HDFS, no need to upload. "
           + fileStatus.getPath());
     } else {

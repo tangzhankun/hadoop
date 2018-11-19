@@ -14,6 +14,7 @@
 
 package org.apache.hadoop.yarn.submarine.common.fs;
 
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -29,4 +30,12 @@ public interface RemoteDirectoryManager {
   FileSystem getFileSystem() throws IOException;
 
   Path getUserRootFolder() throws IOException;
+
+  boolean isHdfsDir(String url) throws IOException;
+
+  boolean copyFilesFromHdfs(String remoteDir, String localDir)
+      throws IOException;
+  boolean existsHdfsFile(Path url) throws IOException;
+
+  FileStatus getHdfsFileStatus(Path url) throws IOException;
 }

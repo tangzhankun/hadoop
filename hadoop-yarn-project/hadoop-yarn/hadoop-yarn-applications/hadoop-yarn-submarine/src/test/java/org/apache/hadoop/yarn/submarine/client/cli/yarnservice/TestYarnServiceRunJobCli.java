@@ -19,6 +19,10 @@
 package org.apache.hadoop.yarn.submarine.client.cli.yarnservice;
 
 import com.google.common.collect.ImmutableMap;
+import javafx.application.Application;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AppAdminClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -39,6 +43,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -131,12 +136,6 @@ public class TestYarnServiceRunJobCli {
     }
   }
 
-  private void verifyLocalization(Service spec) {
-    List<ConfigFile> files = spec.getConfiguration().getFiles();
-    Assert.assertEquals(2, files.size());
-    Assert.assertEquals(2, spec.getConfiguration().getEnv().size());
-  }
-
   @Test
   public void testBasicRunJobForDistributedTraining() throws Exception {
     MockClientContext mockClientContext =
@@ -161,12 +160,40 @@ public class TestYarnServiceRunJobCli {
     verifyQuicklink(serviceSpec, null);
   }
 
+  /**
+   * In one hand, create local temp file/dir for hdfs URI in
+   * local staging dir.
+   * In the other hand, use MockRemoteDirectoryManager mock
+   * implementation when check FileStatus or exists of HDFS file/dir
+   * */
   @Test
-  public void testBasicRunJobWithLocalization() throws Exception {
+  public void testBasicRunJobWithBasicLocalization() throws Exception {
+    String remoteUrl = "hdfs:///user/yarn/script1.py";
+    String containerLocal1 = ".";
+    String localUrl = "/temp/script2.py";
+    String containerLocal2 = "./";
+    String fakeLocalDir = System.getProperty("java.io.tmpdir");
+    // create local file
+    File localFile1 = new File(fakeLocalDir,
+        new Path(localUrl).getName());
+    localFile1.createNewFile();
+    localFile1.deleteOnExit();
+
     MockClientContext mockClientContext =
         YarnServiceCliTestUtils.getMockClientContext();
     RunJobCli runJobCli = new RunJobCli(mockClientContext);
     Assert.assertFalse(SubmarineLogs.isVerbose());
+
+    // create remote file in local staging dir to simulate HDFS
+    Path stagingDir = mockClientContext.getRemoteDirectoryManager()
+        .getJobStagingArea("my-job",true);
+    File remoteFile1 = new File(stagingDir.toUri().getPath().toString()
+        + "/" + new Path(remoteUrl).getName());
+    remoteFile1.createNewFile();
+    remoteFile1.deleteOnExit();
+
+    Assert.assertTrue(localFile1.exists());
+    Assert.assertTrue(remoteFile1.exists());
 
     runJobCli.run(
         new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
@@ -177,14 +204,82 @@ public class TestYarnServiceRunJobCli {
             "ps.image", "--worker_docker_image", "worker.image",
             "--ps_launch_cmd", "python run-ps.py", "--verbose",
             "--localization",
-            "hdfs:///user/yarn/script1.py:.:ro",
+            remoteUrl + ":" + containerLocal1 + ":ro",
             "--localization",
-            "/temp/script2.py:."});
+            localFile1.getAbsolutePath() + ":"+ containerLocal2 + ":ro"});
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
 
-    verifyLocalization(serviceSpec);
+    List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
+    Assert.assertEquals(2, files.size());
+    String env = serviceSpec.getConfiguration().getEnv()
+        .get("YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS");
+    String expectedMounts = ApplicationConstants.Environment.PWD.$$() + "/"
+        + remoteFile1.getName() + ":" + ApplicationConstants.Environment.PWD.$$()
+        + "/" + remoteFile1.getName() + ":ro";
+    expectedMounts = expectedMounts + ","
+        + ApplicationConstants.Environment.PWD.$$() + "/"
+        + localFile1.getName() + ":" + ApplicationConstants.Environment.PWD.$$()
+        + "/" + localFile1.getName() + ":ro";
+    Assert.assertTrue(env.contains(expectedMounts));
+  }
+
+  @Test
+  public void testBasicRunJobWithLocalization() throws Exception {
+    String remoteUrl = "hdfs:///user/yarn/script1.py";
+    String localUrl = "/temp/script2.py";
+    String fakeLocalDir = System.getProperty("java.io.tmpdir");
+    // create local file
+    File localFile1 = new File(fakeLocalDir,
+        new Path(localUrl).getName());
+    localFile1.createNewFile();
+    localFile1.deleteOnExit();
+
+    MockClientContext mockClientContext =
+        YarnServiceCliTestUtils.getMockClientContext();
+    RunJobCli runJobCli = new RunJobCli(mockClientContext);
+    Assert.assertFalse(SubmarineLogs.isVerbose());
+
+    // create remote file in local staging dir to simulate HDFS
+    Path stagingDir = mockClientContext.getRemoteDirectoryManager()
+        .getJobStagingArea("my-job",true);
+    File remoteFile1 = new File(stagingDir.toUri().getPath().toString()
+        + "/" + new Path(remoteUrl).getName());
+    remoteFile1.createNewFile();
+    remoteFile1.deleteOnExit();
+
+    Assert.assertTrue(localFile1.exists());
+    Assert.assertTrue(remoteFile1.exists());
+
+    runJobCli.run(
+        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+            "--input_path", "s3://input", "--checkpoint_path", "s3://output",
+            "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
+            "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
+            "--ps_resources", "memory=4096M,vcores=4", "--ps_docker_image",
+            "ps.image", "--worker_docker_image", "worker.image",
+            "--ps_launch_cmd", "python run-ps.py", "--verbose",
+            "--localization",
+            remoteUrl + ":.:ro",
+            "--localization",
+            localFile1.getAbsolutePath() + ":.:ro"});
+    Service serviceSpec = getServiceSpecFromJobSubmitter(
+        runJobCli.getJobSubmitter());
+    Assert.assertEquals(3, serviceSpec.getComponents().size());
+
+    List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
+    Assert.assertEquals(2, files.size());
+    String env = serviceSpec.getConfiguration().getEnv()
+        .get("YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS");
+    String expectedMounts = ApplicationConstants.Environment.PWD.$$() + "/"
+        + remoteFile1.getName() + ":" + ApplicationConstants.Environment.PWD.$$()
+        + "/" + remoteFile1.getName() + ":ro";
+    expectedMounts = expectedMounts + ","
+        + ApplicationConstants.Environment.PWD.$$() + "/"
+        + localFile1.getName() + ":" + ApplicationConstants.Environment.PWD.$$()
+        + "/" + localFile1.getName() + ":ro";
+    Assert.assertTrue(env.contains(expectedMounts));
   }
 
   @Test
