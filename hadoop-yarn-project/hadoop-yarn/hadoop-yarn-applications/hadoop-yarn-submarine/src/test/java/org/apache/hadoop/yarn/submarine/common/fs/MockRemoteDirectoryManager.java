@@ -90,41 +90,50 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public boolean isHdfsDir(String url) throws IOException {
-    if (url.startsWith("hdfs://")) {
-      String dirName = new Path(url).getName();
-      return getFileSystem().getFileStatus(new Path(
-          this.jobDir.getAbsolutePath()
-          + "/" + dirName)).isDirectory();
-    } else {
-      return new File(url).isDirectory();
-    }
+  public boolean isHdfsDir(String uri) throws IOException {
+    return getFileSystem().getFileStatus(
+        new Path(convertToStagingPath(uri))).isDirectory();
   }
 
+  /**
+   * We use staging dir as mock HDFS dir
+   * */
   @Override
   public boolean copyFilesFromHdfs(String remoteDir, String localDir) throws IOException {
-    return FileUtil.copy(getFileSystem(), new Path(remoteDir),
+    // mock the copy from HDFS into a local copy
+    Path remoteToLocalDir = new Path(convertToStagingPath(remoteDir));
+    File old = new File(convertToStagingPath(localDir));
+    if (old.isDirectory() && old.exists()) {
+      if (!FileUtil.fullyDelete(old)) {
+        throw new IOException("Cannot delete temp dir:" + old.getAbsolutePath());
+      }
+    }
+    return FileUtil.copy(getFileSystem(), remoteToLocalDir,
         new File(localDir), false,
         getFileSystem().getConf());
   }
 
+  private String convertToStagingPath(String uri) {
+    String ret = uri;
+    if (uri.startsWith("hdfs://")) {
+      String dirName = new Path(uri).getName();
+      ret = this.jobDir.getAbsolutePath()
+          + "/" + dirName;
+    }
+    return ret;
+  }
+
   @Override
-  public boolean existsHdfsFile(Path url) throws IOException {
+  public boolean existsHdfsFile(Path uri) throws IOException {
     String fakeLocalFilePath = this.jobDir.getAbsolutePath()
-        + "/" + url.getName();
+        + "/" + uri.getName();
     return new File(fakeLocalFilePath).exists();
   }
 
   @Override
-  public FileStatus getHdfsFileStatus(Path url) throws IOException {
-    String path = url.toUri().toString();
-    if (path.startsWith("hdfs://")) {
-      String fakeLocalFilePath = this.jobDir.getAbsolutePath()
-          + "/" + url.getName();
-      new File(fakeLocalFilePath).createNewFile();
-      return getFileSystem().getFileStatus(new Path(fakeLocalFilePath));
-    }
-    return  getFileSystem().getFileStatus(url);
+  public FileStatus getHdfsFileStatus(Path p) throws IOException {
+    return getFileSystem().getFileStatus(new Path(convertToStagingPath(
+        p.toUri().toString())));
   }
 
 }

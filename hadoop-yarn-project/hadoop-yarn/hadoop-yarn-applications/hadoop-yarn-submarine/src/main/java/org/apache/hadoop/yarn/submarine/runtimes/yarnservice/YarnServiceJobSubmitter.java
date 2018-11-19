@@ -341,22 +341,20 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       throws IOException {
     String srcDir = remoteDir;
     String zipDirName = zipFileName;
-    String zipDirPath = System.getProperty("java.io.tmpdir") + "/";
+    String zipDirPath = System.getProperty("java.io.tmpdir") + zipDirName;
     if (needHdfs(remoteDir)) {
-      // download it
-      FileSystem fs = clientContext.getRemoteDirectoryManager()
-          .getFileSystem();
-      srcDir = zipDirPath + zipDirName;
-      boolean downloaded = FileUtil.copy(fs, new Path(remoteDir),
-          new File(srcDir), false,
-          clientContext.getYarnConfig());
+      // Download them to temp dir
+      boolean downloaded = clientContext.getRemoteDirectoryManager()
+          .copyFilesFromHdfs(remoteDir, zipDirPath);
       if (!downloaded) {
         throw new IOException("Failed to download files from "
             + remoteDir);
       }
+      LOG.info("Downloaded {} to {}", remoteDir, zipDirPath);
+      srcDir = zipDirPath;
     }
-    // zip a dir
-    return zipDir(srcDir, zipDirPath + zipDirName + ".zip");
+    // zip a local dir
+    return zipDir(srcDir, zipDirPath + ".zip");
   }
 
   private String zipDir(String srcDir, String dstFile) throws IOException {
@@ -366,6 +364,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     addDirToZip(zos, srcFile);
     // close the ZipOutputStream
     zos.close();
+    LOG.info("Compressed {} to {}", srcDir, dstFile);
     return dstFile;
   }
 
@@ -620,10 +619,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
       // If remote is a dir, may download from hdfs and compress files
       if (clientContext.getRemoteDirectoryManager().isHdfsDir(remoteUri)) {
-        if (containerLocalPath.equals(".")
-            ||containerLocalPath.equals("./")) {
-          destFileType = ConfigFile.TypeEnum.ARCHIVE;
-        }
+        destFileType = ConfigFile.TypeEnum.ARCHIVE;
         srcFileStr = mayDownloadAndZipIt(
             remoteUri, getLastNameFromPath(localFileStr));
       }

@@ -96,6 +96,14 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
 
   @Override
   public boolean copyFilesFromHdfs(String remoteDir, String localDir) throws IOException {
+    // Delete old to avoid failure in FileUtil.copy
+    File old = new File(localDir);
+    if (old.exists()) {
+      if(!FileUtil.fullyDelete(old)){
+        throw new IOException("Failed to delete dir:"
+            + old.getAbsolutePath());
+      }
+    }
     return FileUtil.copy(fs, new Path(remoteDir),
         new File(localDir), false,
         getFileSystem().getConf());
