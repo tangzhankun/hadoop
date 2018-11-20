@@ -310,11 +310,13 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       ConfigFile.TypeEnum type)
       throws IOException {
     Path uploadedFilePath = uploadToRemoteFile(stagingDir, fileToUpload);
-    locateRemoteFileToContainerWorkDir(destFilename, comp, uploadedFilePath);
+    locateRemoteFileToContainerWorkDir(destFilename, comp, uploadedFilePath,
+        type);
   }
 
   private void locateRemoteFileToContainerWorkDir(String destFilename,
-      Component comp, Path uploadedFilePath) throws IOException {
+      Component comp, Path uploadedFilePath, ConfigFile.TypeEnum type)
+      throws IOException {
     FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
 
     FileStatus fileStatus = fs.getFileStatus(uploadedFilePath);
@@ -323,31 +325,50 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     // Set it to component's files list
     comp.getConfiguration().getFiles().add(new ConfigFile().srcFile(
         fileStatus.getPath().toUri().toString()).destFile(destFilename)
-        .type(ConfigFile.TypeEnum.STATIC));
+        .type(type));
   }
 
   private Path uploadToRemoteFile(Path stagingDir, String fileToUpload) throws
       IOException {
-    FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
-    // Upload to remote FS under staging area
-    File localFile = new File(fileToUpload);
-    if (!localFile.exists()) {
-      throw new FileNotFoundException(
-          "Trying to upload file=" + localFile.getAbsolutePath()
-              + " to remote, but couldn't find local file.");
-    }
-    String filename = new File(fileToUpload).getName();
-
-    Path uploadedFilePath = new Path(stagingDir, filename);
-    if (!uploadedFiles.contains(uploadedFilePath)) {
-      if (SubmarineLogs.isVerbose()) {
-        LOG.info("Copying local file=" + fileToUpload + " to remote="
-            + uploadedFilePath);
+    RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
+    FileSystem fs = rdm.getFileSystem();
+    Path uploadedFilePath;
+    FileStatus fileStatus;
+    // If it is a file path in HDFS, no upload
+    if (needHdfs(fileToUpload)) {
+      uploadedFilePath = new Path(fileToUpload);
+      if (!rdm.existsHdfsFile(uploadedFilePath)) {
+        throw new FileNotFoundException(
+            "File " + fileToUpload
+                + " seems a HDFS file, but doesn't exists.");
       }
-      fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
-      uploadedFiles.add(uploadedFilePath);
+      fileStatus = rdm.getHdfsFileStatus(uploadedFilePath);
+      LOG.info("Remote File already in HDFS, no need to upload. "
+          + fileStatus.getPath());
+    } else {
+      // Upload to remote FS under staging area
+      File localFile = new File(fileToUpload);
+      if (!localFile.exists()) {
+        throw new FileNotFoundException(
+            "Trying to upload file=" + localFile.getAbsolutePath()
+                + " to remote, but couldn't find local file.");
+      }
+      String filename = new File(fileToUpload).getName();
+
+      uploadedFilePath = new Path(stagingDir, filename);
+      if (!uploadedFiles.contains(uploadedFilePath)) {
+        if (SubmarineLogs.isVerbose()) {
+          LOG.info("Copying local file=" + fileToUpload + " to remote="
+              + uploadedFilePath);
+        }
+        fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
+        uploadedFiles.add(uploadedFilePath);
+      }
+
+      fileStatus = fs.getFileStatus(uploadedFilePath);
+      LOG.info("Uploaded file path = " + fileStatus.getPath());
     }
-    return uploadedFilePath;
+    return fileStatus.getPath();
   }
 
   private void setPermission(Path destPath, FsPermission permission) throws
@@ -437,15 +458,6 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         }
         zos.closeEntry();
       }
-    }
-  }
-
-  private boolean isDir(String remoteUri) throws IOException {
-    if (needHdfs(remoteUri)) {
-      return clientContext.getRemoteDirectoryManager()
-          .getFileSystem().getFileStatus(new Path(remoteUri)).isDirectory();
-    } else {
-      return new File(remoteUri).isDirectory();
     }
   }
 
@@ -672,9 +684,9 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         containerLocalFilePath = ApplicationConstants.Environment.PWD.$$()
             + "/" + getLastNameFromPath(localFileStr);
       }
-      String hdfsDestUri = uploadToHdfs(stagingDir, srcFileStr);
+      Path hdfsDestUri = uploadToRemoteFile(stagingDir, srcFileStr);
       serviceSpec.getConfiguration().getFiles().add(new ConfigFile().srcFile(
-          hdfsDestUri).destFile(getLastNameFromPath(localFileStr))
+          hdfsDestUri.toString()).destFile(getLastNameFromPath(localFileStr))
           .type(destFileType));
       // set mounts
       // mount path should be absolute
@@ -691,49 +703,6 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       appendToEnv(serviceSpec, "YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS",
           mountStr, ",");
     }
-  }
-
-  private String uploadToHdfs(Path stagingDir, String fileToUpload)
-      throws IOException {
-    RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
-    FileSystem fs = rdm.getFileSystem();
-    Path uploadedFilePath;
-    FileStatus fileStatus;
-    // If it is a file path in HDFS, no upload
-    if (needHdfs(fileToUpload)) {
-      uploadedFilePath = new Path(fileToUpload);
-      if (!rdm.existsHdfsFile(uploadedFilePath)) {
-        throw new FileNotFoundException(
-            "File " + fileToUpload
-                + " seems a HDFS file, but doesn't exists.");
-      }
-      fileStatus = rdm.getHdfsFileStatus(uploadedFilePath);
-      LOG.info("Remote File already in HDFS, no need to upload. "
-          + fileStatus.getPath());
-    } else {
-      // Upload to remote FS under staging area
-      File localFile = new File(fileToUpload);
-      if (!localFile.exists()) {
-        throw new FileNotFoundException(
-            "Trying to upload file=" + localFile.getAbsolutePath()
-                + " to remote, but couldn't find local file.");
-      }
-      String filename = new File(fileToUpload).getName();
-
-      uploadedFilePath = new Path(stagingDir, filename);
-      if (!uploadedFiles.contains(uploadedFilePath)) {
-        if (SubmarineLogs.isVerbose()) {
-          LOG.info("Copying local file=" + fileToUpload + " to remote="
-              + uploadedFilePath);
-        }
-        fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
-        uploadedFiles.add(uploadedFilePath);
-      }
-
-      fileStatus = fs.getFileStatus(uploadedFilePath);
-      LOG.info("Uploaded file path = " + fileStatus.getPath());
-    }
-    return fileStatus.getPath().toUri().toString();
   }
 
   private String generateServiceSpecFile(Service service) throws IOException {

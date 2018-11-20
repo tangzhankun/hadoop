@@ -86,12 +86,11 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public boolean isHdfsDir(String url) throws IOException {
-    if (url.startsWith("hdfs://")) {
-      return getFileSystem().getFileStatus(new Path(url)).isDirectory();
-    } else {
-      return new File(url).isDirectory();
+  public boolean isHdfsDir(String uri) throws IOException {
+    if (uri.startsWith("hdfs://")) {
+      return getFileSystem().getFileStatus(new Path(uri)).isDirectory();
     }
+    return false;
   }
 
   @Override
