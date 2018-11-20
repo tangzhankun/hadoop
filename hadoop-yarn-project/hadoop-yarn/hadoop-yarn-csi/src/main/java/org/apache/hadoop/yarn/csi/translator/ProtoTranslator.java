@@ -15,31 +15,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.hadoop.yarn.csi.translator;
 
-package org.apache.hadoop.hdds.scm.node;
-
-import org.apache.hadoop.classification.InterfaceAudience;
-
-import java.util.Map;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 
 /**
+ * ProtoTranslator converts a YARN side message to CSI proto message
+ * and vice versa. Each CSI proto message should have a corresponding
+ * YARN side message implementation, and a transformer to convert them
+ * one to the other. This layer helps we to hide CSI spec messages
+ * from YARN components.
  *
- * This is the JMX management interface for node manager information.
+ * @param <A> YARN side internal messages
+ * @param <B> CSI proto messages
  */
-@InterfaceAudience.Private
-public interface NodeManagerMXBean {
+public interface ProtoTranslator<A, B> {
 
   /**
-   * Get the number of data nodes that in all states.
-   *
-   * @return A state to number of nodes that in this state mapping
+   * Convert message from type A to type B.
+   * @param messageA
+   * @return messageB
+   * @throws YarnException
    */
-  Map<String, Integer> getNodeCount();
+  B convertTo(A messageA) throws YarnException;
 
   /**
-   * Get the disk metrics like capacity, usage and remaining based on the
-   * storage type.
+   * Convert message from type B to type A.
+   * @param messageB
+   * @return messageA
+   * @throws YarnException
    */
-  Map<String, Long> getNodeInfo();
-
+  A convertFrom(B messageB) throws YarnException;
 }
