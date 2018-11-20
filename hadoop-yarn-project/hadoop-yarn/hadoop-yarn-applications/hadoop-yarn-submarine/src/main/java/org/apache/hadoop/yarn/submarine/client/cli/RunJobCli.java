@@ -133,6 +133,15 @@ public class RunJobCli extends AbstractCli {
         + " The LocalFilePath can be a file path."
         + " If it's a relative path, it'll be put"
         + " under container's implied working directory");
+    options.addOption(CliConstants.KEYTAB, true, "Specify keytab used by the " +
+        "job under security environment");
+    options.addOption(CliConstants.PRINCIPAL, true, "Specify principal used " +
+        "by the job under security environment");
+    options.addOption(CliConstants.DISTRIBUTE_KEYTAB, false, "Distribute " +
+        "local keytab to cluster machines for service authentication. If not " +
+        "sepcified, pre-destributed keytab of which path specified by" +
+        " parameter" + CliConstants.KEYTAB + " on cluster machines will be " +
+        "used");
     options.addOption("h", "help", false, "Print help");
     return options;
   }
@@ -161,7 +170,8 @@ public class RunJobCli extends AbstractCli {
       // Do parsing
       GnuParser parser = new GnuParser();
       CommandLine cli = parser.parse(options, args);
-      parameters.updateParametersByParsedCommandline(cli, options, clientContext);
+      parameters.updateParametersByParsedCommandline(cli, options,
+          clientContext);
     } catch (ParseException e) {
       LOG.error("Exception in parse:", e.getMessage());
       printUsages();
