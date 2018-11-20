@@ -31,7 +31,7 @@ public interface RemoteDirectoryManager {
 
   Path getUserRootFolder() throws IOException;
 
-  boolean isHdfsDir(String url) throws IOException;
+  boolean isDir(String url) throws IOException;
 
   boolean copyFilesFromHdfs(String remoteDir, String localDir)
       throws IOException;

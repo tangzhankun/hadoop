@@ -90,9 +90,10 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public boolean isHdfsDir(String uri) throws IOException {
+  public boolean isDir(String uri) throws IOException {
     return getFileSystem().getFileStatus(
         new Path(convertToStagingPath(uri))).isDirectory();
+
   }
 
   /**

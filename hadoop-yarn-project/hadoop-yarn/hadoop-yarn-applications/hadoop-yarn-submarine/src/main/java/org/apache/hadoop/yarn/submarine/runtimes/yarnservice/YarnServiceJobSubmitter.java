@@ -403,8 +403,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   private String mayDownloadAndZipIt(String remoteDir, String zipFileName)
       throws IOException {
     String srcDir = remoteDir;
-    String zipDirName = zipFileName;
-    String zipDirPath = System.getProperty("java.io.tmpdir") + zipDirName;
+    String zipDirPath = System.getProperty("java.io.tmpdir") + zipFileName;
     if (needHdfs(remoteDir)) {
       // Download them to temp dir
       boolean downloaded = clientContext.getRemoteDirectoryManager()
@@ -673,10 +672,10 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       String containerLocalFilePath = containerLocalPath;
       ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
       // If remote is a dir, may download from hdfs and compress files
-      if (clientContext.getRemoteDirectoryManager().isHdfsDir(remoteUri)) {
+      if (clientContext.getRemoteDirectoryManager().isDir(remoteUri)) {
         destFileType = ConfigFile.TypeEnum.ARCHIVE;
         srcFileStr = mayDownloadAndZipIt(
-            remoteUri, getLastNameFromPath(localFileStr));
+            remoteUri, getLastNameFromPath(srcFileStr));
       }
       if (containerLocalPath.equals(".")
           ||containerLocalPath.equals("./")) {
@@ -686,7 +685,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       }
       Path hdfsDestUri = uploadToRemoteFile(stagingDir, srcFileStr);
       serviceSpec.getConfiguration().getFiles().add(new ConfigFile().srcFile(
-          hdfsDestUri.toString()).destFile(getLastNameFromPath(localFileStr))
+          hdfsDestUri.toString()).destFile(getLastNameFromPath(srcFileStr))
           .type(destFileType));
       // set mounts
       // mount path should be absolute
@@ -698,7 +697,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
             + "/" + containerLocalFilePath;
       }
       String mountStr = ApplicationConstants.Environment.PWD.$$()
-          + "/" + getLastNameFromPath(localFileStr) + ":"
+          + "/" + getLastNameFromPath(remoteUri) + ":"
           + containerLocalFilePath + ":" + loc.getMountPermission();
       appendToEnv(serviceSpec, "YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS",
           mountStr, ",");
