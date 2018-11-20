@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperation;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
@@ -96,7 +97,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
 
     try {
       devicePlugin.onDevicesAllocated(
-          allocation.getAllowed(), DeviceRuntimeSpec.RUNTIME_CGROUPS);
+          allocation.getAllowed(), YarnRuntimeType.RUNTIME_DEFAULT);
     } catch (Exception e) {
       throw new ResourceHandlerException("Exception thrown from"
           + " plugin's \"onDeviceAllocated\"" + e.getMessage());
