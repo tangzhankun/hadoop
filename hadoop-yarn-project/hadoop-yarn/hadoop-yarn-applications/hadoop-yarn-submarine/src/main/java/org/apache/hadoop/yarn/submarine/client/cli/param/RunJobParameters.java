@@ -299,10 +299,10 @@ public class RunJobParameters extends RunParameters {
     return quicklinks;
   }
 
-<<<<<<< HEAD
   public List<Localization> getLocalizations() {
     return localizations;
-=======
+  }
+
   public String getKeytab() {
     return keytab;
   }
@@ -329,6 +329,5 @@ public class RunJobParameters extends RunParameters {
       boolean distributeKerberosKeytab) {
     this.distributeKeytab = distributeKerberosKeytab;
     return this;
->>>>>>> trunk
   }
 }

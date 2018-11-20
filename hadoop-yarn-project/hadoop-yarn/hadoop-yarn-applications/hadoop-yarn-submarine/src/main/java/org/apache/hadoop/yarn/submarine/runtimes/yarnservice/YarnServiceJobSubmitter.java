@@ -18,7 +18,6 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -189,9 +188,11 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
           "Failed to locate core-site.xml / hdfs-site.xml from class path");
     }
     uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir,
-        coreSite.getAbsolutePath(), "core-site.xml", comp);
+        coreSite.getAbsolutePath(), "core-site.xml", comp,
+        ConfigFile.TypeEnum.STATIC);
     uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir,
-        hdfsSite.getAbsolutePath(), "hdfs-site.xml", comp);
+        hdfsSite.getAbsolutePath(), "hdfs-site.xml", comp,
+        ConfigFile.TypeEnum.STATIC);
 
     // DEBUG
     if (SubmarineLogs.isVerbose()) {
