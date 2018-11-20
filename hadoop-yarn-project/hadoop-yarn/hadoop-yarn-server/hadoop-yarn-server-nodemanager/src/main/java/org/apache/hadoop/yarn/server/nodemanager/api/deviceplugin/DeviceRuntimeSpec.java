@@ -19,12 +19,16 @@
 package org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * This is a spec used to prepare & run container.
  * It's return value of onDeviceAllocated invoked by the framework.
- * For preparation, if volumeClaim is populated then the framework will
+ * For preparation, if volumeSpecs is populated then the framework will
  * create the volume before using the device
  * When running container, the envs indicates environment variable needed.
  * The containerRuntime indicates what Docker runtime to use.
@@ -46,16 +50,13 @@ public final class DeviceRuntimeSpec implements Serializable {
   private final Map<String, String> envs;
   private final Set<MountVolumeSpec> volumeMounts;
   private final Set<MountDeviceSpec> deviceMounts;
-  private final Set<VolumeSpec> volumeClaims;
-
-  public final static String RUNTIME_CGROUPS = "default";
-  public final static String RUNTIME_DOCKER = "docker";
+  private final Set<VolumeSpec> volumeSpecs;
 
   private DeviceRuntimeSpec(Builder builder) {
     this.containerRuntime = builder.containerRuntime;
     this.deviceMounts = builder.deviceMounts;
     this.envs = builder.envs;
-    this.volumeClaims = builder.volumeClaims;
+    this.volumeSpecs = builder.volumeSpecs;
     this.volumeMounts = builder.volumeMounts;
   }
 
@@ -75,8 +76,8 @@ public final class DeviceRuntimeSpec implements Serializable {
     return deviceMounts;
   }
 
-  public Set<VolumeSpec> getVolumeClaims() {
-    return volumeClaims;
+  public Set<VolumeSpec> getVolumeSpecs() {
+    return volumeSpecs;
   }
   /**
    * Builder for DeviceRuntimeSpec.
@@ -87,12 +88,12 @@ public final class DeviceRuntimeSpec implements Serializable {
     private Map<String, String> envs;
     private Set<MountVolumeSpec> volumeMounts;
     private Set<MountDeviceSpec> deviceMounts;
-    private Set<VolumeSpec> volumeClaims;
+    private Set<VolumeSpec> volumeSpecs;
 
     private Builder() {
-      containerRuntime = DeviceRuntimeSpec.RUNTIME_DOCKER;
+      containerRuntime = "";
       envs = new HashMap<>();
-      volumeClaims = new TreeSet<>();
+      volumeSpecs = new TreeSet<>();
       deviceMounts = new TreeSet<>();
       volumeMounts = new TreeSet<>();
     }
@@ -111,7 +112,7 @@ public final class DeviceRuntimeSpec implements Serializable {
     }
 
     public Builder addVolumeSpec(VolumeSpec spec) {
-      this.volumeClaims.add(spec);
+      this.volumeSpecs.add(spec);
       return this;
     }
 

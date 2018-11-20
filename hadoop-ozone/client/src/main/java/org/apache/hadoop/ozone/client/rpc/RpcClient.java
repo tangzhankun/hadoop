@@ -610,6 +610,7 @@ public class RpcClient implements ClientProtocol {
   }
 
   @Override
+  @SuppressWarnings("StringSplitter")
   public String getOzoneVolumeName(String s3BucketName) throws IOException {
     String mapping = getOzoneBucketMapping(s3BucketName);
     return mapping.split("/")[0];
@@ -617,9 +618,29 @@ public class RpcClient implements ClientProtocol {
   }
 
   @Override
+  @SuppressWarnings("StringSplitter")
   public String getOzoneBucketName(String s3BucketName) throws IOException {
     String mapping = getOzoneBucketMapping(s3BucketName);
     return mapping.split("/")[1];
+  }
+
+  @Override
+  public List<OzoneBucket> listS3Buckets(String userName, String bucketPrefix,
+                                         String prevBucket, int maxListResult)
+      throws IOException {
+    List<OmBucketInfo> buckets = ozoneManagerClient.listS3Buckets(
+        userName, prevBucket, bucketPrefix, maxListResult);
+
+    return buckets.stream().map(bucket -> new OzoneBucket(
+        conf,
+        this,
+        bucket.getVolumeName(),
+        bucket.getBucketName(),
+        bucket.getAcls(),
+        bucket.getStorageType(),
+        bucket.getIsVersionEnabled(),
+        bucket.getCreationTime()))
+        .collect(Collectors.toList());
   }
 
   @Override

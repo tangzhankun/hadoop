@@ -144,6 +144,8 @@ public final class OzoneConsts {
   public static final String OM_KEY_PREFIX = "/";
   public static final String OM_USER_PREFIX = "$";
   public static final String OM_S3_PREFIX ="S3:";
+  public static final String OM_S3_VOLUME_PREFIX = "s3";
+
 
   /**
    * Max OM Quota size of 1024 PB.
@@ -186,6 +188,8 @@ public final class OzoneConsts {
   public static final String CHUNKS_PATH = "chunksPath";
   public static final String CONTAINER_DB_TYPE = "containerDBType";
   public static final String CHECKSUM = "checksum";
+  public static final String ORIGIN_PIPELINE_ID = "originPipelineId";
+  public static final String ORIGIN_NODE_ID = "originNodeId";
 
   // For OM Audit usage
   public static final String VOLUME = "volume";

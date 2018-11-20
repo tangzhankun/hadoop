@@ -73,7 +73,7 @@ public interface StorageContainerLocationProtocol {
    * searching range cannot exceed the value of count.
    *
    * @param startContainerID start container ID.
-   * @param count count, if count < 0, the max size is unlimited.(
+   * @param count count, if count {@literal <} 0, the max size is unlimited.(
    *              Usually the count will be replace with a very big
    *              value instead of being unlimited in case the db is very big)
    *
@@ -125,6 +125,23 @@ public interface StorageContainerLocationProtocol {
   Pipeline createReplicationPipeline(HddsProtos.ReplicationType type,
       HddsProtos.ReplicationFactor factor, HddsProtos.NodePool nodePool)
       throws IOException;
+
+  /**
+   * Returns the list of active Pipelines.
+   *
+   * @return list of Pipeline
+   *
+   * @throws IOException in case of any exception
+   */
+  List<Pipeline> listPipelines() throws IOException;
+
+  /**
+   * Closes a pipeline given the pipelineID.
+   *
+   * @param pipelineID ID of the pipeline to demolish
+   * @throws IOException
+   */
+  void closePipeline(HddsProtos.PipelineID pipelineID) throws IOException;
 
   /**
    * Returns information about SCM.

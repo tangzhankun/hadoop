@@ -31,6 +31,7 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.ResourceMappings;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
@@ -339,8 +340,8 @@ public class TestDeviceMappingManager {
     }
 
     @Override
-    public DeviceRuntimeSpec onDevicesAllocated(
-        Set<Device> allocatedDevices, String runtime) {
+    public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
+        YarnRuntimeType yarnRuntime) throws Exception {
       return null;
     }
 
