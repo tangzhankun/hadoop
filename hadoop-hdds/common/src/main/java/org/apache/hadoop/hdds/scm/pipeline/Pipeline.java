@@ -188,6 +188,20 @@ public final class Pipeline {
         .toHashCode();
   }
 
+  @Override
+  public String toString() {
+    final StringBuilder b =
+        new StringBuilder(getClass().getSimpleName()).append("[");
+    b.append(" Id: ").append(id.getId());
+    b.append(", Nodes: ");
+    nodeStatus.keySet().forEach(b::append);
+    b.append(", Type:").append(getType());
+    b.append(", Factor:").append(getFactor());
+    b.append(", State:").append(getPipelineState());
+    b.append("]");
+    return b.toString();
+  }
+
   public static Builder newBuilder() {
     return new Builder();
   }

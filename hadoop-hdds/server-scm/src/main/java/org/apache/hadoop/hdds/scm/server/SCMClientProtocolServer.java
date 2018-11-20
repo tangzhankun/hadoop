@@ -42,6 +42,9 @@ import org.apache.hadoop.hdds.scm.container.ContainerInfo;
 import org.apache.hadoop.hdds.scm.pipeline.Pipeline;
 import org.apache.hadoop.hdds.scm.exceptions.SCMException;
 import org.apache.hadoop.hdds.scm.exceptions.SCMException.ResultCodes;
+import org.apache.hadoop.hdds.scm.pipeline.PipelineID;
+import org.apache.hadoop.hdds.scm.pipeline.PipelineManager;
+import org.apache.hadoop.hdds.scm.pipeline.RatisPipelineUtils;
 import org.apache.hadoop.hdds.scm.protocol.StorageContainerLocationProtocol;
 import org.apache.hadoop.hdds.scm.protocolPB.StorageContainerLocationProtocolPB;
 import org.apache.hadoop.hdds.server.events.EventHandler;
@@ -58,7 +61,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -308,6 +310,21 @@ public class SCMClientProtocolServer implements
   }
 
   @Override
+  public List<Pipeline> listPipelines() {
+    return scm.getPipelineManager().getPipelines();
+  }
+
+  @Override
+  public void closePipeline(HddsProtos.PipelineID pipelineID)
+      throws IOException {
+    PipelineManager pipelineManager = scm.getPipelineManager();
+    Pipeline pipeline =
+        pipelineManager.getPipeline(PipelineID.getFromProtobuf(pipelineID));
+    RatisPipelineUtils
+        .finalizeAndDestroyPipeline(pipelineManager, pipeline, conf, false);
+  }
+
+  @Override
   public ScmInfo getScmInfo() throws IOException {
     ScmInfo.Builder builder =
         new ScmInfo.Builder()
@@ -354,7 +371,7 @@ public class SCMClientProtocolServer implements
    */
   public List<DatanodeDetails> queryNode(HddsProtos.NodeState state) {
     Preconditions.checkNotNull(state, "Node Query set cannot be null");
-    return new LinkedList<>(queryNodeState(state));
+    return new ArrayList<>(queryNodeState(state));
   }
 
   @VisibleForTesting

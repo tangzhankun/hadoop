@@ -288,21 +288,10 @@ public class XceiverClientGrpc extends XceiverClientSpi {
     }
   }
 
-  /**
-   * Create a pipeline.
-   */
-  @Override
-  public void createPipeline() {
-    // For stand alone pipeline, there is no notion called setup pipeline.
-  }
-
-  public void destroyPipeline() {
-    // For stand alone pipeline, there is no notion called destroy pipeline.
-  }
-
   @Override
   public void watchForCommit(long index, long timeout)
-      throws InterruptedException, ExecutionException, TimeoutException {
+      throws InterruptedException, ExecutionException, TimeoutException,
+      IOException {
     // there is no notion of watch for commit index in standalone pipeline
   };
 
