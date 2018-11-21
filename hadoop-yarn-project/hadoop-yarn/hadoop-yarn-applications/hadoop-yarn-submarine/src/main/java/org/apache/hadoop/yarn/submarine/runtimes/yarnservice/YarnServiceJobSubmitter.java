@@ -679,17 +679,18 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
             remoteUri, getLastNameFromPath(srcFileStr));
       }
       Path hdfsDestUri = uploadToRemoteFile(stagingDir, srcFileStr);
-      // if provided, use the name of local uri
+      // If provided, use the name of local uri
       if (!containerLocalPath.equals(".")
           && !containerLocalPath.equals("./")) {
-        // We may change the file name in HDFS
+        // We may change the localized filename
         srcFileStr = getLastNameFromPath(localFileStr);
-        LOG.info("Change localized file name to {}", srcFileStr);
       }
       // Remove the ".zip" from localized file name if archive
-      if (destFileType == ConfigFile.TypeEnum.ARCHIVE) {
+      if (destFileType == ConfigFile.TypeEnum.ARCHIVE
+          && srcFileStr.endsWith(".zip")) {
         srcFileStr = srcFileStr.substring(0, srcFileStr.length() - 4);
       }
+      LOG.info("The localized file name is {}", srcFileStr);
       serviceSpec.getConfiguration().getFiles().add(new ConfigFile().srcFile(
           hdfsDestUri.toString()).destFile(getLastNameFromPath(srcFileStr))
           .type(destFileType));
@@ -698,8 +699,9 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       // if relative, no need to mount explicitly
       if (containerLocalPath.startsWith("/")) {
         containerLocalFilePath = containerLocalPath;
-        String mountStr = getLastNameFromPath(remoteUri) + ":"
+        String mountStr = getLastNameFromPath(srcFileStr) + ":"
             + containerLocalFilePath + ":" + loc.getMountPermission();
+        LOG.info("Add bind-mount string {}", mountStr);
         appendToEnv(serviceSpec, "YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS",
             mountStr, ",");
       }

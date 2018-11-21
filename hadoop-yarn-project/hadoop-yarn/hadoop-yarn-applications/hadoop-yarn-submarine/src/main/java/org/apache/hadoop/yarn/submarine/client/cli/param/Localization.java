@@ -22,7 +22,19 @@ import org.apache.commons.cli.ParseException;
 
 public class Localization {
 
-  private String mountPattern = "(wr|rw|ro)$";
+  private String mountPermissionPattern = "(wr|rw|ro)$";
+  /**
+   * Regex for directory/file path in container.
+   * YARN only support absolute path for mount, but we can
+   * support some relative path.
+   * For relative path, we only allow ".", "./","./newName".
+   * relative path like "./a/b" is not allowed.
+   * "." and "./" means original dir/file name in container working directory
+   * "./newName" means use "newName" in container working directory
+   * A absolute path means same path in container filesystem
+   */
+
+  private String localPathPattern = "((^\\.$)|(^\\./$)|(^\\./[^/]+)|(^/.*))";
   private String remoteUri;
   private String localPath;
 
@@ -61,7 +73,13 @@ public class Localization {
     }
     remoteUri = tokens[0];
     localPath = tokens[1];
-    if (!mountPermission.matches(mountPattern)) {
+    if (!localPath.matches(localPathPattern)) {
+      throw new ParseException("Invalid local file path:"
+          + localPath
+          + ", it only support \".\", \"./\", \"./newName\" and "
+          + "absolute path.");
+    }
+    if (!mountPermission.matches(mountPermissionPattern)) {
       throw new ParseException("Invalid mount permission," +
           mountPermission);
     }
