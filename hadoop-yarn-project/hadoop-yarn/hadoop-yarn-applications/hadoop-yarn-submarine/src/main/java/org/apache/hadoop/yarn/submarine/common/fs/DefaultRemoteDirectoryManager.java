@@ -87,7 +87,10 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
 
   @Override
   public boolean isDir(String uri) throws IOException {
-      return getFileSystem().getFileStatus(new Path(uri)).isDirectory();
+      if (uri.startsWith("hdfs://")) {
+        return getFileSystem().getFileStatus(new Path(uri)).isDirectory();
+      }
+      return new File(uri).isDirectory();
   }
 
   @Override

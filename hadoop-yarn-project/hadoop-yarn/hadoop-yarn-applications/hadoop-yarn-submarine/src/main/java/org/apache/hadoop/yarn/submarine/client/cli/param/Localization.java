@@ -22,14 +22,12 @@ import org.apache.commons.cli.ParseException;
 
 public class Localization {
 
-  private String linuxFilePathPattern = "^((.|/)[^/ ]*)+/?$";
-  private String fsPathPattern = "(^hdfs://|.*)(/[^/ ]*)+/?$";
   private String mountPattern = "(wr|rw|ro)$";
   private String remoteUri;
   private String localPath;
 
-  // Read only by default
-  private String mountPermission = "ro";
+  // Read write by default
+  private String mountPermission = "rw";
 
   public void parse(String arg) throws ParseException {
     String[] tokens = arg.split(":");
@@ -62,15 +60,7 @@ public class Localization {
       mountPermission = tokens[2];
     }
     remoteUri = tokens[0];
-    if (!remoteUri.matches(fsPathPattern)) {
-      throw new ParseException("Invalid remoteUri," +
-          remoteUri);
-    }
     localPath = tokens[1];
-    if (!localPath.matches(linuxFilePathPattern)) {
-      throw new ParseException("Invalid localPath," +
-          localPath);
-    }
     if (!mountPermission.matches(mountPattern)) {
       throw new ParseException("Invalid mount permission," +
           mountPermission);
