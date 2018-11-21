@@ -168,15 +168,15 @@ public class TestDeviceMappingManager {
     }
 
     containerLauncher.shutdown();
-    while (!containerLauncher.awaitTermination(10, TimeUnit.SECONDS)){
+    while (!containerLauncher.awaitTermination(10, TimeUnit.SECONDS)) {
       LOG.info("Wait for the threads to finish");
-    };
+    }
 
     Long endTime = System.currentTimeMillis();
     LOG.info("Each container allocation spends roughly: {} ms"
-        ,(endTime - startTime)/totalContainerCount);
+        , (endTime - startTime)/totalContainerCount);
     // Ensure invocation times
-    verify(dmmSpy,times(totalContainerCount)).assignDevices(
+    verify(dmmSpy, times(totalContainerCount)).assignDevices(
         anyString(), any(Container.class));
 
     // Ensure used devices' count for each type is correct
@@ -258,9 +258,9 @@ public class TestDeviceMappingManager {
     }
 
     containerLauncher.shutdown();
-    while (!containerLauncher.awaitTermination(10, TimeUnit.SECONDS)){
+    while (!containerLauncher.awaitTermination(10, TimeUnit.SECONDS)) {
       LOG.info("Wait for the threads to finish");
-    };
+    }
 
 
     // Ensure invocation times
