@@ -403,7 +403,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   private String mayDownloadAndZipIt(String remoteDir, String zipFileName)
       throws IOException {
     String srcDir = remoteDir;
-    String zipDirPath = System.getProperty("java.io.tmpdir") + zipFileName;
+    String zipDirPath =
+        System.getProperty("java.io.tmpdir") + "/" + zipFileName;
     if (needHdfs(remoteDir)) {
       // Download them to temp dir
       boolean downloaded = clientContext.getRemoteDirectoryManager()
@@ -677,30 +678,31 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         srcFileStr = mayDownloadAndZipIt(
             remoteUri, getLastNameFromPath(srcFileStr));
       }
-      if (containerLocalPath.equals(".")
-          ||containerLocalPath.equals("./")) {
-        localFileStr = getLastNameFromPath(srcFileStr);
-        containerLocalFilePath = ApplicationConstants.Environment.PWD.$$()
-            + "/" + getLastNameFromPath(localFileStr);
-      }
       Path hdfsDestUri = uploadToRemoteFile(stagingDir, srcFileStr);
+      // if provided, use the name of local uri
+      if (!containerLocalPath.equals(".")
+          && !containerLocalPath.equals("./")) {
+        // We may change the file name in HDFS
+        srcFileStr = getLastNameFromPath(localFileStr);
+        LOG.info("Change localized file name to {}", srcFileStr);
+      }
+      // Remove the ".zip" from localized file name if archive
+      if (destFileType == ConfigFile.TypeEnum.ARCHIVE) {
+        srcFileStr = srcFileStr.substring(0, srcFileStr.length() - 4);
+      }
       serviceSpec.getConfiguration().getFiles().add(new ConfigFile().srcFile(
           hdfsDestUri.toString()).destFile(getLastNameFromPath(srcFileStr))
           .type(destFileType));
       // set mounts
-      // mount path should be absolute
+      // if mount path is absolute, just use it.
+      // if relative, no need to mount explicitly
       if (containerLocalPath.startsWith("/")) {
         containerLocalFilePath = containerLocalPath;
-      } else if (!containerLocalPath.startsWith(".")){
-        // add container local dir path to be absolute one
-        containerLocalFilePath = ApplicationConstants.Environment.PWD.$$()
-            + "/" + containerLocalFilePath;
+        String mountStr = getLastNameFromPath(remoteUri) + ":"
+            + containerLocalFilePath + ":" + loc.getMountPermission();
+        appendToEnv(serviceSpec, "YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS",
+            mountStr, ",");
       }
-      String mountStr = ApplicationConstants.Environment.PWD.$$()
-          + "/" + getLastNameFromPath(remoteUri) + ":"
-          + containerLocalFilePath + ":" + loc.getMountPermission();
-      appendToEnv(serviceSpec, "YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS",
-          mountStr, ",");
     }
   }
 
