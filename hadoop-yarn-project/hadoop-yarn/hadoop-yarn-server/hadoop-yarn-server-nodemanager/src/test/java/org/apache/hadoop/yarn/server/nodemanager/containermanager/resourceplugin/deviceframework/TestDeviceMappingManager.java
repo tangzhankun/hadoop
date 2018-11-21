@@ -173,8 +173,8 @@ public class TestDeviceMappingManager {
     }
 
     Long endTime = System.currentTimeMillis();
-    LOG.info("Each container allocation spends roughly: {} ms"
-        , (endTime - startTime)/totalContainerCount);
+    LOG.info("Each container allocation spends roughly: {} ms",
+        (endTime - startTime)/totalContainerCount);
     // Ensure invocation times
     verify(dmmSpy, times(totalContainerCount)).assignDevices(
         anyString(), any(Container.class));
