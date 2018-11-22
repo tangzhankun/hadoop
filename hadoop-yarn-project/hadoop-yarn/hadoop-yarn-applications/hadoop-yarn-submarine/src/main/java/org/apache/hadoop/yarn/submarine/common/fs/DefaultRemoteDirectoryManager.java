@@ -29,7 +29,7 @@ import java.io.IOException;
  * TODO, need to properly handle permission / name validation, etc.
  */
 public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
-  FileSystem fs;
+  private FileSystem fs;
 
   public DefaultRemoteDirectoryManager(ClientContext context) {
     try {
@@ -40,7 +40,8 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public Path getJobStagingArea(String jobName, boolean create) throws IOException {
+  public Path getJobStagingArea(String jobName, boolean create)
+      throws IOException {
     Path staging = new Path(getJobRootFolder(jobName), "staging");
     if (create) {
       createFolderIfNotExist(staging);
@@ -63,7 +64,8 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public Path getModelDir(String modelName, boolean create) throws IOException {
+  public Path getModelDir(String modelName, boolean create)
+      throws IOException {
     Path modelDir = new Path(new Path("submarine", "models"), modelName);
     if (create) {
       createFolderIfNotExist(modelDir);
@@ -94,11 +96,12 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public boolean copyFilesFromHdfs(String remoteDir, String localDir) throws IOException {
+  public boolean copyFilesFromHdfs(String remoteDir, String localDir)
+      throws IOException {
     // Delete old to avoid failure in FileUtil.copy
     File old = new File(localDir);
     if (old.exists()) {
-      if(!FileUtil.fullyDelete(old)){
+      if (!FileUtil.fullyDelete(old)) {
         throw new IOException("Failed to delete dir:"
             + old.getAbsolutePath());
       }

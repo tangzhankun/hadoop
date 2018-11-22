@@ -47,7 +47,8 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
     this.jobDir = new File(jobsParentDir.getAbsolutePath(), jobName);
     if (create && !jobDir.exists()) {
       if (!jobDir.mkdirs()) {
-        throw new IOException("Failed to mkdirs for " + jobDir.getAbsolutePath());
+        throw new IOException("Failed to mkdirs for "
+            + jobDir.getAbsolutePath());
       }
     }
     return new Path(jobDir.getAbsolutePath());
@@ -60,7 +61,8 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public Path getModelDir(String modelName, boolean create) throws IOException {
+  public Path getModelDir(String modelName, boolean create)
+      throws IOException {
     if (modelParentDir == null && create) {
       modelParentDir = new File(
           "target/_models_" + System.currentTimeMillis());
@@ -73,7 +75,8 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
     File modelDir = new File(modelParentDir.getAbsolutePath(), modelName);
     if (create) {
       if (!modelDir.exists() && !modelDir.mkdirs()) {
-        throw new IOException("Failed to mkdirs for " + modelDir.getAbsolutePath());
+        throw new IOException("Failed to mkdirs for "
+            + modelDir.getAbsolutePath());
       }
     }
     return new Path(modelDir.getAbsolutePath());
@@ -100,13 +103,15 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
    * We use staging dir as mock HDFS dir
    * */
   @Override
-  public boolean copyFilesFromHdfs(String remoteDir, String localDir) throws IOException {
+  public boolean copyFilesFromHdfs(String remoteDir, String localDir)
+      throws IOException {
     // mock the copy from HDFS into a local copy
     Path remoteToLocalDir = new Path(convertToStagingPath(remoteDir));
     File old = new File(convertToStagingPath(localDir));
     if (old.isDirectory() && old.exists()) {
       if (!FileUtil.fullyDelete(old)) {
-        throw new IOException("Cannot delete temp dir:" + old.getAbsolutePath());
+        throw new IOException("Cannot delete temp dir:"
+            + old.getAbsolutePath());
       }
     }
     return FileUtil.copy(getFileSystem(), remoteToLocalDir,
@@ -133,8 +138,8 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
 
   @Override
   public FileStatus getHdfsFileStatus(Path p) throws IOException {
-    return getFileSystem().getFileStatus(new Path(convertToStagingPath(
-        p.toUri().toString())));
+    return getFileSystem().getFileStatus(new Path(
+        convertToStagingPath(p.toUri().toString())));
   }
 
 }

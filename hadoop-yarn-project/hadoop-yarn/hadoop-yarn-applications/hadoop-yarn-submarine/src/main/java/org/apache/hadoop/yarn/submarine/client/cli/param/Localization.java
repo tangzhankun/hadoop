@@ -20,6 +20,9 @@ package org.apache.hadoop.yarn.submarine.client.cli.param;
 
 import org.apache.commons.cli.ParseException;
 
+/**
+ * Localization parameter.
+ * */
 public class Localization {
 
   private String mountPermissionPattern = "(wr|rw)$";
@@ -42,13 +45,18 @@ public class Localization {
 
   public void parse(String arg) throws ParseException {
     String[] tokens = arg.split(":");
-    int minimumParts = 2;
+    int minimum = "a:b".split(":").length;
+    int minimumWithPermission = "a:b:rw".split(":").length;
+    int minimumParts = minimum;
+    int miniPartsWithHdfs = "hdfs://a:b".split(":").length;
+    int maximumParts = "hdfs://a:b:rw".split(":").length;
     if (tokens[0].equals("hdfs")) {
-      minimumParts = 3;
+      minimumParts = miniPartsWithHdfs;
     }
-    if (tokens.length < minimumParts || tokens.length > 4) {
+    if (tokens.length < minimumParts
+        || tokens.length > maximumParts) {
       throw new ParseException("Invalid parameter,"
-          + "should be \"remoteUri:localPath[:ro|:rw|:wr]\" "
+          + "should be \"remoteUri:localPath[:rw|:wr]\" "
           + "format for --localizations");
     }
 
@@ -57,18 +65,19 @@ public class Localization {
      * Merge part 0 and 1 to build a hdfs path in token[0].
      * toke[1] will be localPath to ease following logic
      * */
-    if (minimumParts == 3) {
+    if (minimumParts == miniPartsWithHdfs) {
       tokens[0] = tokens[0] + ":" + tokens[1];
       tokens[1] = tokens[2];
-      if (tokens.length == 4) {
+      if (tokens.length == maximumParts) {
         // Has permission part
-        mountPermission = tokens[3];
+        mountPermission = tokens[maximumParts - 1];
       }
     }
     // RemoteUri starts with linux file path
-    if (minimumParts == 2 && tokens.length == 3) {
+    if (minimumParts == minimum
+        && tokens.length == minimumWithPermission) {
       // Has permission part
-      mountPermission = tokens[2];
+      mountPermission = tokens[minimumWithPermission - 1];
     }
     remoteUri = tokens[0];
     localPath = tokens[1];
@@ -88,24 +97,24 @@ public class Localization {
     return remoteUri;
   }
 
-  public void setRemoteUri(String remoteUri) {
-    this.remoteUri = remoteUri;
+  public void setRemoteUri(String rUti) {
+    this.remoteUri = rUti;
   }
 
   public String getLocalPath() {
     return localPath;
   }
 
-  public void setLocalPath(String localPath) {
-    this.localPath = localPath;
+  public void setLocalPath(String lPath) {
+    this.localPath = lPath;
   }
 
   public String getMountPermission() {
     return mountPermission;
   }
 
-  public void setMountPermission(String mountPermission) {
-    this.mountPermission = mountPermission;
+  public void setMountPermission(String mPermission) {
+    this.mountPermission = mPermission;
   }
 
 }
