@@ -669,8 +669,6 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       remoteUri = loc.getRemoteUri();
       containerLocalPath = loc.getLocalPath();
       String srcFileStr = remoteUri;
-      String localFileStr = containerLocalPath;
-      String containerLocalFilePath = containerLocalPath;
       ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
       // If remote is a dir, may download from hdfs and compress files
       if (clientContext.getRemoteDirectoryManager().isDir(remoteUri)) {
@@ -682,8 +680,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       // If provided, use the name of local uri
       if (!containerLocalPath.equals(".")
           && !containerLocalPath.equals("./")) {
-        // We may change the localized filename
-        srcFileStr = getLastNameFromPath(localFileStr);
+        // Change the YARN localized file name to what'll used in container
+        srcFileStr = getLastNameFromPath(containerLocalPath);
       }
       // Remove the ".zip" from localized file name if archive
       if (destFileType == ConfigFile.TypeEnum.ARCHIVE
@@ -698,9 +696,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       // if mount path is absolute, just use it.
       // if relative, no need to mount explicitly
       if (containerLocalPath.startsWith("/")) {
-        containerLocalFilePath = containerLocalPath;
         String mountStr = getLastNameFromPath(srcFileStr) + ":"
-            + containerLocalFilePath + ":" + loc.getMountPermission();
+            + containerLocalPath + ":" + loc.getMountPermission();
         LOG.info("Add bind-mount string {}", mountStr);
         appendToEnv(serviceSpec, "YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS",
             mountStr, ",");

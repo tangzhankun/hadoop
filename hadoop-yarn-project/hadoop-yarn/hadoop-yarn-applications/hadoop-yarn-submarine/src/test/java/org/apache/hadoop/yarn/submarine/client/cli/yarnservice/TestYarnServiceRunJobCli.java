@@ -161,12 +161,14 @@ public class TestYarnServiceRunJobCli {
   }
 
   /**
+   * Basic test.
    * In one hand, create local temp file/dir for hdfs URI in
    * local staging dir.
    * In the other hand, use MockRemoteDirectoryManager mock
    * implementation when check FileStatus or exists of HDFS file/dir
-   * --localization hdfs:///user/yarn/script1.py:.:ro
-   * --localization /tmp/script2.py:./:ro
+   * --localization hdfs:///user/yarn/script1.py:.
+   * --localization /tmp/script2.py:./
+   * --localization /tmp/script2.py:/opt/script.py
    * */
   @Test
   public void testRunJobWithBasicLocalization() throws Exception {
@@ -174,8 +176,9 @@ public class TestYarnServiceRunJobCli {
     String containerLocal1 = ".";
     String localUrl = "/temp/script2.py";
     String containerLocal2 = "./";
+    String containerLocal3 = "/opt/script.py";
     String fakeLocalDir = System.getProperty("java.io.tmpdir");
-    // create local file
+    // create local file, we need to put it under local temp dir
     File localFile1 = new File(fakeLocalDir,
         new Path(localUrl).getName());
     localFile1.createNewFile();
@@ -206,51 +209,67 @@ public class TestYarnServiceRunJobCli {
             "ps.image", "--worker_docker_image", "worker.image",
             "--ps_launch_cmd", "python run-ps.py", "--verbose",
             "--localization",
-            remoteUrl + ":" + containerLocal1 + ":ro",
+            remoteUrl + ":" + containerLocal1,
             "--localization",
-            localFile1.getAbsolutePath() + ":"+ containerLocal2 + ":ro"});
+            localFile1.getAbsolutePath() + ":" + containerLocal2,
+            "--localization",
+            localFile1.getAbsolutePath() + ":" + containerLocal3});
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
 
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
-    Assert.assertEquals(2, files.size());
+    Assert.assertEquals(3, files.size());
     ConfigFile file = files.get(0);
     Assert.assertEquals(ConfigFile.TypeEnum.STATIC, file.getType());
     String expectedSrcLocalization = stagingDir.toUri().getPath()
         + "/" + new Path(remoteUrl).getName();
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
+    String expectedDstFileName = new Path(remoteUrl).getName();
+    Assert.assertEquals(expectedDstFileName, file.getDestFile());
+
     file = files.get(1);
     expectedSrcLocalization = stagingDir.toUri().getPath()
         + "/" + new Path(localUrl).getName();
+    Assert.assertEquals(expectedSrcLocalization,
+        new Path(file.getSrcFile()).toUri().getPath());
+    expectedDstFileName = new Path(localUrl).getName();
+    Assert.assertEquals(expectedSrcLocalization,
+        new Path(file.getSrcFile()).toUri().getPath());
+
+    file = files.get(2);
+    expectedSrcLocalization = stagingDir.toUri().getPath()
+        + "/" + new Path(localUrl).getName();
+    Assert.assertEquals(expectedSrcLocalization,
+        new Path(file.getSrcFile()).toUri().getPath());
+    expectedDstFileName = new Path(localUrl).getName();
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
 
     // Ensure env value is correct
     String env = serviceSpec.getConfiguration().getEnv()
         .get("YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS");
-    String expectedMounts = ApplicationConstants.Environment.PWD.$$() + "/"
-        + remoteFile1.getName() + ":" + ApplicationConstants.Environment.PWD.$$()
-        + "/" + remoteFile1.getName() + ":ro";
-    expectedMounts = expectedMounts + ","
-        + ApplicationConstants.Environment.PWD.$$() + "/"
-        + localFile1.getName() + ":" + ApplicationConstants.Environment.PWD.$$()
-        + "/" + localFile1.getName() + ":ro";
+    String expectedMounts = new Path(containerLocal3).getName()
+        + ":" + containerLocal3 + ":rw";
     Assert.assertTrue(env.contains(expectedMounts));
   }
 
   /**
-   * --localization hdfs:///user/yarn/mydir:mydir:ro
+   * Test HDFS dir localization.
+   * --localization hdfs:///user/yarn/mydir:./mydir1
    * --localization hdfs:///user/yarn/mydir2:/opt/dir2:rw
+   * --localization hdfs:///user/yarn/mydir:.
+   * --localization hdfs:///user/yarn/mydir2:./
    * */
   @Test
   public void testRunJobWithHdfsDirLocalization() throws Exception {
     String remoteUrl = "hdfs:///user/yarn/mydir";
-    String containerPath = "mydir";
+    String containerPath = "./mydir1";
     String remoteUrl2 = "hdfs:///user/yarn/mydir2";
     String containPath2 = "/opt/dir2";
-
+    String containerPath3 = ".";
+    String containerPath4 = "./";
     MockClientContext mockClientContext =
         YarnServiceCliTestUtils.getMockClientContext();
     RunJobCli runJobCli = new RunJobCli(mockClientContext);
@@ -293,16 +312,20 @@ public class TestYarnServiceRunJobCli {
             "ps.image", "--worker_docker_image", "worker.image",
             "--ps_launch_cmd", "python run-ps.py", "--verbose",
             "--localization",
-            remoteUrl + ":" + containerPath +":ro",
+            remoteUrl + ":" + containerPath,
             "--localization",
-            remoteUrl2 + ":" + containPath2 + ":rw"});
+            remoteUrl2 + ":" + containPath2 + ":rw",
+            "--localization",
+            remoteUrl + ":" + containerPath3,
+            "--localization",
+            remoteUrl2 + ":" + containerPath4});
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
 
     // Ensure files will be localized
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
-    Assert.assertEquals(2, files.size());
+    Assert.assertEquals(4, files.size());
     ConfigFile file = files.get(0);
     // The hdfs dir should be download and compress and let YARN to uncompress
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
@@ -310,6 +333,9 @@ public class TestYarnServiceRunJobCli {
         + "/" + new Path(remoteUrl).getName() + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
+    // Relative path in container, but not "." or "./". Use its own name
+    String expectedDstFileName = new Path(containerPath).getName();
+    Assert.assertEquals(expectedDstFileName, file.getDestFile());
 
     file = files.get(1);
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
@@ -317,31 +343,51 @@ public class TestYarnServiceRunJobCli {
         + "/" + new Path(remoteUrl2).getName() + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
+    expectedDstFileName = new Path(containPath2).getName();
+    Assert.assertEquals(expectedDstFileName, file.getDestFile());
 
-    // Ensure mounts env value is correct
+    file = files.get(2);
+    Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
+    expectedSrcLocalization = stagingDir.toUri().getPath()
+        + "/" + new Path(remoteUrl).getName() + ".zip";
+    Assert.assertEquals(expectedSrcLocalization,
+        new Path(file.getSrcFile()).toUri().getPath());
+    // Relative path in container ".", use remote path name
+    expectedDstFileName = new Path(remoteUrl).getName();
+    Assert.assertEquals(expectedDstFileName, file.getDestFile());
+
+    file = files.get(3);
+    Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
+    expectedSrcLocalization = stagingDir.toUri().getPath()
+        + "/" + new Path(remoteUrl2).getName() + ".zip";
+    Assert.assertEquals(expectedSrcLocalization,
+        new Path(file.getSrcFile()).toUri().getPath());
+    // Relative path in container "./", use remote path name
+    expectedDstFileName = new Path(remoteUrl2).getName();
+    Assert.assertEquals(expectedDstFileName, file.getDestFile());
+
+    // Ensure mounts env value is correct. Add one mount string
     String env = serviceSpec.getConfiguration().getEnv()
         .get("YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS");
-    String expectedMounts = ApplicationConstants.Environment.PWD.$$() + "/"
-        + remoteDir1.getName() + ":" + ApplicationConstants.Environment.PWD.$$()
-        + "/" + containerPath + ":ro";
-    Assert.assertTrue(env.contains(expectedMounts));
 
-    expectedMounts = ApplicationConstants.Environment.PWD.$$() + "/"
-        + remoteDir2.getName() + ":" + containPath2 + ":rw";
+    String expectedMounts =
+        new Path(containPath2).getName() + ":" + containPath2 + ":rw";
     Assert.assertTrue(env.contains(expectedMounts));
   }
 
   /**
-   * --localization /user/yarn/mydir:mydir:ro
+   * --localization /user/yarn/mydir:./mydir1
    * --localization /user/yarn/mydir2:/opt/dir2:rw
+   * --localization /user/yarn/mydir2:.
    * */
   @Test
   public void testRunJobWithLocalDirLocalization() throws Exception {
     String fakeLocalDir = System.getProperty("java.io.tmpdir");
     String localUrl = "/user/yarn/mydir";
-    String containerPath = "mydir";
+    String containerPath = "./mydir1";
     String localUrl2 = "/user/yarn/mydir2";
     String containPath2 = "/opt/dir2";
+    String containerPath3 = ".";
 
     MockClientContext mockClientContext =
         YarnServiceCliTestUtils.getMockClientContext();
@@ -383,16 +429,19 @@ public class TestYarnServiceRunJobCli {
             "ps.image", "--worker_docker_image", "worker.image",
             "--ps_launch_cmd", "python run-ps.py", "--verbose",
             "--localization",
-            fakeLocalDir + localUrl + ":" + containerPath +":ro",
+            fakeLocalDir + localUrl + ":" + containerPath,
             "--localization",
-            fakeLocalDir + localUrl2 + ":" + containPath2 + ":rw"});
+            fakeLocalDir + localUrl2 + ":" + containPath2 + ":rw",
+            "--localization",
+            fakeLocalDir + localUrl2 + ":" + containerPath3});
+
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
 
     // Ensure dirs will be zipped and localized
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
-    Assert.assertEquals(2, files.size());
+    Assert.assertEquals(3, files.size());
     ConfigFile file = files.get(0);
     Path stagingDir = mockClientContext.getRemoteDirectoryManager()
         .getJobStagingArea("my-job",true);
@@ -401,6 +450,8 @@ public class TestYarnServiceRunJobCli {
         + "/" + new Path(localUrl).getName() + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
+    String expectedDstFileName = new Path(containerPath).getName();
+    Assert.assertEquals(expectedDstFileName, file.getDestFile());
 
     file = files.get(1);
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
@@ -408,17 +459,24 @@ public class TestYarnServiceRunJobCli {
         + "/" + new Path(localUrl2).getName() + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
+    expectedDstFileName = new Path(containPath2).getName();
+    Assert.assertEquals(expectedDstFileName, file.getDestFile());
+
+    file = files.get(2);
+    Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
+    expectedSrcLocalization = stagingDir.toUri().getPath()
+        + "/" + new Path(localUrl2).getName() + ".zip";
+    Assert.assertEquals(expectedSrcLocalization,
+        new Path(file.getSrcFile()).toUri().getPath());
+    expectedDstFileName = new Path(localUrl2).getName();
+    Assert.assertEquals(expectedDstFileName, file.getDestFile());
 
     // Ensure mounts env value is correct
     String env = serviceSpec.getConfiguration().getEnv()
         .get("YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS");
-    String expectedMounts = ApplicationConstants.Environment.PWD.$$() + "/"
-        + localDir1.getName() + ":" + ApplicationConstants.Environment.PWD.$$()
-        + "/" + containerPath + ":ro";
-    Assert.assertTrue(env.contains(expectedMounts));
+    String expectedMounts = new Path(containPath2).getName()
+        + ":" + containPath2 + ":rw";
 
-    expectedMounts = ApplicationConstants.Environment.PWD.$$() + "/"
-        + localDir2.getName() + ":" + containPath2 + ":rw";
     Assert.assertTrue(env.contains(expectedMounts));
   }
 
