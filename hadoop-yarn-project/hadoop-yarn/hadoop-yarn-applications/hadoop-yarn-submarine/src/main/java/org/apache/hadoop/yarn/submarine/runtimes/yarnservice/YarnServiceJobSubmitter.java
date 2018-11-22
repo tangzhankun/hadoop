@@ -20,7 +20,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.client.api.AppAdminClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -431,7 +430,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     return dstFile;
   }
 
-  private void addDirToZip(ZipOutputStream zos, File srcFile) throws IOException {
+  private void addDirToZip(ZipOutputStream zos, File srcFile)
+      throws IOException {
     File[] files = srcFile.listFiles();
     if (null == files) {
       return;
@@ -591,7 +591,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
 
     handleServiceEnvs(serviceSpec, parameters);
 
-    handleLocalizations(serviceSpec, parameters);
+    handleLocalizations(parameters);
 
     if (parameters.getNumWorkers() > 0) {
       addWorkerComponents(serviceSpec, parameters);
@@ -656,8 +656,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
    * and upload to staging dir in HDFS
    * If localFilePath is ".", we'll use remote file/dir name
    * */
-  private void handleLocalizations(Service serviceSpec,
-      RunJobParameters parameters) throws IOException {
+  private void handleLocalizations(RunJobParameters parameters)
+      throws IOException {
     // Handle localizations
     Path stagingDir =
         clientContext.getRemoteDirectoryManager().getJobStagingArea(

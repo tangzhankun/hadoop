@@ -19,10 +19,7 @@
 package org.apache.hadoop.yarn.submarine.client.cli.yarnservice;
 
 import com.google.common.collect.ImmutableMap;
-import javafx.application.Application;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AppAdminClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -144,7 +141,7 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
             "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
@@ -169,7 +166,7 @@ public class TestYarnServiceRunJobCli {
    * --localization hdfs:///user/yarn/script1.py:.
    * --localization /tmp/script2.py:./
    * --localization /tmp/script2.py:/opt/script.py
-   * */
+   */
   @Test
   public void testRunJobWithBasicLocalization() throws Exception {
     String remoteUrl = "hdfs:///user/yarn/script1.py";
@@ -191,8 +188,8 @@ public class TestYarnServiceRunJobCli {
 
     // create remote file in local staging dir to simulate HDFS
     Path stagingDir = mockClientContext.getRemoteDirectoryManager()
-        .getJobStagingArea("my-job",true);
-    File remoteFile1 = new File(stagingDir.toUri().getPath().toString()
+        .getJobStagingArea("my-job", true);
+    File remoteFile1 = new File(stagingDir.toUri().getPath()
         + "/" + new Path(remoteUrl).getName());
     remoteFile1.createNewFile();
     remoteFile1.deleteOnExit();
@@ -201,7 +198,7 @@ public class TestYarnServiceRunJobCli {
     Assert.assertTrue(remoteFile1.exists());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
             "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
@@ -261,7 +258,7 @@ public class TestYarnServiceRunJobCli {
    * --localization hdfs:///user/yarn/mydir2:/opt/dir2:rw
    * --localization hdfs:///user/yarn/mydir:.
    * --localization hdfs:///user/yarn/mydir2:./
-   * */
+   */
   @Test
   public void testRunJobWithHdfsDirLocalization() throws Exception {
     String remoteUrl = "hdfs:///user/yarn/mydir";
@@ -277,7 +274,7 @@ public class TestYarnServiceRunJobCli {
 
     // create remote file in local staging dir to simulate HDFS
     Path stagingDir = mockClientContext.getRemoteDirectoryManager()
-        .getJobStagingArea("my-job",true);
+        .getJobStagingArea("my-job", true);
     File remoteDir1 = new File(stagingDir.toUri().getPath().toString()
         + "/" + new Path(remoteUrl).getName());
     remoteDir1.mkdir();
@@ -304,7 +301,7 @@ public class TestYarnServiceRunJobCli {
     Assert.assertTrue(remoteDir2.exists());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
             "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
@@ -379,7 +376,7 @@ public class TestYarnServiceRunJobCli {
    * --localization /user/yarn/mydir:./mydir1
    * --localization /user/yarn/mydir2:/opt/dir2:rw
    * --localization /user/yarn/mydir2:.
-   * */
+   */
   @Test
   public void testRunJobWithLocalDirLocalization() throws Exception {
     String fakeLocalDir = System.getProperty("java.io.tmpdir");
@@ -421,7 +418,7 @@ public class TestYarnServiceRunJobCli {
     Assert.assertTrue(localDir2.exists());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
             "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
@@ -444,7 +441,7 @@ public class TestYarnServiceRunJobCli {
     Assert.assertEquals(3, files.size());
     ConfigFile file = files.get(0);
     Path stagingDir = mockClientContext.getRemoteDirectoryManager()
-        .getJobStagingArea("my-job",true);
+        .getJobStagingArea("my-job", true);
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
     String expectedSrcLocalization = stagingDir.toUri().getPath()
         + "/" + new Path(localUrl).getName() + ".zip";
@@ -489,14 +486,14 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
             "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
             "--ps_resources", "memory=4096M,vcores=4", "--ps_docker_image",
             "ps.image", "--worker_docker_image", "worker.image",
             "--tensorboard", "--ps_launch_cmd", "python run-ps.py",
-            "--verbose" });
+            "--verbose"});
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
     Assert.assertEquals(4, serviceSpec.getComponents().size());
@@ -519,10 +516,10 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "1", "--worker_launch_cmd", "python run-job.py",
-            "--worker_resources", "memory=2G,vcores=2", "--verbose" });
+            "--worker_resources", "memory=2G,vcores=2", "--verbose"});
 
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
@@ -539,9 +536,9 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
-            "--num_workers", "0", "--tensorboard", "--verbose" });
+            "--num_workers", "0", "--tensorboard", "--verbose"});
 
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
@@ -560,11 +557,11 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "0", "--tensorboard", "--verbose",
             "--tensorboard_resources", "memory=2G,vcores=2",
-            "--tensorboard_docker_image", "tb_docker_image:001" });
+            "--tensorboard_docker_image", "tb_docker_image:001"});
 
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
@@ -583,10 +580,10 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--num_workers", "0", "--tensorboard", "--verbose",
             "--tensorboard_resources", "memory=2G,vcores=2",
-            "--tensorboard_docker_image", "tb_docker_image:001" });
+            "--tensorboard_docker_image", "tb_docker_image:001"});
 
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
@@ -634,7 +631,7 @@ public class TestYarnServiceRunJobCli {
       Assert.assertEquals(
           runJobCli.getRunJobParameters().getTensorboardDockerImage(),
           tensorboardComp.getArtifact().getId());
-    } else{
+    } else {
       Assert.assertNull(tensorboardComp.getArtifact());
     }
 
@@ -679,11 +676,11 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "1", "--worker_launch_cmd", "python run-job.py",
             "--worker_resources", "memory=2G,vcores=2", "--tensorboard",
-            "--verbose" });
+            "--verbose"});
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
 
@@ -703,10 +700,10 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--num_workers", "1",
             "--worker_launch_cmd", "python run-job.py", "--worker_resources",
-            "memory=2G,vcores=2", "--tensorboard", "--verbose" });
+            "memory=2G,vcores=2", "--tensorboard", "--verbose"});
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
 
@@ -725,11 +722,11 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "1", "--worker_launch_cmd", "python run-job.py",
             "--worker_resources", "memory=2G,vcores=2", "--tensorboard", "true",
-            "--verbose" });
+            "--verbose"});
     SubmarineStorage storage =
         mockClientContext.getRuntimeFactory().getSubmarineStorage();
     Map<String, String> jobInfo = storage.getJobInfoByName("my-job");
@@ -746,7 +743,7 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
             "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
@@ -754,7 +751,7 @@ public class TestYarnServiceRunJobCli {
             "ps.image", "--worker_docker_image", "worker.image",
             "--ps_launch_cmd", "python run-ps.py", "--verbose", "--quicklink",
             "AAA=http://master-0:8321", "--quicklink",
-            "BBB=http://worker-0:1234" });
+            "BBB=http://worker-0:1234"});
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
@@ -774,7 +771,7 @@ public class TestYarnServiceRunJobCli {
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
     runJobCli.run(
-        new String[] { "--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
             "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
             "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
@@ -782,7 +779,7 @@ public class TestYarnServiceRunJobCli {
             "ps.image", "--worker_docker_image", "worker.image",
             "--ps_launch_cmd", "python run-ps.py", "--verbose", "--quicklink",
             "AAA=http://master-0:8321", "--quicklink",
-            "BBB=http://worker-0:1234", "--tensorboard" });
+            "BBB=http://worker-0:1234", "--tensorboard"});
     Service serviceSpec = getServiceSpecFromJobSubmitter(
         runJobCli.getJobSubmitter());
     Assert.assertEquals(4, serviceSpec.getComponents().size());

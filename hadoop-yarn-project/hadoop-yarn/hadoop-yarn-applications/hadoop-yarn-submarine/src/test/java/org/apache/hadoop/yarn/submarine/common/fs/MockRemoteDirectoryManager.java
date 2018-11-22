@@ -100,7 +100,7 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   /**
-   * We use staging dir as mock HDFS dir
+   * We use staging dir as mock HDFS dir.
    * */
   @Override
   public boolean copyFilesFromHdfs(String remoteDir, String localDir)
