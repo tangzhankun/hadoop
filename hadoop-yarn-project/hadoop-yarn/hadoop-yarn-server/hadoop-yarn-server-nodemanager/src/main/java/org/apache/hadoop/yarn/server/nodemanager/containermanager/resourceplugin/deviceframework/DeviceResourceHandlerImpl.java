@@ -114,7 +114,10 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
       } catch (ResourceHandlerException e) {
         LOG.error("Cannot set {} with value {} to container {}",
             CGroupsHandler.CGROUP_PARAM_DEVICES_DENY,
-            "a", containerIdStr);
+            "\"a\"", containerIdStr);
+        cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
+            containerIdStr);
+        throw e;
       }
       for (Device device : allowed) {
         major = device.getMajorNumber();
