@@ -55,6 +55,7 @@ public class DevicePluginAdapter implements ResourcePlugin {
   private DeviceResourceHandlerImpl deviceResourceHandler;
   private DeviceResourceUpdaterImpl deviceResourceUpdater;
 
+
   public DevicePluginAdapter(String name, DevicePlugin dp,
       DeviceMappingManager dmm) {
     deviceMappingManager = dmm;
@@ -82,7 +83,7 @@ public class DevicePluginAdapter implements ResourcePlugin {
       PrivilegedOperationExecutor privilegedOperationExecutor) {
     this.deviceResourceHandler = new DeviceResourceHandlerImpl(resourceName,
         devicePlugin, this, deviceMappingManager,
-        cGroupsHandler, privilegedOperationExecutor);
+        cGroupsHandler, privilegedOperationExecutor, nmContext);
     return deviceResourceHandler;
   }
 

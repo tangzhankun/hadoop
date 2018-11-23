@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.server.nodemanager.Context;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
@@ -31,13 +32,18 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileg
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.List;
 import java.util.Set;
 
 public class DeviceResourceHandlerImpl implements ResourceHandler {
 
-  final static Log LOG = LogFactory.getLog(DeviceResourceHandlerImpl.class);
+  static final Logger LOG =
+      LoggerFactory.getLogger(DeviceResourceHandlerImpl.class);
 
   private String resourceName;
   private DevicePlugin devicePlugin;
@@ -46,18 +52,22 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   private PrivilegedOperationExecutor privilegedOperationExecutor;
   private DevicePluginAdapter devicePluginAdapter;
 
+  private Context nmContext;
+
   public DeviceResourceHandlerImpl(String resourceName,
       DevicePlugin devicePlugin,
       DevicePluginAdapter devicePluginAdapter,
       DeviceMappingManager deviceMappingManager,
       CGroupsHandler cGroupsHandler,
-      PrivilegedOperationExecutor privilegedOperation) {
+      PrivilegedOperationExecutor privilegedOperation,
+      Context ctx) {
     this.devicePluginAdapter = devicePluginAdapter;
     this.resourceName = resourceName;
     this.devicePlugin = devicePlugin;
     this.cGroupsHandler = cGroupsHandler;
     this.privilegedOperationExecutor = privilegedOperation;
     this.deviceMappingManager = deviceMappingManager;
+    this.nmContext = ctx;
   }
 
   @Override
@@ -74,7 +84,9 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     // Add device set. Here we trust the plugin's return value
     deviceMappingManager.addDeviceSet(resourceName, availableDevices);
     // TODO: Init cgroups
-
+    // And initialize cgroups
+    this.cGroupsHandler.initializeCGroupController(
+        CGroupsHandler.CGroupController.DEVICES);
     return null;
   }
 
@@ -86,15 +98,56 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     LOG.debug("Allocated to " +
         containerIdStr + ": " + allocation );
 
-    devicePlugin.onDevicesAllocated(
-        allocation.getAllowed(), DeviceRuntimeSpec.RUNTIME_CGROUPS);
-
     // cgroups operation based on allocation
-    /**
-     * TODO: implement a general container-executor device module to accept do isolation
-     * */
+    cGroupsHandler.createCGroup(CGroupsHandler.CGroupController.DEVICES,
+        containerIdStr);
+    if (!DockerLinuxContainerRuntime.isDockerContainerRequested(
+        nmContext.getConf(),
+        container.getLaunchContext().getEnvironment())) {
+      Set<Device> allowed = allocation.getAllowed();
+      int major;
+      int minor;
+      String value;
+      try {
+        cGroupsHandler.updateCGroupParam(CGroupsHandler.CGroupController.DEVICES,
+            containerIdStr, CGroupsHandler.CGROUP_PARAM_DEVICES_DENY, "a");
+      } catch (ResourceHandlerException e) {
+        LOG.error("Cannot set {} with value {} to container {}",
+            CGroupsHandler.CGROUP_PARAM_DEVICES_DENY,
+            "a", containerIdStr);
+      }
+      for (Device device : allowed) {
+        major = device.getMajorNumber();
+        minor = device.getMinorNumber();
+        String dt = getDeviceType(major, minor);
+        value = dt + " " + major + ":" + minor + " rwm";
+        try {
+          cGroupsHandler.updateCGroupParam(CGroupsHandler.CGroupController.DEVICES,
+              containerIdStr, CGroupsHandler.CGROUP_PARAM_DEVICES_ALLOW, value);
+        } catch (ResourceHandlerException e) {
+          cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
+              containerIdStr);
+          LOG.error("Cannot set {} with value {} to container {}", CGroupsHandler.CGROUP_PARAM_DEVICES_ALLOW,
+              value, containerIdStr);
+          throw e;
+        }
+      }
+    }
 
     return null;
+  }
+
+  /**
+   * Get the device type used for cgroups value set.
+   * If /sys/dev/char/major:minor exists,
+   * */
+  private String getDeviceType(int major, int minor) {
+    File searchFile =
+        new File("/sys/dev/char/" + major + ":" + minor);
+    if (searchFile.exists()) {
+      return "c";
+    }
+    return "b";
   }
 
   @Override

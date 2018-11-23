@@ -90,6 +90,9 @@ public interface CGroupsHandler {
   String CGROUP_CPU_QUOTA_US = "cfs_quota_us";
   String CGROUP_CPU_SHARES = "shares";
 
+  String CGROUP_PARAM_DEVICES_ALLOW = "allow";
+  String CGROUP_PARAM_DEVICES_DENY = "deny";
+
   /**
    * Mounts or initializes a cgroup controller.
    * @param controller - the controller being initialized
