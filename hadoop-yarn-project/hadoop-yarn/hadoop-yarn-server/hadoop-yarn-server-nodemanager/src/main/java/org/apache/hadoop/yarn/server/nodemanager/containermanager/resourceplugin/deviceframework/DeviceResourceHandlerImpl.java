@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
@@ -90,6 +88,12 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     return null;
   }
 
+  /**
+   * Due to cgroupv1's policy, devices cgroups needs root permission.
+   * See
+   * <a href="https://github.com/torvalds/linux/blob/6f0d349d922ba44e4348a17a78ea51b7135965b1/security/device_cgroup.c#L604">kernel devices code</a>
+   *
+   * */
   @Override
   public List<PrivilegedOperation> preStart(Container container) throws ResourceHandlerException {
     String containerIdStr = container.getContainerId().toString();
@@ -108,28 +112,17 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
       int major;
       int minor;
       String value;
-      try {
-        cGroupsHandler.updateCGroupParam(CGroupsHandler.CGroupController.DEVICES,
-            containerIdStr, CGroupsHandler.CGROUP_PARAM_DEVICES_DENY, "a");
-      } catch (ResourceHandlerException e) {
-        LOG.error("Cannot set {} with value {} to container {}",
-            CGroupsHandler.CGROUP_PARAM_DEVICES_DENY,
-            "\"a\"", containerIdStr);
-//        cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
-//            containerIdStr);
-        throw e;
-      }
+
       for (Device device : allowed) {
         major = device.getMajorNumber();
         minor = device.getMinorNumber();
         String dt = getDeviceType(major, minor);
         value = dt + " " + major + ":" + minor + " rwm";
         try {
-          cGroupsHandler.updateCGroupParam(CGroupsHandler.CGroupController.DEVICES,
-              containerIdStr, CGroupsHandler.CGROUP_PARAM_DEVICES_ALLOW, value);
+          // use container-executor to do device isolation
         } catch (ResourceHandlerException e) {
-          //cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
-          //    containerIdStr);
+          cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
+              containerIdStr);
           LOG.error("Cannot set {} with value {} to container {}", CGroupsHandler.CGROUP_PARAM_DEVICES_ALLOW,
               value, containerIdStr);
           throw e;
