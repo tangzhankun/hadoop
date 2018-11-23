@@ -128,7 +128,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
           cGroupsHandler.updateCGroupParam(CGroupsHandler.CGroupController.DEVICES,
               containerIdStr, CGroupsHandler.CGROUP_PARAM_DEVICES_ALLOW, value);
         } catch (ResourceHandlerException e) {
-          cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
+          //cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
               containerIdStr);
           LOG.error("Cannot set {} with value {} to container {}", CGroupsHandler.CGROUP_PARAM_DEVICES_ALLOW,
               value, containerIdStr);
