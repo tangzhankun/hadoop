@@ -37,62 +37,75 @@
 
 static const struct section* cfg_section;
 
+// Search a string in a string list
+static int search_in_list(char** list, char* token) {
+  int found = 0;
+  int i = 0;
+  char** iterator = list;
+  // search token in  list
+  while (iterator[i] != NULL) {
+    if (strstr(iterator[i], token) != NULL) {
+      // found deny device in allowed list
+      found = 1;
+      return 0;
+    }
+    i++;
+  }
+  if (!found) {
+    return -1;
+  }
+}
+
 static int internal_handle_devices_request(
     update_cgroups_parameters_function update_cgroups_parameters_func_p,
     char** devices_number_tokens,
     const char* container_id) {
   int return_code = 0;
 
-  char** blacklist_numbers = NULL;
-  char* blacklist_str = get_section_value(DEVICES_BLACKLIST_DEVICES_NUMBERS,
+  char** allowed_numbers = NULL;
+  char* allowed_str = get_section_value(DEVICES_ALLOWED_NUMBERS,
      cfg_section);
   // Get denied "major:minor" device numbers from cfg, if not set, means all minor
   // devices can be used by YARN
-  if (blacklist_str != NULL) {
-    blacklist_numbers = split_delimiter(blacklist_str, ",");
-    if (NULL == blacklist_numbers) {
+  if (allowed_str != NULL) {
+    allowed_numbers = split_delimiter(allowed_str, ",");
+    if (NULL == allowed_numbers) {
       fprintf(ERRORFILE,
           "Invalid value set for %s, value=%s\n",
-          DEVICES_BLACKLIST_DEVICES_NUMBERS, blacklist_str);
+          DEVICES_ALLOWED_NUMBERS,
+          allowed_str);
       return_code = -1;
       goto cleanup;
     }
   }
 
-  const char** iterator = devices_number_tokens;
-  int count = 0;
-  // Check if any device number is in blacklist
-  if (blacklist_numbers != NULL) {
-    const char** blacklist_iterator = blacklist_numbers;
-    int i = 0;
-    while (iterator[count] != NULL) {
-      i = 0;
-      while (blacklist_iterator[i] != NULL) {
-        if (strstr(iterator[count], blacklist_iterator[i]) != NULL) {
-          // contains black-list device number
-          fprintf(ERRORFILE, "Requested device not allowed: %s\n",
-            iterator[count]);
-          return_code = -1;
-          goto cleanup;
-        }
-        i++;
-      }
-      count++;
-    }
-  }
   // Update valid cgroups devices values
-  count = 0;
+  char** iterator = devices_number_tokens;
+  int count = 0;
   char* value = NULL;
   int index = 0;
   while (iterator[count] != NULL) {
-    // replace "c-242:0-rwm" to "c 242:0 rwm"
+    // Replace like "c-242:0-rwm" to "c 242:0 rwm"
     value = iterator[count];
+    index = 0;
     while (value[index] != '\0') {
       if (value[index] == '-') {
         value[index] = ' ';
       }
       index++;
     }
+
+    // Check if excluded device number is in allowed list
+    if (allowed_numbers != NULL) {
+      fprintf(LOGFILE, "Checking if in allowed list:", iterator[count]);
+      int found = search_in_list(allowed_numbers, iterator[count]);
+      if (!found) {
+        fprintf(ERRORFILE, "Trying to deny device which is not in allowed list: %s\n",
+          iterator[count]);
+      }
+    }
+
+    // update device cgroups value
     int rc = update_cgroups_parameters_func_p("devices", "deny",
       container_id, iterator[count]);
 
@@ -105,11 +118,8 @@ static int internal_handle_devices_request(
   }
 
 cleanup:
-  if (blacklist_numbers != NULL) {
-    free_values(blacklist_numbers);
-  }
-  if (devices_number_tokens != NULL) {
-    free_values(devices_number_tokens);
+  if (allowed_numbers != NULL) {
+    free_values(allowed_numbers);
   }
 
   return return_code;

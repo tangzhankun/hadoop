@@ -23,8 +23,8 @@
 #ifndef _MODULES_DEVICES_MUDULE_H_
 #define _MODULES_DEVICES_MUDULE_H_
 
-// Black list. value format is "c major1:minor1,b major2:minor2"
-#define DEVICES_BLACKLIST_DEVICES_NUMBERS "devices.blacklist"
+// Allowed device list. value format is "major1:minor1,major2:minor2"
+#define DEVICES_ALLOWED_NUMBERS "devices.allowed-numbers"
 #define DEVICES_MODULE_SECTION_NAME "devices"
 
 // For unit test stubbing
