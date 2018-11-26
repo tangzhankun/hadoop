@@ -98,7 +98,7 @@ static int internal_handle_devices_request(
       int found = search_in_list(allowed_numbers, iterator[count]);
       if (!found) {
         fprintf(ERRORFILE,
-        "Try to deny device but it is not in configuredd allowed list: %s\n",
+        "Try to deny this but its device number is not in configured allowed list: %s\n",
           iterator[count]);
         return_code = -1;
         goto cleanup;
