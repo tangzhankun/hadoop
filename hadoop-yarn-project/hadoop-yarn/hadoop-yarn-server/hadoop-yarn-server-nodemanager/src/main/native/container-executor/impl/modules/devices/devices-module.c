@@ -82,7 +82,17 @@ static int internal_handle_devices_request(
   }
   // Update valid cgroups devices values
   count = 0;
+  char* value = NULL;
+  int index = 0;
   while (iterator[count] != NULL) {
+    // replace "c-242:0-rwm" to "c 242:0 rwm"
+    value = iterator[count];
+    while (value[index] != '\0') {
+      if (value[index] == '-') {
+        value[index] = ' ';
+      }
+      index++;
+    }
     int rc = update_cgroups_parameters_func_p("devices", "deny",
       container_id, iterator[count]);
 
@@ -112,7 +122,8 @@ void reload_devices_configuration() {
 /*
  * Format of devices request commandline:
  * The excluded_devices is comma separated device cgroups values with device type.
- * c-e devices --excluded_devices b 8:16,c 244:0,c 244:1 --container_id container_x_y
+ * The "-" will be replaced with " " to match the cgrooups parameter
+ * c-e devices --excluded_devices b-8:16,c-244:0,c-244:1 --container_id container_x_y
  */
 int handle_devices_request(update_cgroups_parameters_function func,
     const char* module_name, int module_argc, char** module_argv) {
