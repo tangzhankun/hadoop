@@ -135,6 +135,7 @@ add_library(container
     main/native/container-executor/impl/modules/common/module-configs.c
     main/native/container-executor/impl/modules/gpu/gpu-module.c
     main/native/container-executor/impl/modules/fpga/fpga-module.c
+    main/native/container-executor/impl/modules/devices/devices-module.c
     main/native/container-executor/impl/utils/docker-util.c
 )
 
