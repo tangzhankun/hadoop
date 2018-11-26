@@ -79,7 +79,6 @@ static int internal_handle_devices_request(
     }
   }
 
-  // Update valid cgroups devices values
   char** iterator = devices_number_tokens;
   int count = 0;
   char* value = NULL;
@@ -97,15 +96,17 @@ static int internal_handle_devices_request(
 
     // Check if excluded device number is in allowed list
     if (allowed_numbers != NULL) {
-      fprintf(LOGFILE, "Checking if in allowed list:", iterator[count]);
+      fprintf(LOGFILE, "Checking if in allowed list:%s\n", iterator[count]);
       int found = search_in_list(allowed_numbers, iterator[count]);
       if (!found) {
         fprintf(ERRORFILE, "Trying to deny device which is not in allowed list: %s\n",
           iterator[count]);
+        return_code = -1;
+        goto cleanup;
       }
     }
 
-    // update device cgroups value
+    // Update device cgroups value
     int rc = update_cgroups_parameters_func_p("devices", "deny",
       container_id, iterator[count]);
 
