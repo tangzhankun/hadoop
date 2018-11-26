@@ -47,13 +47,11 @@ static int search_in_list(char** list, char* token) {
     if (strstr(token, iterator[i]) != NULL) {
       // found deny device in allowed list
       found = 1;
-      return 0;
+      return 1;
     }
     i++;
   }
-  if (!found) {
-    return -1;
-  }
+  return 0;
 }
 
 static int internal_handle_devices_request(
