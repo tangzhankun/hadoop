@@ -44,7 +44,7 @@ static int search_in_list(char** list, char* token) {
   char** iterator = list;
   // search token in  list
   while (iterator[i] != NULL) {
-    if (strstr(iterator[i], token) != NULL) {
+    if (strstr(token, iterator[i]) != NULL) {
       // found deny device in allowed list
       found = 1;
       return 0;
