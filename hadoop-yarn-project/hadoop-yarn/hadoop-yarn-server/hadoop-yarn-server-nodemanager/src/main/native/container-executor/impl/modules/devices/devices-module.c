@@ -39,14 +39,12 @@ static const struct section* cfg_section;
 
 // Search a string in a string list
 static int search_in_list(char** list, char* token) {
-  int found = 0;
   int i = 0;
   char** iterator = list;
   // search token in  list
   while (iterator[i] != NULL) {
     if (strstr(token, iterator[i]) != NULL) {
-      // found deny device in allowed list
-      found = 1;
+      // Found deny device in allowed list
       return 1;
     }
     i++;
@@ -133,7 +131,7 @@ void reload_devices_configuration() {
  * Format of devices request commandline:
  * The excluded_devices is comma separated device cgroups values with device type.
  * The "-" will be replaced with " " to match the cgrooups parameter
- * c-e devices --excluded_devices b-8:16,c-244:0,c-244:1 --container_id container_x_y
+ * c-e --module-devices --excluded_devices b-8:16,c-244:0,c-244:1 --container_id container_x_y
  */
 int handle_devices_request(update_cgroups_parameters_function func,
     const char* module_name, int module_argc, char** module_argv) {
