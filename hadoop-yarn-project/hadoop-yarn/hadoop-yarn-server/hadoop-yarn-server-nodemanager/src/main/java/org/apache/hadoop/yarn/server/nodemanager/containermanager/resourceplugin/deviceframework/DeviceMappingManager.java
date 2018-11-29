@@ -285,6 +285,10 @@ public class DeviceMappingManager {
     return releasingDevices;
   }
 
+  /**
+   * If device plugin has own scheduler, then use it.
+   * Otherwise, pick our default scheduler to do scheduling.
+   * */
   private void pickAndDoSchedule(Set<Device> allowed,
       Map<Device, ContainerId> used, Set<Device> assigned,
       ContainerId containerId, int count, String resourceName,
@@ -301,16 +305,17 @@ public class DeviceMappingManager {
       // Use customized device scheduler
       LOG.debug("Try to schedule " + count
           + "(" + resourceName + ") using " + dps.getClass());
+      // Pass in unmodifiable set
       Set<Device> dpsAllocated = dps.allocateDevices(
           Sets.difference(allowed, used.keySet()),
           count);
       // TODO: should check if customized scheduler return values are valid
       if (dpsAllocated.size() != count) {
+        // TODO: fall back to default schedule logic?
         throw new ResourceHandlerException(dps.getClass()
             + " should allocate " + count
             + " of " + resourceName + ", but actual: "
             + assigned.size());
-        // TODO: fall back to default schedule logic?
       }
       // copy
       assigned.addAll(dpsAllocated);

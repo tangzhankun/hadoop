@@ -27,12 +27,12 @@ import java.util.Set;
 public interface DevicePluginScheduler {
   /**
    * Called when allocating devices. The framework will do all device book
-   * keeping and fail recovery. So this hook should only do scheduling
-   * based on available devices passed in. This method could be invoked
-   * multiple times.
+   * keeping and fail recovery. So this hook could be stateless and only do
+   * scheduling based on available devices passed in. It could be
+   * invoked multiple times by the framework.
    * @param availableDevices Devices allowed to be chosen from.
    * @param count Number of device to be allocated.
-   * @return A set of {@link Device}
+   * @return A set of {@link Device} allocated
    * */
   Set<Device> allocateDevices(Set<Device> availableDevices, Integer count);
 }
