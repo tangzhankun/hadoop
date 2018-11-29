@@ -26,7 +26,10 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeTyp
 
 import java.util.Set;
 
-// A normal plugin without customized scheduler
+/**
+ * A normal plugin without customized scheduler.
+ */
+
 public class FakeTestDevicePlugin5 implements DevicePlugin {
   @Override
   public DeviceRegisterRequest getRegisterRequestInfo() throws Exception {

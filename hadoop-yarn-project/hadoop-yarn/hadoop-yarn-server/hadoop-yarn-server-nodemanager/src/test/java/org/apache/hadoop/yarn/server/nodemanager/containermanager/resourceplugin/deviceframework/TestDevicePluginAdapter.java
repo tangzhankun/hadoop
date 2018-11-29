@@ -477,12 +477,12 @@ public class TestDevicePluginAdapter {
     // A container c1 requests 1 device
     Container c1 = mockContainerWithDeviceRequest(0,
         resourceName,
-        1,false);
+        1, false);
     // preStart
     adapter.getDeviceResourceHandler().preStart(c1);
     // Use customized scheduler
-    verify(spyPlugin,times(1)).allocateDevices(
-        any(TreeSet.class),any(Integer.class));
+    verify(spyPlugin, times(1)).allocateDevices(
+        any(TreeSet.class), any(Integer.class));
     Assert.assertEquals(2,
         dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(1,
