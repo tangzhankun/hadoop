@@ -23,12 +23,16 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin
 
 import java.util.List;
 
+/**
+ * Wrapper class of Device allocation for NMWebServices.
+ * */
 public class NMDeviceResourceInfo extends NMResourceInfo {
 
-  List<Device> totalDevices;
-  List<AssignedDevice> assignedDevices;
+  private List<Device> totalDevices;
+  private List<AssignedDevice> assignedDevices;
 
-  public NMDeviceResourceInfo(List<Device> totalDevices, List<AssignedDevice> assignedDevices) {
+  public NMDeviceResourceInfo(
+      List<Device> totalDevices, List<AssignedDevice> assignedDevices) {
     this.assignedDevices = assignedDevices;
     this.totalDevices = totalDevices;
   }

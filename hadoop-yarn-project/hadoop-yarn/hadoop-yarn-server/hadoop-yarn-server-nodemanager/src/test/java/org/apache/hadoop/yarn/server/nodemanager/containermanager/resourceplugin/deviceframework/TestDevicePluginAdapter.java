@@ -44,7 +44,6 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.Contai
 import org.apache.hadoop.yarn.server.nodemanager.recovery.NMMemoryStateStoreService;
 import org.apache.hadoop.yarn.server.nodemanager.recovery.NMStateStoreService;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMDeviceResourceInfo;
-import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
 import org.junit.After;
@@ -503,7 +502,7 @@ public class TestDevicePluginAdapter {
     // A container c1 requests 1 device
     Container c1 = mockContainerWithDeviceRequest(0,
         resourceName,
-        1,false);
+        1, false);
     // preStart
     adapter.getDeviceResourceHandler().preStart(c1);
     // check book keeping
