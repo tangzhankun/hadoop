@@ -125,9 +125,9 @@ static void test_devices_module_enabled_disabled(int enabled) {
   // Write config file.
   const char *filename = TEST_ROOT "/test_cgroups_module_enabled_disabled.cfg";
   write_and_load_devices_module_to_cfg(filename, enabled);
-
+  char excluded_devices[] = "c-243:0-rwm,c-243:1-rwm";
   char* argv[] = { (char*) "--module-devices", (char*) "--excluded_devices",
-                   (char*) "c-243:0-rwm,c-243:1-rwm",
+                   excluded_devices,
                    (char*) "--container_id",
                    (char*) "container_1498064906505_0001_01_000001" };
 
@@ -152,20 +152,19 @@ TEST_F(TestDevicesModule, test_verify_device_module_calls_cgroup_parameter) {
   write_and_load_devices_module_to_cfg(filename, 1);
 
   char* container_id = (char*) "container_1498064906505_0001_01_000001";
+  char excluded_devices[] = "c-243:0-rwm,c-243:2-rwm";
   char* argv[] = { (char*) "--module-devices", (char*) "--excluded_devices",
-                   (char*) "c-243:0-rwm,c-243:1-rwm",
+                   excluded_devices,
                    (char*) "--container_id",
                    container_id };
-
   /* Test case 1: block 2 devices */
   clear_cgroups_parameters_invoked();
   int rc = handle_devices_request(&mock_update_cgroups_parameters,
      "devices", 5, argv);
   ASSERT_EQ(0, rc) << "Should success.\n";
-
   // Verify cgroups parameters
   const char* expected_cgroups_argv[] = { "devices", "deny", container_id, "c 243:0 rwm",
-    "devices", "deny", container_id, "c 243:1 rwm"};
+    "devices", "deny", container_id, "c 243:2 rwm"};
   verify_param_updated_to_cgroups(8, expected_cgroups_argv);
 
   /* Test case 2: block 0 devices */
@@ -178,20 +177,6 @@ TEST_F(TestDevicesModule, test_verify_device_module_calls_cgroup_parameter) {
   // Verify cgroups parameters
   verify_param_updated_to_cgroups(0, NULL);
 
-  /* Test case 3: block 2 non-sequential devices */
-  clear_cgroups_parameters_invoked();
-  char* argv_2[] = { (char*) "--module-devices", (char*) "--excluded_devices",
-                    (char*) "c-243:0-rwm,c-243:2-rwm",
-                    (char*) "--container_id", container_id };
-  rc = handle_devices_request(&mock_update_cgroups_parameters,
-     "devices", 5, argv_2);
-  ASSERT_EQ(0, rc) << "Should success.\n";
-
-  // Verify cgroups parameters
-  const char* expected_cgroups_argv_2[] = { "devices", "deny", container_id, "c 243:0 rwm",
-    "devices", "deny", container_id, "c 243:2 rwm"};
-  verify_param_updated_to_cgroups(8, expected_cgroups_argv_2);
-
   clear_cgroups_parameters_invoked();
   free_executor_configurations();
 }
@@ -200,10 +185,10 @@ TEST_F(TestDevicesModule, test_illegal_cli_parameters) {
   // Write config file.
   const char *filename = TEST_ROOT "/test_illegal_cli_parameters.cfg";
   write_and_load_devices_module_to_cfg(filename, 1);
-
+  char excluded_devices[] = "c-243:0-rwm,c-243:1-rwm";
   // Illegal container id - 1
   char* argv[] = { (char*) "--module-devices", (char*) "--excluded_devices",
-                   (char*) "c-243:0-rwm,c-243:1-rwm",
+                   excluded_devices,
                    (char*) "--container_id", (char*) "xxxx" };
   int rc = handle_devices_request(&mock_update_cgroups_parameters,
      "devices", 5, argv);
@@ -212,7 +197,7 @@ TEST_F(TestDevicesModule, test_illegal_cli_parameters) {
   // Illegal container id - 2
   clear_cgroups_parameters_invoked();
   char* argv_1[] = { (char*) "--module-devices", (char*) "--excluded_devices",
-                   (char*) "c-243:0-rwm,c-243:1-rwm",
+                   excluded_devices,
                    (char*) "--container_id", (char*) "container_1" };
   rc = handle_devices_request(&mock_update_cgroups_parameters,
      "devices", 5, argv_1);
@@ -220,8 +205,9 @@ TEST_F(TestDevicesModule, test_illegal_cli_parameters) {
 
   // Illegal container id - 3
   clear_cgroups_parameters_invoked();
-  char* argv_2[] = { (char*) "--module-devices", (char*) "--excluded_devices",
-                     (char*) "c-243:0-rwm,c-243:1-rwm" };
+  char* argv_2[] = { (char*) "--module-devices",
+                     (char*) "--excluded_devices",
+                     excluded_devices };
   rc = handle_devices_request(&mock_update_cgroups_parameters,
      "devices", 3, argv_2);
   ASSERT_NE(0, rc) << "Should fail.\n";
