@@ -25,7 +25,6 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.server.nodemanager.Context;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
@@ -54,18 +53,26 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.*;
 
+/**
+ * Tests for DeviceMappingManager.
+ * Note that we test it under multi-threaded situation
+ * */
 public class TestDeviceMappingManager {
   protected static final Logger LOG =
       LoggerFactory.getLogger(TestDeviceMappingManager.class);
 
   private String tempResourceTypesFile;
-  DeviceMappingManager dmm;
-  ExecutorService containerLauncher;
-  Configuration conf;
+  private DeviceMappingManager dmm;
+  private ExecutorService containerLauncher;
+  private Configuration conf;
 
   @Before
   public void setup() throws Exception {
@@ -149,7 +156,7 @@ public class TestDeviceMappingManager {
       }
       Container c = mockContainerWithDeviceRequest(i,
           resourceName,
-          num,false);
+          num, false);
       containerSet.get(resourceName).put(c, num);
 
       DeviceResourceHandlerImpl dri = new DeviceResourceHandlerImpl(
@@ -161,14 +168,16 @@ public class TestDeviceMappingManager {
     }
 
     containerLauncher.shutdown();
-    while (!containerLauncher.awaitTermination(10, TimeUnit.SECONDS));
+    while (!containerLauncher.awaitTermination(10, TimeUnit.SECONDS)) {
+      LOG.info("Wait for the threads to finish");
+    }
 
     Long endTime = System.currentTimeMillis();
-    LOG.info("Each container allocation spends roughly: {} ms"
-        , (endTime - startTime)/totalContainerCount);
+    LOG.info("Each container allocation spends roughly: {} ms",
+        (endTime - startTime)/totalContainerCount);
     // Ensure invocation times
-    verify(dmmSpy,times(totalContainerCount)).assignDevices(anyString(),
-        any(Container.class));
+    verify(dmmSpy, times(totalContainerCount)).assignDevices(
+        anyString(), any(Container.class));
 
     // Ensure used devices' count for each type is correct
     int totalAllocatedCount = 0;
@@ -211,7 +220,7 @@ public class TestDeviceMappingManager {
   }
 
   /**
-   * Simulate launch containers and cleanup
+   * Simulate launch containers and cleanup.
    * */
   @Test
   public void testAllocationAndCleanup()
@@ -237,7 +246,7 @@ public class TestDeviceMappingManager {
       }
       Container c = mockContainerWithDeviceRequest(i,
           resourceName,
-          num,false);
+          num, false);
       containerSet.get(resourceName).put(c, num);
 
       DeviceResourceHandlerImpl dri = new DeviceResourceHandlerImpl(
@@ -249,14 +258,16 @@ public class TestDeviceMappingManager {
     }
 
     containerLauncher.shutdown();
-    while (!containerLauncher.awaitTermination(10, TimeUnit.SECONDS));
+    while (!containerLauncher.awaitTermination(10, TimeUnit.SECONDS)) {
+      LOG.info("Wait for the threads to finish");
+    }
 
 
     // Ensure invocation times
-    verify(dmmSpy,times(totalContainerCount)).assignDevices(anyString(),
-        any(Container.class));
-    verify(dmmSpy,times(totalContainerCount)).cleanupAssignedDevices(anyString(),
-        any(ContainerId.class));
+    verify(dmmSpy, times(totalContainerCount)).assignDevices(
+        anyString(), any(Container.class));
+    verify(dmmSpy, times(totalContainerCount)).cleanupAssignedDevices(
+        anyString(), any(ContainerId.class));
 
     // Ensure all devices are back
     Assert.assertEquals(0,
@@ -296,11 +307,12 @@ public class TestDeviceMappingManager {
   }
 
   private static class MyContainerLaunch implements Callable<Integer> {
-    DeviceResourceHandlerImpl deviceResourceHandler;
-    Container container;
-    boolean doCleanup;
-    int cId;
-    public MyContainerLaunch(DeviceResourceHandlerImpl dri,
+    private DeviceResourceHandlerImpl deviceResourceHandler;
+    private Container container;
+    private boolean doCleanup;
+    private int cId;
+
+    MyContainerLaunch(DeviceResourceHandlerImpl dri,
         Container c, int id, boolean cleanup) {
       deviceResourceHandler = dri;
       container = c;

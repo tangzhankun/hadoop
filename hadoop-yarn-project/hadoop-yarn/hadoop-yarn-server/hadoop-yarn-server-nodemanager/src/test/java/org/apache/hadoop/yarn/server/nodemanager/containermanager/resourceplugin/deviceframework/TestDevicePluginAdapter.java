@@ -119,9 +119,8 @@ public class TestDevicePluginAdapter {
 
 
   /**
-   * Use the MyPlugin which doesn't implement scheduler interfaces
+   * Use the MyPlugin which implement {@code DevicePlugin}.
    * Plugin's initialization is tested in TestResourcePluginManager
-   *
    * */
   @Test
   public void testBasicWorkflow()
@@ -158,7 +157,7 @@ public class TestDevicePluginAdapter {
     // A container c1 requests 1 device
     Container c1 = mockContainerWithDeviceRequest(0,
         resourceName,
-        1,false);
+        1, false);
     // preStart
     adapter.getDeviceResourceHandler().preStart(c1);
     // check book keeping
@@ -180,7 +179,7 @@ public class TestDevicePluginAdapter {
     // A container c2 requests 3 device
     Container c2 = mockContainerWithDeviceRequest(1,
         resourceName,
-        3,false);
+        3, false);
     // preStart
     adapter.getDeviceResourceHandler().preStart(c2);
     // check book keeping
@@ -202,7 +201,7 @@ public class TestDevicePluginAdapter {
     // A container c3 request 0 device
     Container c3 = mockContainerWithDeviceRequest(1,
         resourceName,
-        0,false);
+        0, false);
     // preStart
     adapter.getDeviceResourceHandler().preStart(c3);
     // check book keeping
@@ -277,7 +276,7 @@ public class TestDevicePluginAdapter {
     // A container c0 requests 1 device
     Container c0 = mockContainerWithDeviceRequest(0,
         resourceName,
-        1,false);
+        1, false);
     // preStart
     adapter.getDeviceResourceHandler().preStart(c0);
     // ensure container1's resource is persistent
@@ -293,7 +292,8 @@ public class TestDevicePluginAdapter {
   }
 
   @Test
-  public void testRecoverDeviceSchedulerManagerState() throws IOException, YarnException {
+  public void testRecoverDeviceSchedulerManagerState()
+      throws IOException, YarnException {
     NodeManager.NMContext context = mock(NodeManager.NMContext.class);
     NMStateStoreService realStoreService = new NMMemoryStateStoreService();
     NMStateStoreService storeService = spy(realStoreService);
@@ -422,7 +422,7 @@ public class TestDevicePluginAdapter {
     // A container c0 requests 1 device
     Container c0 = mockContainerWithDeviceRequest(0,
         resourceName,
-        1,false);
+        1, false);
     // preStart
     boolean exception = false;
     try {
