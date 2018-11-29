@@ -29,8 +29,7 @@ import java.util.Objects;
  * */
 public class AssignedDevice implements Serializable, Comparable {
 
-  private static final long serialVersionUID = 1L;
-
+  private static final long serialVersionUID = -544285507952217366L;
 
   Device device;
   String containerId;
