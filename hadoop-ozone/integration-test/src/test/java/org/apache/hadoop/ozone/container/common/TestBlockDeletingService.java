@@ -110,7 +110,8 @@ public class TestBlockDeletingService {
       conf.set(ScmConfigKeys.HDDS_DATANODE_DIR_KEY, testRoot.getAbsolutePath());
       long containerID = ContainerTestHelper.getTestContainerID();
       KeyValueContainerData data = new KeyValueContainerData(containerID,
-          ContainerTestHelper.CONTAINER_MAX_SIZE);
+          ContainerTestHelper.CONTAINER_MAX_SIZE, UUID.randomUUID().toString(),
+          UUID.randomUUID().toString());
       Container container = new KeyValueContainer(data, conf);
       container.create(new VolumeSet(scmId, clusterID, conf),
           new RoundRobinVolumeChoosingPolicy(), scmId);
@@ -139,7 +140,8 @@ public class TestBlockDeletingService {
                   .setChunkName(chunk.getAbsolutePath())
                   .setLen(0)
                   .setOffset(0)
-                  .setChecksum("")
+                  .setChecksumData(
+                      ContainerProtos.ChecksumData.getDefaultInstance())
                   .build();
           chunks.add(info);
         }

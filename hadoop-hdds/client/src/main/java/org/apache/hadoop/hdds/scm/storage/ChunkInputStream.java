@@ -18,6 +18,10 @@
 
 package org.apache.hadoop.hdds.scm.storage;
 
+import org.apache.hadoop.hdds.scm.container.common.helpers
+    .StorageContainerException;
+import org.apache.hadoop.ozone.common.Checksum;
+import org.apache.hadoop.ozone.common.ChecksumData;
 import org.apache.ratis.thirdparty.com.google.protobuf.ByteString;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.hdds.scm.XceiverClientManager;
@@ -83,7 +87,7 @@ public class ChunkInputStream extends InputStream implements Seekable {
   }
 
   private void initializeChunkOffset() {
-    int tempOffset = 0;
+    long tempOffset = 0;
     for (int i = 0; i < chunks.size(); i++) {
       chunkOffset[i] = tempOffset;
       tempOffset += chunks.get(i).getLen();
@@ -206,6 +210,9 @@ public class ChunkInputStream extends InputStream implements Seekable {
       readChunkResponse = ContainerProtocolCalls
           .readChunk(xceiverClient, chunkInfo, blockID, traceID);
     } catch (IOException e) {
+      if (e instanceof StorageContainerException) {
+        throw e;
+      }
       throw new IOException("Unexpected OzoneException: " + e.toString(), e);
     }
     ByteString byteString = readChunkResponse.getData();
@@ -215,6 +222,10 @@ public class ChunkInputStream extends InputStream implements Seekable {
           .format("Inconsistent read for chunk=%s len=%d bytesRead=%d",
               chunkInfo.getChunkName(), chunkInfo.getLen(), byteString.size()));
     }
+    ChecksumData checksumData = ChecksumData.getFromProtoBuf(
+        chunkInfo.getChecksumData());
+    Checksum.verifyChecksum(byteString, checksumData);
+
     buffers = byteString.asReadOnlyByteBufferList();
     bufferIndex = 0;
   }

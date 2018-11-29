@@ -27,6 +27,7 @@ public interface DevicePlugin {
   /**
    * Called first when device plugin framework wants to register.
    * @return DeviceRegisterRequest {@link DeviceRegisterRequest}
+   * @throws Exception
    * */
   DeviceRegisterRequest getRegisterRequestInfo()
       throws Exception;
@@ -34,6 +35,7 @@ public interface DevicePlugin {
   /**
    * Called when update node resource.
    * @return a set of {@link Device}, {@link java.util.TreeSet} recommended
+   * @throws Exception
    * */
   Set<Device> getDevices() throws Exception;
 
@@ -46,19 +48,21 @@ public interface DevicePlugin {
    *
    * @param allocatedDevices A set of allocated {@link Device}.
    * @param yarnRuntime Indicate which runtime YARN will use
-   *        Could be {@code docker} or {@code default}
+   *        Could be {@code RUNTIME_DEFAULT} or {@code RUNTIME_DOCKER}
    *        in {@link DeviceRuntimeSpec} constants. The default means YARN's
    *        non-docker container runtime is used. The docker means YARN's
    *        docker container runtime is used.
    * @return a {@link DeviceRuntimeSpec} description about environment,
    * {@link         VolumeSpec}, {@link MountVolumeSpec}. etc
+   * @throws Exception
    * */
   DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
-      String yarnRuntime) throws Exception;
+      YarnRuntimeType yarnRuntime) throws Exception;
 
   /**
    * Called after device released.
    * @param releasedDevices A set of released devices
+   * @throws Exception
    * */
   void onDevicesReleased(Set<Device> releasedDevices)
       throws Exception;

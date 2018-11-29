@@ -94,6 +94,7 @@ public class MockNodeManager implements NodeManager {
     if (initializeFakeNodes) {
       for (int x = 0; x < nodeCount; x++) {
         DatanodeDetails dd = TestUtils.randomDatanodeDetails();
+        register(dd, null, null);
         populateNodeMetric(dd, x);
       }
     }
@@ -394,6 +395,15 @@ public class MockNodeManager implements NodeManager {
       nodeCountMap.put(state.toString(), getNodeCount(state));
     }
     return nodeCountMap;
+  }
+
+  @Override
+  public Map<String, Long> getNodeInfo() {
+    Map<String, Long> nodeInfo = new HashMap<>();
+    nodeInfo.put("Capacity", aggregateStat.getCapacity().get());
+    nodeInfo.put("Used", aggregateStat.getScmUsed().get());
+    nodeInfo.put("Remaining", aggregateStat.getRemaining().get());
+    return nodeInfo;
   }
 
   /**

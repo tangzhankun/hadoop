@@ -53,7 +53,8 @@ public final class Device implements Serializable, Comparable {
   private final int minorNumber;
 
   /**
-   * PCI Bus ID in format [[[[<domain>]:]<bus>]:][<slot>][.[<func>]].
+   * PCI Bus ID in format.
+   * [[[[&lt;domain&gt;]:]&lt;bus&gt;]:][&lt;slot&gt;][.[&lt;func&gt;]].
    * Optional. Can get from "lspci -D" in Linux
    * */
   private final String busID;
@@ -75,7 +76,7 @@ public final class Device implements Serializable, Comparable {
    * @param builder
    */
   private Device(Builder builder) {
-    if (-1 == builder.id) {
+    if (builder.id == -1) {
       throw new IllegalArgumentException("Please set the id for Device");
     }
     this.id = builder.id;
@@ -124,10 +125,10 @@ public final class Device implements Serializable, Comparable {
       return false;
     }
     Device device = (Device) o;
-    return Objects.equals(id, device.getId())
+    return id == device.getId()
         && Objects.equals(devPath, device.getDevPath())
-        && Objects.equals(majorNumber, device.getMajorNumber())
-        && Objects.equals(minorNumber, device.getMinorNumber())
+        && majorNumber == device.getMajorNumber()
+        && minorNumber == device.getMinorNumber()
         && Objects.equals(busID, device.getBusID());
   }
 

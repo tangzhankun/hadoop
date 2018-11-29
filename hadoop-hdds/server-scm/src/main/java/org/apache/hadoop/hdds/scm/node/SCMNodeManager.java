@@ -19,12 +19,12 @@ package org.apache.hadoop.hdds.scm.node;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import org.apache.hadoop.hdds.protocol.proto.StorageContainerDatanodeProtocolProtos;
 import org.apache.hadoop.hdds.protocol.proto
         .StorageContainerDatanodeProtocolProtos.PipelineReportsProto;
 import org.apache.hadoop.hdds.scm.container.ContainerID;
 import org.apache.hadoop.hdds.scm.pipeline.Pipeline;
 import org.apache.hadoop.hdds.scm.pipeline.PipelineID;
-import org.apache.hadoop.hdds.scm.exceptions.SCMException;
 import org.apache.hadoop.hdds.scm.node.states.NodeAlreadyExistsException;
 import org.apache.hadoop.hdds.scm.node.states.NodeNotFoundException;
 import org.apache.hadoop.hdds.scm.server.StorageContainerManager;
@@ -59,6 +59,7 @@ import org.slf4j.LoggerFactory;
 import javax.management.ObjectName;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,6 +184,18 @@ public class SCMNodeManager
     SCMNodeStat stat;
     try {
       stat = nodeStateManager.getNodeStat(dnId);
+
+      // Updating the storage report for the datanode.
+      // I dont think we will get NotFound exception, as we are taking
+      // nodeInfo from nodeStateMap, as I see it is not being removed from
+      // the map, just we change the states. And during first time
+      // registration we call this, after adding to nodeStateMap. And also
+      // from eventhandler it is called only if it has node Report.
+      DatanodeInfo datanodeInfo = nodeStateManager.getNode(dnId);
+      if (nodeReport != null) {
+        datanodeInfo.updateStorageReports(nodeReport.getStorageReportList());
+      }
+
     } catch (NodeNotFoundException e) {
       LOG.debug("SCM updateNodeStat based on heartbeat from previous " +
           "dead datanode {}", dnId);
@@ -281,7 +294,6 @@ public class SCMNodeManager
    *
    * @param datanodeDetails - DatanodeDetailsProto.
    * @return SCMheartbeat response.
-   * @throws IOException
    */
   @Override
   public List<SCMCommand> processHeartbeat(DatanodeDetails datanodeDetails) {
@@ -363,6 +375,52 @@ public class SCMNodeManager
     return nodeCountMap;
   }
 
+  @Override
+  public Map<String, Long> getNodeInfo() {
+    long diskCapacity = 0L;
+    long diskUsed = 0L;
+    long diskRemaning = 0L;
+
+    long ssdCapacity = 0L;
+    long ssdUsed = 0L;
+    long ssdRemaining = 0L;
+
+    List<DatanodeDetails> healthyNodes =  getNodes(NodeState.HEALTHY);
+    List<DatanodeDetails> staleNodes = getNodes(NodeState.STALE);
+
+    List<DatanodeDetails> datanodes = new ArrayList<>(healthyNodes);
+    datanodes.addAll(staleNodes);
+
+    for (DatanodeDetails datanodeDetails : datanodes) {
+      DatanodeInfo dnInfo = (DatanodeInfo) datanodeDetails;
+      List<StorageReportProto> storageReportProtos = dnInfo.getStorageReports();
+      for (StorageReportProto reportProto : storageReportProtos) {
+        if (reportProto.getStorageType() ==
+            StorageContainerDatanodeProtocolProtos.StorageTypeProto.DISK) {
+          diskCapacity += reportProto.getCapacity();
+          diskRemaning += reportProto.getRemaining();
+          diskUsed += reportProto.getScmUsed();
+        } else if (reportProto.getStorageType() ==
+            StorageContainerDatanodeProtocolProtos.StorageTypeProto.SSD) {
+          ssdCapacity += reportProto.getCapacity();
+          ssdRemaining += reportProto.getRemaining();
+          ssdUsed += reportProto.getScmUsed();
+        }
+      }
+    }
+
+    Map<String, Long> nodeInfo = new HashMap<>();
+    nodeInfo.put("DISKCapacity", diskCapacity);
+    nodeInfo.put("DISKUsed", diskUsed);
+    nodeInfo.put("DISKRemaining", diskRemaning);
+
+    nodeInfo.put("SSDCapacity", ssdCapacity);
+    nodeInfo.put("SSDUsed", ssdUsed);
+    nodeInfo.put("SSDRemaining", ssdRemaining);
+    return nodeInfo;
+  }
+
+
   /**
    * Get set of pipelines a datanode is part of.
    * @param datanodeDetails - datanodeID
@@ -396,8 +454,8 @@ public class SCMNodeManager
    * Update set of containers available on a datanode.
    * @param datanodeDetails - DatanodeID
    * @param containerIds - Set of containerIDs
-   * @throws SCMException - if datanode is not known. For new datanode use
-   *                        addDatanodeInContainerMap call.
+   * @throws NodeNotFoundException - if datanode is not known. For new datanode
+   *                        use addDatanodeInContainerMap call.
    */
   @Override
   public void setContainers(DatanodeDetails datanodeDetails,
@@ -465,4 +523,6 @@ public class SCMNodeManager
   public List<SCMCommand> getCommandQueue(UUID dnID) {
     return commandQueue.getCommand(dnID);
   }
+
+
 }

@@ -59,8 +59,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
-import static org.apache.hadoop.ozone.OzoneConsts.INVALID_PORT;
-
 /**
  * Current Context of State Machine.
  */
@@ -113,24 +111,6 @@ public class StateContext {
    */
   public DatanodeStateMachine getParent() {
     return parent;
-  }
-
-  /**
-   * Get the container server port.
-   * @return The container server port if available, return -1 if otherwise
-   */
-  public int getContainerPort() {
-    return parent == null ?
-        INVALID_PORT : parent.getContainer().getContainerServerPort();
-  }
-
-  /**
-   * Gets the Ratis Port.
-   * @return int , return -1 if not valid.
-   */
-  public int getRatisPort() {
-    return parent == null ?
-        INVALID_PORT : parent.getContainer().getRatisContainerServerPort();
   }
 
   /**
@@ -204,7 +184,7 @@ public class StateContext {
    * Returns all the available reports from the report queue, or empty list if
    * the queue is empty.
    *
-   * @return List<reports>
+   * @return List of reports
    */
   public List<GeneratedMessage> getAllAvailableReports() {
     return getReports(Integer.MAX_VALUE);
@@ -214,7 +194,7 @@ public class StateContext {
    * Returns available reports from the report queue with a max limit on
    * list size, or empty list if the queue is empty.
    *
-   * @return List<reports>
+   * @return List of reports
    */
   public List<GeneratedMessage> getReports(int maxLimit) {
     List<GeneratedMessage> reportsToReturn = new LinkedList<>();
@@ -256,7 +236,7 @@ public class StateContext {
    * Returns all the pending ContainerActions from the ContainerAction queue,
    * or empty list if the queue is empty.
    *
-   * @return List<ContainerAction>
+   * @return {@literal List<ContainerAction>}
    */
   public List<ContainerAction> getAllPendingContainerActions() {
     return getPendingContainerAction(Integer.MAX_VALUE);
@@ -266,7 +246,7 @@ public class StateContext {
    * Returns pending ContainerActions from the ContainerAction queue with a
    * max limit on list size, or empty list if the queue is empty.
    *
-   * @return List<ContainerAction>
+   * @return {@literal List<ContainerAction>}
    */
   public List<ContainerAction> getPendingContainerAction(int maxLimit) {
     List<ContainerAction> containerActionList = new ArrayList<>();
@@ -318,7 +298,7 @@ public class StateContext {
    * Returns pending PipelineActions from the PipelineAction queue with a
    * max limit on list size, or empty list if the queue is empty.
    *
-   * @return List<ContainerAction>
+   * @return {@literal List<ContainerAction>}
    */
   public List<PipelineAction> getPendingPipelineAction(int maxLimit) {
     List<PipelineAction> pipelineActionList = new ArrayList<>();

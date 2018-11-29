@@ -50,11 +50,10 @@ public class FakeTestDevicePlugin1
   }
 
   @Override
-  public DeviceRuntimeSpec onDevicesAllocated(
-      Set<Device> allocatedDevices, String runtime) {
+  public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
+      YarnRuntimeType yarnRuntime) throws Exception {
     return null;
   }
-
 
   @Override
   public void onDevicesReleased(Set<Device> allocatedDevices) {

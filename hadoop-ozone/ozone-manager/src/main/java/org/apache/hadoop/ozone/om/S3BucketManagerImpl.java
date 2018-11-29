@@ -31,7 +31,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
+import static org.apache.hadoop.ozone.OzoneConsts.OM_S3_VOLUME_PREFIX;
 import static org.apache.hadoop.ozone.om.exceptions.OMException.ResultCodes.FAILED_VOLUME_ALREADY_EXISTS;
 
 /**
@@ -93,14 +95,7 @@ public class S3BucketManagerImpl implements S3BucketManager {
     // You might wonder if all names map to this pattern, why we need to
     // store the S3 bucketName in a table at all. This is to support
     // anonymous access to bucket where the user name is absent.
-
-    // About Locking:
-    // We need to do this before we take the S3Bucket Lock since createVolume
-    // takes the userLock. So an attempt to take the user lock while holding
-    // S3Bucket lock will throw, so we need to create the volume if needed
-    // before we execute the bucket mapping functions.
     String ozoneVolumeName = formatOzoneVolumeName(userName);
-    createOzoneVolumeIfNeeded(userName, ozoneVolumeName);
 
     omMetadataManager.getLock().acquireS3Lock(bucketName);
     try {
@@ -152,23 +147,27 @@ public class S3BucketManagerImpl implements S3BucketManager {
   }
 
   private String formatOzoneVolumeName(String userName) {
-    return String.format("s3%s", userName);
+    return String.format(OM_S3_VOLUME_PREFIX + "%s", userName);
   }
 
-  private void createOzoneVolumeIfNeeded(String userName, String volumeName)
+  @Override
+  public boolean createOzoneVolumeIfNeeded(String userName)
       throws IOException {
     // We don't have to time of check. time of use problem here because
     // this call is invoked while holding the s3Bucket lock.
+    boolean newVolumeCreate = true;
+    String ozoneVolumeName = formatOzoneVolumeName(userName);
     try {
       OmVolumeArgs args =
           OmVolumeArgs.newBuilder()
               .setAdminName(S3_ADMIN_NAME)
               .setOwnerName(userName)
-              .setVolume(volumeName)
+              .setVolume(ozoneVolumeName)
               .setQuotaInBytes(OzoneConsts.MAX_QUOTA_IN_BYTES)
               .build();
       volumeManager.createVolume(args);
     } catch (OMException exp) {
+      newVolumeCreate = false;
       if (exp.getResult().compareTo(FAILED_VOLUME_ALREADY_EXISTS) == 0) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Volume already exists. {}", exp.getMessage());
@@ -177,6 +176,8 @@ public class S3BucketManagerImpl implements S3BucketManager {
         throw exp;
       }
     }
+
+    return newVolumeCreate;
   }
 
   private void createOzoneBucket(String volumeName, String bucketName)
@@ -225,6 +226,12 @@ public class S3BucketManagerImpl implements S3BucketManager {
   public String getOzoneBucketName(String s3BucketName) throws IOException {
     String mapping = getOzoneBucketMapping(s3BucketName);
     return mapping.split("/")[1];
+  }
+
+  @Override
+  public String getOzoneVolumeNameForUser(String userName) throws IOException {
+    Objects.requireNonNull(userName, "UserName cannot be null");
+    return formatOzoneVolumeName(userName);
   }
 
 }

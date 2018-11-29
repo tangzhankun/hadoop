@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperation;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
@@ -35,6 +36,13 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import java.util.List;
 import java.util.Set;
 
+/**
+ * The Hooks into container lifecycle.
+ * Get device list from device plugin in {@code bootstrap}
+ * Assign devices for a container in {@code preStart}
+ * Restore statue in {@code reacquireContainer}
+ * Recycle devices from container in {@code postComplete}
+ * */
 public class DeviceResourceHandlerImpl implements ResourceHandler {
 
   static final Log LOG = LogFactory.getLog(DeviceResourceHandlerImpl.class);
@@ -96,7 +104,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
 
     try {
       devicePlugin.onDevicesAllocated(
-          allocation.getAllowed(), DeviceRuntimeSpec.RUNTIME_CGROUPS);
+          allocation.getAllowed(), YarnRuntimeType.RUNTIME_DEFAULT);
     } catch (Exception e) {
       throw new ResourceHandlerException("Exception thrown from"
           + " plugin's \"onDeviceAllocated\"" + e.getMessage());
@@ -111,8 +119,8 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   }
 
   @Override
-  public synchronized List<PrivilegedOperation> reacquireContainer(ContainerId containerId)
-      throws ResourceHandlerException {
+  public synchronized List<PrivilegedOperation> reacquireContainer(
+      ContainerId containerId) throws ResourceHandlerException {
     deviceMappingManager.recoverAssignedDevices(resourceName, containerId);
     return null;
   }
@@ -124,8 +132,8 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   }
 
   @Override
-  public synchronized List<PrivilegedOperation> postComplete(ContainerId containerId)
-      throws ResourceHandlerException {
+  public synchronized List<PrivilegedOperation> postComplete(
+      ContainerId containerId) throws ResourceHandlerException {
     deviceMappingManager.cleanupAssignedDevices(resourceName, containerId);
     return null;
   }

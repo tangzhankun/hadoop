@@ -51,12 +51,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
-import java.util.LinkedList;
 import java.util.UUID;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.ratis.util.Preconditions.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -80,12 +81,14 @@ public class TestKeyValueContainer {
   private RoundRobinVolumeChoosingPolicy volumeChoosingPolicy;
   private KeyValueContainerData keyValueContainerData;
   private KeyValueContainer keyValueContainer;
+  private UUID datanodeId;
 
   @Before
   public void setUp() throws Exception {
     conf = new OzoneConfiguration();
+    datanodeId = UUID.randomUUID();
     HddsVolume hddsVolume = new HddsVolume.Builder(folder.getRoot()
-        .getAbsolutePath()).conf(conf).datanodeUuid(UUID.randomUUID()
+        .getAbsolutePath()).conf(conf).datanodeUuid(datanodeId
         .toString()).build();
 
     volumeSet = mock(VolumeSet.class);
@@ -94,7 +97,8 @@ public class TestKeyValueContainer {
         .thenReturn(hddsVolume);
 
     keyValueContainerData = new KeyValueContainerData(1L,
-        (long) StorageUnit.GB.toBytes(5));
+        (long) StorageUnit.GB.toBytes(5), UUID.randomUUID().toString(),
+        datanodeId.toString());
 
     keyValueContainer = new KeyValueContainer(
         keyValueContainerData, conf);
@@ -104,7 +108,8 @@ public class TestKeyValueContainer {
   @Test
   public void testBlockIterator() throws Exception{
     keyValueContainerData = new KeyValueContainerData(100L,
-        (long) StorageUnit.GB.toBytes(1));
+        (long) StorageUnit.GB.toBytes(1), UUID.randomUUID().toString(),
+        datanodeId.toString());
     keyValueContainer = new KeyValueContainer(
         keyValueContainerData, conf);
     keyValueContainer.create(volumeSet, volumeChoosingPolicy, scmId);
@@ -135,7 +140,7 @@ public class TestKeyValueContainer {
       BlockData blockData = new BlockData(blockID);
       blockData.addMetadata("VOLUME", "ozone");
       blockData.addMetadata("OWNER", "hdfs");
-      List<ContainerProtos.ChunkInfo> chunkList = new LinkedList<>();
+      List<ContainerProtos.ChunkInfo> chunkList = new ArrayList<>();
       ChunkInfo info = new ChunkInfo(String.format("%d.data.%d", blockID
           .getLocalID(), 0), 0, 1024);
       chunkList.add(info.getProtoBufMessage());
@@ -163,8 +168,6 @@ public class TestKeyValueContainer {
     // Check whether containerMetaDataPath and chunksPath exists or not.
     assertTrue(containerMetaDataPath != null);
     assertTrue(chunksPath != null);
-    File containerMetaDataLoc = new File(containerMetaDataPath);
-
     //Check whether container file and container db file exists or not.
     assertTrue(keyValueContainer.getContainerFile().exists(),
         ".Container File does not exist");
@@ -190,7 +193,7 @@ public class TestKeyValueContainer {
     //write one few keys to check the key count after import
     MetadataStore metadataStore = BlockUtils.getDB(keyValueContainerData, conf);
     for (int i = 0; i < numberOfKeysToWrite; i++) {
-      metadataStore.put(("test" + i).getBytes(), "test".getBytes());
+      metadataStore.put(("test" + i).getBytes(UTF_8), "test".getBytes(UTF_8));
     }
     metadataStore.close();
 
@@ -215,7 +218,8 @@ public class TestKeyValueContainer {
     //create a new one
     KeyValueContainerData containerData =
         new KeyValueContainerData(containerId, 1,
-            keyValueContainerData.getMaxSize());
+            keyValueContainerData.getMaxSize(), UUID.randomUUID().toString(),
+            datanodeId.toString());
     KeyValueContainer container = new KeyValueContainer(containerData, conf);
 
     HddsVolume containerVolume = volumeChoosingPolicy.chooseVolume(volumeSet
@@ -247,7 +251,7 @@ public class TestKeyValueContainer {
         container.importContainerData(fis, packer);
       }
       fail("Container is imported twice. Previous files are overwritten");
-    } catch (Exception ex) {
+    } catch (IOException ex) {
       //all good
     }
 

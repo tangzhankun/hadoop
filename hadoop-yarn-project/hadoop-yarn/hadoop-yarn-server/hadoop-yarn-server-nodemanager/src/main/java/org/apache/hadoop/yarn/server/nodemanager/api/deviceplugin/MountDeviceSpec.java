@@ -78,7 +78,20 @@ public final class MountDeviceSpec implements Serializable, Comparable {
 
   @Override
   public int compareTo(Object o) {
-    return 0;
+    if (o == null || (!(o instanceof MountDeviceSpec))) {
+      return -1;
+    }
+    MountDeviceSpec other = (MountDeviceSpec) o;
+    int result = devicePathInContainer.compareTo(
+        other.getDevicePathInContainer());
+    if (0 != result) {
+      return result;
+    }
+    result = devicePathInHost.compareTo(other.getDevicePathInHost());
+    if (0 != result) {
+      return result;
+    }
+    return devicePermission.compareTo(other.getDevicePermission());
   }
 
   /**

@@ -43,6 +43,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.UUID;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -71,8 +72,9 @@ public class TestChunkManagerImpl {
   @Before
   public void setUp() throws Exception {
     config = new OzoneConfiguration();
+    UUID datanodeId = UUID.randomUUID();
     hddsVolume = new HddsVolume.Builder(folder.getRoot()
-        .getAbsolutePath()).conf(config).datanodeUuid(UUID.randomUUID()
+        .getAbsolutePath()).conf(config).datanodeUuid(datanodeId
         .toString()).build();
 
     volumeSet = mock(VolumeSet.class);
@@ -82,13 +84,14 @@ public class TestChunkManagerImpl {
         .thenReturn(hddsVolume);
 
     keyValueContainerData = new KeyValueContainerData(1L,
-        (long) StorageUnit.GB.toBytes(5));
+        (long) StorageUnit.GB.toBytes(5), UUID.randomUUID().toString(),
+        datanodeId.toString());
 
     keyValueContainer = new KeyValueContainer(keyValueContainerData, config);
 
     keyValueContainer.create(volumeSet, volumeChoosingPolicy, scmId);
 
-    data = "testing write chunks".getBytes();
+    data = "testing write chunks".getBytes(UTF_8);
     // Creating BlockData
     blockID = new BlockID(1L, 1L);
     chunkInfo = new ChunkInfo(String.format("%d.data.%d", blockID
@@ -215,22 +218,6 @@ public class TestChunkManagerImpl {
     } catch (StorageContainerException ex) {
       GenericTestUtils.assertExceptionContains("Not Supported Operation.", ex);
       assertEquals(ContainerProtos.Result.UNSUPPORTED_REQUEST, ex.getResult());
-    }
-  }
-
-  @Test
-  public void testWriteChunkChecksumMismatch() throws Exception {
-    try {
-      chunkInfo = new ChunkInfo(String.format("%d.data.%d", blockID
-          .getLocalID(), 0), 0, data.length);
-      //Setting checksum to some value.
-      chunkInfo.setChecksum("some garbage");
-      chunkManager.writeChunk(keyValueContainer, blockID, chunkInfo,
-          ByteBuffer.wrap(data), ContainerProtos.Stage.COMBINED);
-      fail("testWriteChunkChecksumMismatch failed");
-    } catch (StorageContainerException ex) {
-      GenericTestUtils.assertExceptionContains("Checksum mismatch.", ex);
-      assertEquals(ContainerProtos.Result.CHECKSUM_MISMATCH, ex.getResult());
     }
   }
 

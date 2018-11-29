@@ -22,6 +22,7 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
 
 import java.util.Set;
 
@@ -41,8 +42,8 @@ public abstract class FakeTestDevicePlugin4 implements DevicePlugin {
   }
 
   @Override
-  public DeviceRuntimeSpec onDevicesAllocated(
-      Set<Device> allocatedDevices, String yarnRuntime) {
+  public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
+      YarnRuntimeType yarnRuntime) throws Exception {
     return null;
   }
 
