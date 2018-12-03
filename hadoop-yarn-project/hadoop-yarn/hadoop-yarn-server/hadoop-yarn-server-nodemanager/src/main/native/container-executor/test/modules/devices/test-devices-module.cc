@@ -121,18 +121,35 @@ static void write_and_load_devices_module_to_cfg(const char* cfg_filepath, int e
   reload_devices_configuration();
 }
 
+static void append_config(const char* cfg_filepath, char* values) {
+  FILE *file = fopen(cfg_filepath, "a");
+  if (file == NULL) {
+    printf("FAIL: Could not open configuration file: %s\n", cfg_filepath);
+    exit(1);
+  }
+  fprintf(file, values);
+  fclose(file);
+
+  // Read config file
+  read_executor_config(cfg_filepath);
+  reload_devices_configuration();
+}
+
 static void test_devices_module_enabled_disabled(int enabled) {
   // Write config file.
   const char *filename = TEST_ROOT "/test_cgroups_module_enabled_disabled.cfg";
   write_and_load_devices_module_to_cfg(filename, enabled);
   char excluded_devices[] = "c-243:0-rwm,c-243:1-rwm";
+  char allowed_devices[] = "243:2";
   char* argv[] = { (char*) "--module-devices", (char*) "--excluded_devices",
                    excluded_devices,
+                   (char*) "--allowed_devices",
+                   allowed_devices,
                    (char*) "--container_id",
                    (char*) "container_1498064906505_0001_01_000001" };
 
   int rc = handle_devices_request(&mock_update_cgroups_parameters,
-              "devices", 5, argv);
+              "devices", 7, argv);
 
   int EXPECTED_RC;
   if (enabled) {
@@ -152,19 +169,22 @@ TEST_F(TestDevicesModule, test_verify_device_module_calls_cgroup_parameter) {
   write_and_load_devices_module_to_cfg(filename, 1);
 
   char* container_id = (char*) "container_1498064906505_0001_01_000001";
-  char excluded_devices[] = "c-243:0-rwm,c-243:2-rwm";
+  char excluded_devices[] = "c-243:0-rwm,c-243:1-rwm";
+  char allowed_devices[] = "243:2";
   char* argv[] = { (char*) "--module-devices", (char*) "--excluded_devices",
                    excluded_devices,
+                   (char*) "--allowed_devices",
+                   allowed_devices,
                    (char*) "--container_id",
                    container_id };
   /* Test case 1: block 2 devices */
   clear_cgroups_parameters_invoked();
   int rc = handle_devices_request(&mock_update_cgroups_parameters,
-     "devices", 5, argv);
+     "devices", 7, argv);
   ASSERT_EQ(0, rc) << "Should success.\n";
   // Verify cgroups parameters
   const char* expected_cgroups_argv[] = { "devices", "deny", container_id, "c 243:0 rwm",
-    "devices", "deny", container_id, "c 243:2 rwm"};
+    "devices", "deny", container_id, "c 243:1 rwm"};
   verify_param_updated_to_cgroups(8, expected_cgroups_argv);
 
   /* Test case 2: block 0 devices */
@@ -181,26 +201,77 @@ TEST_F(TestDevicesModule, test_verify_device_module_calls_cgroup_parameter) {
   free_executor_configurations();
 }
 
+TEST_F(TestDevicesModule, test_update_cgroup_parameter_with_config) {
+  // Write config file.
+  const char *filename = TEST_ROOT "/test_update_cgroup_parameter_with_config.cfg";
+  write_and_load_devices_module_to_cfg(filename, 1);
+  // Add denied numbers
+  append_config(filename, "devices.denied-numbers=243:1\n");
+
+  char* container_id = (char*) "container_1498064906505_0001_01_000001";
+  char excluded_devices[] = "c-243:0-rwm,c-243:1-rwm";
+  char allowed_devices[] = "243:2";
+  char* argv[] = { (char*) "--module-devices", (char*) "--excluded_devices",
+                   excluded_devices,
+                   (char*) "--allowed_devices",
+                   allowed_devices,
+                   (char*) "--container_id",
+                   container_id };
+  /* Test case 1: block 2 devices */
+  clear_cgroups_parameters_invoked();
+  int rc = handle_devices_request(&mock_update_cgroups_parameters,
+     "devices", 7, argv);
+  ASSERT_EQ(0, rc) << "Should success.\n";
+  // Verify cgroups parameters
+  const char* expected_cgroups_argv[] = { "devices", "deny", container_id, "c 243:0 rwm",
+    "devices", "deny", container_id, "c 243:1 rwm"};
+  verify_param_updated_to_cgroups(8, expected_cgroups_argv);
+
+  /* Test case 2: block 2 devices but try allow devices not permitted by config*/
+  clear_cgroups_parameters_invoked();
+  // device plugin reported 0,1,2,3 totally. Allocated 1,2
+  // But c-e.cfg has device 1 denied.
+  char excluded_devices2[] = "c-243:0-rwm,c-243:3-rwm";
+  char allowed_devices2[] = "243:1,243:2";
+  char* argv1[] = { (char*) "--module-devices", (char*) "--excluded_devices",
+                   excluded_devices2,
+                   (char*) "--allowed_devices",
+                   allowed_devices2,
+                   (char*) "--container_id",
+                   container_id };
+  rc = handle_devices_request(&mock_update_cgroups_parameters,
+     "devices", 7, argv1);
+  ASSERT_NE(0, rc) << "Should fail.\n";
+
+  clear_cgroups_parameters_invoked();
+  free_executor_configurations();
+}
+
 TEST_F(TestDevicesModule, test_illegal_cli_parameters) {
   // Write config file.
   const char *filename = TEST_ROOT "/test_illegal_cli_parameters.cfg";
   write_and_load_devices_module_to_cfg(filename, 1);
   char excluded_devices[] = "c-243:0-rwm,c-243:1-rwm";
+  char allowed_devices[] = "243:2";
   // Illegal container id - 1
   char* argv[] = { (char*) "--module-devices", (char*) "--excluded_devices",
                    excluded_devices,
+                   (char*) "--allowed_devices",
+                   allowed_devices,
                    (char*) "--container_id", (char*) "xxxx" };
   int rc = handle_devices_request(&mock_update_cgroups_parameters,
-     "devices", 5, argv);
+     "devices", 7, argv);
   ASSERT_NE(0, rc) << "Should fail.\n";
 
   // Illegal container id - 2
   clear_cgroups_parameters_invoked();
   char* argv_1[] = { (char*) "--module-devices", (char*) "--excluded_devices",
                    excluded_devices,
+                   (char*) "--allowed_devices",
+                   allowed_devices,
                    (char*) "--container_id", (char*) "container_1" };
   rc = handle_devices_request(&mock_update_cgroups_parameters,
-     "devices", 5, argv_1);
+     "devices", 7, argv_1);
   ASSERT_NE(0, rc) << "Should fail.\n";
 
   // Illegal container id - 3
