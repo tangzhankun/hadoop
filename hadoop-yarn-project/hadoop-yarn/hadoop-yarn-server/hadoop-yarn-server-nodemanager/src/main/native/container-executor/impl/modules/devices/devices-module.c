@@ -84,7 +84,7 @@ static int internal_handle_devices_request(
         fprintf(ERRORFILE,
         "Try to allow this but its device number is not in configured allowed list: %s; %s\n",
           allow_iterator[allow_count],
-          "This indicates mismatch of allowed devices reported by plugin and container-executor.cfg");
+          "This indicates mismatch between allowed devices reported by device plugin and container-executor.cfg");
         return_code = -1;
         goto cleanup;
       }
