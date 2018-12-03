@@ -116,6 +116,10 @@ static int internal_handle_devices_request(
     char** ce_iterator = ce_denied_numbers;
     int ce_count = 0;
     while (ce_iterator[ce_count] != NULL) {
+      // skip if duplicate with denied numbers passed in
+      if (search_in_list(deny_devices_number_tokens, ce_iterator[ce_count])) {
+        continue;
+      }
       char param_value[128];
       char type = 'c';
       memset(param_value, 0, sizeof(param_value));
@@ -125,10 +129,6 @@ static int internal_handle_devices_request(
       snprintf(param_value, sizeof(param_value), "%c %s rwm",
                type,
                ce_iterator[ce_count]);
-      // skip if duplicate with denied numbers passed in
-      if (search_in_list(deny_devices_number_tokens, param_value)) {
-        continue;
-      }
       // Update device cgroups value
       int rc = update_cgroups_parameters_func_p("devices", "deny",
         container_id, param_value);
