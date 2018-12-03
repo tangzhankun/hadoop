@@ -78,9 +78,41 @@ cleanup:
 static int internal_handle_devices_request(
     update_cgroups_parameters_function update_cgroups_parameters_func_p,
     char** deny_devices_number_tokens,
+    char** allow_devices_number_tokens,
     const char* container_id) {
   int return_code = 0;
 
+  char** ce_allowed_numbers = NULL;
+  char* ce_allowed_str = get_section_value(DEVICES_ALLOWED_NUMBERS,
+     cfg_section);
+    // Get denied "major:minor" device numbers from cfg, if not set, means all
+    // devices can be used by YARN. And check if allowed devices passed in
+    if (ce_allowed_str != NULL) {
+      ce_allowed_numbers = split_delimiter(ce_allowed_str, ",");
+      if (NULL == ce_allowed_numbers) {
+        fprintf(ERRORFILE,
+            "Invalid value set for %s, value=%s\n",
+            DEVICES_ALLOWED_NUMBERS,
+            ce_allowed_str);
+        return_code = -1;
+        goto cleanup;
+      }
+      // check allowed devices numbers passed from java side is valid
+      char** allow_iterator = allow_devices_number_tokens;
+      int allow_count = 0;
+      while (allow_iterator[allow_count] != NULL) {
+        int found = search_in_list(ce_allowed_numbers, allow_iterator[allow_count]);
+        if (!found) {
+          fprintf(ERRORFILE,
+          "Try to allow this but its device number is not in configured allowed list: %s; %s\n",
+            allow_iterator[allow_count],
+            "This indicates mismatch between allowed devices reported by device plugin and container-executor.cfg");
+          return_code = -1;
+          goto cleanup;
+        }
+        allow_count++;
+      }
+    }
   char** ce_denied_numbers = NULL;
   char* ce_denied_str = get_section_value(DEVICES_DENIED_NUMBERS,
      cfg_section);
@@ -153,7 +185,9 @@ cleanup:
   if (ce_denied_numbers != NULL) {
     free_values(ce_denied_numbers);
   }
-
+  if (ce_allowed_numbers != NULL) {
+    free_values(ce_allowed_numbers);
+  }
   return return_code;
 }
 
@@ -167,6 +201,7 @@ void reload_devices_configuration() {
  * The "-" will be replaced with " " to match the cgrooups parameter
  * c-e --module-devices \
  * --excluded_devices b-8:16,c-244:0,c-244:1 \
+ * --allowed_devices 8:32,8:48,243:2 \
  * --container_id container_x_y
  */
 int handle_devices_request(update_cgroups_parameters_function func,
@@ -192,16 +227,20 @@ int handle_devices_request(update_cgroups_parameters_function func,
   int option_index = 0;
 
   char** deny_device_value_tokens = NULL;
+  char** allow_device_value_tokens = NULL;
   char container_id[MAX_CONTAINER_ID_LEN];
   memset(container_id, 0, sizeof(container_id));
   int failed = 0;
 
   optind = 1;
-  while((c = getopt_long(module_argc, module_argv, "e:c:",
+  while((c = getopt_long(module_argc, module_argv, "e:a:c:",
                          long_options, &option_index)) != -1) {
     switch(c) {
       case 'e':
         deny_device_value_tokens = split_delimiter(optarg, ",");
+        break;
+      case 'a':
+        allow_device_value_tokens = split_delimiter(optarg, ",");
         break;
       case 'c':
         if (!validate_container_id(optarg)) {
@@ -236,11 +275,15 @@ int handle_devices_request(update_cgroups_parameters_function func,
 
   failed = internal_handle_devices_request(func,
          deny_device_value_tokens,
+         allow_device_value_tokens,
          container_id);
 
 cleanup:
   if (deny_device_value_tokens) {
     free_values(deny_device_value_tokens);
+  }
+  if (allow_device_value_tokens) {
+    free_values(allow_device_value_tokens);
   }
   return failed;
 }
