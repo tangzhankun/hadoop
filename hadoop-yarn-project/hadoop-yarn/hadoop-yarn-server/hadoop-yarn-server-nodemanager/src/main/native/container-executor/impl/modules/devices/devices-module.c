@@ -119,6 +119,7 @@ static int internal_handle_devices_request(
     while (ce_iterator[ce_count] != NULL) {
       // skip if duplicate with denied numbers passed in
       if (search_in_list(deny_devices_number_tokens, ce_iterator[ce_count])) {
+        ce_count++;
         continue;
       }
       char param_value[128];
