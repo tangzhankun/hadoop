@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #define EXCLUDED_DEVICES_OPTION "excluded_devices"
 #define ALLOWED_DEVICES_OPTION "allowed_devices"
@@ -53,45 +54,75 @@ static int search_in_list(char** list, char* token) {
   return 0;
 }
 
+static int is_block_device(const char* value) {
+  int is_block = 0;
+  char* block_path = malloc(512);
+  if (snprintf(block_path, 512, "/sys/dev/block/%s",
+    value) < 0) {
+    fprintf(ERRORFILE, "Failed to construct system block device path.\n");
+    goto cleanup;
+  }
+  
+  struct stat sb;
+  // file exists, is block device
+  if (stat(block_path, &sb) == 0) {
+    is_block = 1;
+  }
+cleanup:
+  if (block_path) {
+    free(block_path);
+  }
+  return is_block;
+}
+
 static int internal_handle_devices_request(
     update_cgroups_parameters_function update_cgroups_parameters_func_p,
     char** deny_devices_number_tokens,
-    char** allow_devices_number_tokens,
     const char* container_id) {
   int return_code = 0;
 
-  char** ce_allowed_numbers = NULL;
-  char* ce_allowed_str = get_section_value(DEVICES_ALLOWED_NUMBERS,
+  char** ce_denied_numbers = NULL;
+  char* ce_denied_str = get_section_value(DEVICES_DENIED_NUMBERS,
      cfg_section);
   // Get denied "major:minor" device numbers from cfg, if not set, means all
-  // devices can be used by YARN. And check if allowed devices passed in
-  if (ce_allowed_str != NULL) {
-    ce_allowed_numbers = split_delimiter(ce_allowed_str, ",");
-    if (NULL == ce_allowed_numbers) {
+  // devices can be used by YARN.
+  if (ce_denied_str != NULL) {
+    ce_denied_numbers = split_delimiter(ce_denied_str, ",");
+    if (NULL == ce_denied_numbers) {
       fprintf(ERRORFILE,
           "Invalid value set for %s, value=%s\n",
-          DEVICES_ALLOWED_NUMBERS,
-          ce_allowed_str);
+          DEVICES_DENIED_NUMBERS,
+          ce_denied_str);
       return_code = -1;
       goto cleanup;
     }
-    // check allowed devices numbers passed from java side is valid
-    char** allow_iterator = allow_devices_number_tokens;
-    int allow_count = 0;
-    while (allow_iterator[allow_count] != NULL) {
-      int found = search_in_list(ce_allowed_numbers, allow_iterator[allow_count]);
-      if (!found) {
-        fprintf(ERRORFILE,
-        "Try to allow this but its device number is not in configured allowed list: %s; %s\n",
-          allow_iterator[allow_count],
-          "This indicates mismatch between allowed devices reported by device plugin and container-executor.cfg");
+    // Deny devices configured in c-e.cfg
+    char** ce_iterator = ce_denied_numbers;
+    int ce_count = 0;
+    while (ce_iterator[ce_count] != NULL) {
+      char param_value[128];
+      char type = 'c';
+      memset(param_value, 0, sizeof(param_value));
+      if (is_block_device(ce_iterator[ce_count])) {
+        type = 'b';
+      }
+      snprintf(param_value, sizeof(param_value), "%c %s rwm",
+               type,
+               ce_iterator[ce_count]);
+      // Update device cgroups value
+      int rc = update_cgroups_parameters_func_p("devices", "deny",
+        container_id, param_value);
+
+      if (0 != rc) {
+        fprintf(ERRORFILE, "CGroups: Failed to update cgroups. %s\n", param_value);
         return_code = -1;
         goto cleanup;
       }
-      allow_count++;
+      ce_count++;
     }
   }
 
+  // Deny devices passed from java side
   char** iterator = deny_devices_number_tokens;
   int count = 0;
   char* value = NULL;
@@ -106,20 +137,6 @@ static int internal_handle_devices_request(
       }
       index++;
     }
-
-    // Check if excluded device number is in allowed list
-    if (ce_allowed_numbers != NULL) {
-      fprintf(LOGFILE, "Checking if in allowed list:%s\n", iterator[count]);
-      int found = search_in_list(ce_allowed_numbers, iterator[count]);
-      if (!found) {
-        fprintf(ERRORFILE,
-        "Try to deny this but its device number is not in configured allowed list: %s\n",
-          iterator[count]);
-        return_code = -1;
-        goto cleanup;
-      }
-    }
-
     // Update device cgroups value
     int rc = update_cgroups_parameters_func_p("devices", "deny",
       container_id, iterator[count]);
@@ -133,8 +150,8 @@ static int internal_handle_devices_request(
   }
 
 cleanup:
-  if (ce_allowed_numbers != NULL) {
-    free_values(ce_allowed_numbers);
+  if (ce_denied_numbers != NULL) {
+    free_values(ce_denied_numbers);
   }
 
   return return_code;
@@ -150,7 +167,6 @@ void reload_devices_configuration() {
  * The "-" will be replaced with " " to match the cgrooups parameter
  * c-e --module-devices \
  * --excluded_devices b-8:16,c-244:0,c-244:1 \
- * --allowed_devices 8:32,8:48,243:2 \
  * --container_id container_x_y
  */
 int handle_devices_request(update_cgroups_parameters_function func,
@@ -176,20 +192,16 @@ int handle_devices_request(update_cgroups_parameters_function func,
   int option_index = 0;
 
   char** deny_device_value_tokens = NULL;
-  char** allow_device_value_tokens = NULL;
   char container_id[MAX_CONTAINER_ID_LEN];
   memset(container_id, 0, sizeof(container_id));
   int failed = 0;
 
   optind = 1;
-  while((c = getopt_long(module_argc, module_argv, "e:a:c:",
+  while((c = getopt_long(module_argc, module_argv, "e:c:",
                          long_options, &option_index)) != -1) {
     switch(c) {
       case 'e':
         deny_device_value_tokens = split_delimiter(optarg, ",");
-        break;
-      case 'a':
-        allow_device_value_tokens = split_delimiter(optarg, ",");
         break;
       case 'c':
         if (!validate_container_id(optarg)) {
@@ -224,15 +236,11 @@ int handle_devices_request(update_cgroups_parameters_function func,
 
   failed = internal_handle_devices_request(func,
          deny_device_value_tokens,
-         allow_device_value_tokens,
          container_id);
 
 cleanup:
   if (deny_device_value_tokens) {
     free_values(deny_device_value_tokens);
-  }
-  if (allow_device_value_tokens) {
-    free_values(allow_device_value_tokens);
   }
   return failed;
 }
