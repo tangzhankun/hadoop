@@ -190,6 +190,7 @@ int handle_devices_request(update_cgroups_parameters_function func,
         break;
       case 'a':
         allow_device_value_tokens = split_delimiter(optarg, ",");
+        break;
       case 'c':
         if (!validate_container_id(optarg)) {
           fprintf(ERRORFILE,
