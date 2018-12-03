@@ -39,7 +39,7 @@
 
 static const struct section* cfg_section;
 
-// Search a string in a string list
+// Search a string in a string list, return 1 when found
 static int search_in_list(char** list, char* token) {
   int i = 0;
   char** iterator = list;
@@ -82,37 +82,6 @@ static int internal_handle_devices_request(
     const char* container_id) {
   int return_code = 0;
 
-  char** ce_allowed_numbers = NULL;
-  char* ce_allowed_str = get_section_value(DEVICES_ALLOWED_NUMBERS,
-     cfg_section);
-    // Get denied "major:minor" device numbers from cfg, if not set, means all
-    // devices can be used by YARN. And check if allowed devices passed in
-    if (ce_allowed_str != NULL) {
-      ce_allowed_numbers = split_delimiter(ce_allowed_str, ",");
-      if (NULL == ce_allowed_numbers) {
-        fprintf(ERRORFILE,
-            "Invalid value set for %s, value=%s\n",
-            DEVICES_ALLOWED_NUMBERS,
-            ce_allowed_str);
-        return_code = -1;
-        goto cleanup;
-      }
-      // check allowed devices numbers passed from java side is valid
-      char** allow_iterator = allow_devices_number_tokens;
-      int allow_count = 0;
-      while (allow_iterator[allow_count] != NULL) {
-        int found = search_in_list(ce_allowed_numbers, allow_iterator[allow_count]);
-        if (!found) {
-          fprintf(ERRORFILE,
-          "Try to allow this but its device number is not in configured allowed list: %s; %s\n",
-            allow_iterator[allow_count],
-            "This indicates mismatch between allowed devices reported by device plugin and container-executor.cfg");
-          return_code = -1;
-          goto cleanup;
-        }
-        allow_count++;
-      }
-    }
   char** ce_denied_numbers = NULL;
   char* ce_denied_str = get_section_value(DEVICES_DENIED_NUMBERS,
      cfg_section);
@@ -128,6 +97,21 @@ static int internal_handle_devices_request(
       return_code = -1;
       goto cleanup;
     }
+    // Check allowed devices passed in
+    char** allow_iterator = allow_devices_number_tokens;
+    int allow_count = 0;
+    while (allow_iterator[allow_count] != NULL) {
+      if (search_in_list(ce_denied_numbers, allow_iterator[allow_count])) {
+        fprintf(ERRORFILE,
+          "Trying to allow device with device number=%s which is not permitted in container-executor.cfg. %s\n",
+          allow_iterator[allow_count],
+          "It could be caused by a mismatch of devices reported by device plugin");
+        return_code = -1;
+        goto cleanup;
+      }
+      allow_count++;
+    }
+
     // Deny devices configured in c-e.cfg
     char** ce_iterator = ce_denied_numbers;
     int ce_count = 0;
@@ -184,9 +168,6 @@ static int internal_handle_devices_request(
 cleanup:
   if (ce_denied_numbers != NULL) {
     free_values(ce_denied_numbers);
-  }
-  if (ce_allowed_numbers != NULL) {
-    free_values(ce_allowed_numbers);
   }
   return return_code;
 }
