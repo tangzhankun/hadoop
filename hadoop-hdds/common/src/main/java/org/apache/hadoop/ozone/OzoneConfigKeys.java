@@ -52,6 +52,9 @@ public final class OzoneConfigKeys {
   public static final boolean DFS_CONTAINER_IPC_RANDOM_PORT_DEFAULT =
       false;
 
+  public static final String DFS_CONTAINER_CHUNK_WRITE_SYNC_KEY =
+      "dfs.container.chunk.write.sync";
+  public static final boolean DFS_CONTAINER_CHUNK_WRITE_SYNC_DEFAULT = true;
   /**
    * Ratis Port where containers listen to.
    */
@@ -249,6 +252,15 @@ public final class OzoneConfigKeys {
       DFS_CONTAINER_RATIS_STATEMACHINEDATA_SYNC_TIMEOUT_DEFAULT =
       ScmConfigKeys.DFS_CONTAINER_RATIS_STATEMACHINEDATA_SYNC_TIMEOUT_DEFAULT;
 
+  public static final String
+      DFS_CONTAINER_RATIS_STATEMACHINEDATA_CACHE_EXPIRY_INTERVAL =
+      ScmConfigKeys.
+          DFS_CONTAINER_RATIS_STATEMACHINEDATA_CACHE_EXPIRY_INTERVAL;
+  public static final String
+      DFS_CONTAINER_RATIS_STATEMACHINEDATA_CACHE_EXPIRY_INTERVAL_DEFAULT =
+      ScmConfigKeys.
+          DFS_CONTAINER_RATIS_STATEMACHINEDATA_CACHE_EXPIRY_INTERVAL_DEFAULT;
+
   public static final String DFS_CONTAINER_RATIS_DATANODE_STORAGE_DIR =
       "dfs.container.ratis.datanode.storage.dir";
   public static final String DFS_RATIS_CLIENT_REQUEST_TIMEOUT_DURATION_KEY =
@@ -330,8 +342,9 @@ public final class OzoneConfigKeys {
   public static final String OZONE_CLIENT_CHECKSUM_TYPE_DEFAULT = "SHA256";
   public static final String OZONE_CLIENT_BYTES_PER_CHECKSUM =
       "ozone.client.bytes.per.checksum";
-  public static final int OZONE_CLIENT_BYTES_PER_CHECKSUM_DEFAULT =
-      1024 * 1024; // 1 MB
+  public static final String OZONE_CLIENT_BYTES_PER_CHECKSUM_DEFAULT = "1MB";
+  public static final int OZONE_CLIENT_BYTES_PER_CHECKSUM_DEFAULT_BYTES =
+      1024 * 1024;
   public static final int OZONE_CLIENT_BYTES_PER_CHECKSUM_MIN_SIZE = 256 * 1024;
 
   /**

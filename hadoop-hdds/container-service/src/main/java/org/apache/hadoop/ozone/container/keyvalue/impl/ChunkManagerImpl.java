@@ -21,10 +21,10 @@ package org.apache.hadoop.ozone.container.keyvalue.impl;
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.hdds.client.BlockID;
-import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos;
 import org.apache.hadoop.hdds.scm.container.common.helpers.StorageContainerException;
 import org.apache.hadoop.ozone.OzoneConsts;
 import org.apache.hadoop.ozone.container.common.helpers.ChunkInfo;
+import org.apache.hadoop.ozone.container.common.transport.server.ratis.DispatcherContext;
 import org.apache.hadoop.ozone.container.keyvalue.KeyValueContainerData;
 import org.apache.hadoop.ozone.container.common.volume.HddsVolume;
 import org.apache.hadoop.ozone.container.common.volume.VolumeIOStats;
@@ -54,6 +54,11 @@ import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Res
  */
 public class ChunkManagerImpl implements ChunkManager {
   static final Logger LOG = LoggerFactory.getLogger(ChunkManagerImpl.class);
+  private final boolean doSyncWrite;
+
+  public ChunkManagerImpl(boolean sync) {
+    doSyncWrite = sync;
+  }
 
   /**
    * writes a given chunk.
@@ -66,7 +71,7 @@ public class ChunkManagerImpl implements ChunkManager {
    * @throws StorageContainerException
    */
   public void writeChunk(Container container, BlockID blockID, ChunkInfo info,
-      ByteBuffer data, ContainerProtos.Stage stage)
+      ByteBuffer data, DispatcherContext.WriteChunkStage stage)
       throws StorageContainerException {
 
     try {
@@ -115,7 +120,8 @@ public class ChunkManagerImpl implements ChunkManager {
               "tmpChunkFile already exists" + tmpChunkFile + "Overwriting it.");
         }
         // Initially writes to temporary chunk file.
-        ChunkUtils.writeData(tmpChunkFile, info, data, volumeIOStats);
+        ChunkUtils
+            .writeData(tmpChunkFile, info, data, volumeIOStats, doSyncWrite);
         // No need to increment container stats here, as still data is not
         // committed here.
         break;
@@ -139,7 +145,7 @@ public class ChunkManagerImpl implements ChunkManager {
         break;
       case COMBINED:
         // directly write to the chunk file
-        ChunkUtils.writeData(chunkFile, info, data, volumeIOStats);
+        ChunkUtils.writeData(chunkFile, info, data, volumeIOStats, doSyncWrite);
         if (!isOverwrite) {
           containerData.incrBytesUsed(info.getLen());
         }
@@ -173,13 +179,14 @@ public class ChunkManagerImpl implements ChunkManager {
    * @param container - Container for the chunk
    * @param blockID - ID of the block.
    * @param info - ChunkInfo.
+   * @param readFromTmpFile whether to read from tmp chunk file or not.
    * @return byte array
    * @throws StorageContainerException
    * TODO: Right now we do not support partial reads and writes of chunks.
    * TODO: Explore if we need to do that for ozone.
    */
-  public byte[] readChunk(Container container, BlockID blockID, ChunkInfo info)
-      throws StorageContainerException {
+  public byte[] readChunk(Container container, BlockID blockID, ChunkInfo info,
+      boolean readFromTmpFile) throws StorageContainerException {
     try {
       KeyValueContainerData containerData = (KeyValueContainerData) container
           .getContainerData();
@@ -194,6 +201,12 @@ public class ChunkManagerImpl implements ChunkManager {
       if (containerData.getLayOutVersion() == ChunkLayOutVersion
           .getLatestVersion().getVersion()) {
         File chunkFile = ChunkUtils.getChunkFile(containerData, info);
+
+        // In case the chunk file does not exist but tmp chunk file exist,
+        // read from tmp chunk file if readFromTmpFile is set to true
+        if (!chunkFile.exists() && readFromTmpFile) {
+          chunkFile = getTmpChunkFile(chunkFile, info);
+        }
         data = ChunkUtils.readData(chunkFile, info, volumeIOStats);
         containerData.incrReadCount();
         long length = chunkFile.length();

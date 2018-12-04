@@ -53,6 +53,14 @@
     </description>
   </property>
   <property>
+    <name>dfs.container.chunk.write.sync</name>
+    <value>true</value>
+    <tag>OZONE, CONTAINER, MANAGEMENT</tag>
+    <description>Determines whether the chunk writes in the container happen as
+      sync I/0 or buffered I/O operation.
+    </description>
+  </property>
+  <property>
     <name>dfs.container.ratis.statemachinedata.sync.timeout</name>
     <value>10s</value>
     <tag>OZONE, DEBUG, CONTAINER, RATIS</tag>
@@ -187,6 +195,14 @@
     <tag>OZONE, RATIS, PERFORMANCE</tag>
     <description>The size of the buffer which is preallocated for raft segment
       used by Apache Ratis on datanodes.(128 MB by default)
+    </description>
+  </property>
+  <property>
+    <name>dfs.container.ratis.statemachine.cache.expiry.interval</name>
+    <value>10s</value>
+    <tag>OZONE, RATIS, PERFORMANCE</tag>
+    <description>The interval till which the stateMachine data in ratis
+      will be cached inside the ContainerStateMachine.
     </description>
   </property>
   <property>
@@ -1381,5 +1397,23 @@
     </description>
   </property>
 
+  <property>
+    <name>ozone.client.checksum.type</name>
+    <value>SHA256</value>
+    <tag>OZONE, CLIENT, MANAGEMENT</tag>
+    <description>The checksum type [NONE/ CRC32/ CRC32C/ SHA256/ MD5] determines
+      which algorithm would be used to compute checksum for chunk data.
+      Default checksum type is SHA256.
+    </description>
+  </property>
+
+  <property>
+    <name>ozone.client.bytes.per.checksum</name>
+    <value>1MB</value>
+    <tag>OZONE, CLIENT, MANAGEMENT</tag>
+    <description>Checksum will be computed for every bytes per checksum number
+      of bytes and stored sequentially.
+    </description>
+  </property>
 
 </configuration>
