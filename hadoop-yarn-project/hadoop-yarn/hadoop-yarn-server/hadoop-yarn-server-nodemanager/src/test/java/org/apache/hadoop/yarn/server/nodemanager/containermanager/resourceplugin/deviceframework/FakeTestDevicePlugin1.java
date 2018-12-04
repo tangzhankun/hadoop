@@ -62,7 +62,7 @@ public class FakeTestDevicePlugin1
 
   @Override
   public Set<Device> allocateDevices(Set<Device> availableDevices,
-      Integer count) {
+      int count) {
     Set<Device> allocated = new TreeSet<Device>();
     int number = 0;
     for (Device d : availableDevices) {

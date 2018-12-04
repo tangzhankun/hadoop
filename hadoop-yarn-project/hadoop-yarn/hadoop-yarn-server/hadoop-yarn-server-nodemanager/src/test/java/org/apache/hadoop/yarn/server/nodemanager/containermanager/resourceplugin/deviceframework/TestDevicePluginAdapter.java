@@ -65,6 +65,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -482,7 +483,7 @@ public class TestDevicePluginAdapter {
     adapter.getDeviceResourceHandler().preStart(c1);
     // Use customized scheduler
     verify(spyPlugin, times(1)).allocateDevices(
-        any(TreeSet.class), any(Integer.class));
+        any(TreeSet.class), anyInt());
     Assert.assertEquals(2,
         dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(1,
@@ -573,7 +574,7 @@ public class TestDevicePluginAdapter {
 
     @Override
     public Set<Device> allocateDevices(Set<Device> availableDevices,
-        Integer count) {
+        int count) {
       Set<Device> allocated = new TreeSet<>();
       int number = 0;
       for (Device d : availableDevices) {

@@ -34,5 +34,5 @@ public interface DevicePluginScheduler {
    * @param count Number of device to be allocated.
    * @return A set of {@link Device} allocated
    * */
-  Set<Device> allocateDevices(Set<Device> availableDevices, Integer count);
+  Set<Device> allocateDevices(Set<Device> availableDevices, int count);
 }

@@ -309,9 +309,7 @@ public class DeviceMappingManager {
       Set<Device> dpsAllocated = dps.allocateDevices(
           Sets.difference(allowed, used.keySet()),
           count);
-      // TODO: should check if customized scheduler return values are valid
       if (dpsAllocated.size() != count) {
-        // TODO: fall back to default schedule logic?
         throw new ResourceHandlerException(dps.getClass()
             + " should allocate " + count
             + " of " + resourceName + ", but actual: "
@@ -374,7 +372,7 @@ public class DeviceMappingManager {
   }
 
   @VisibleForTesting
-  public void addDevicePluginScheduler(String resourceName,
+  public synchronized void addDevicePluginScheduler(String resourceName,
       DevicePluginScheduler s) {
     this.devicePluginSchedulers.put(resourceName,
         Objects.requireNonNull(s));
