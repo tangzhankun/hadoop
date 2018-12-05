@@ -33,9 +33,12 @@ public interface RemoteDirectoryManager {
 
   boolean isDir(String url) throws IOException;
 
-  boolean copyFilesFromHdfs(String remoteDir, String localDir)
-      throws IOException;
-  boolean existsHdfsFile(Path url) throws IOException;
+  boolean isRemote(String uri) throws IOException;
 
-  FileStatus getHdfsFileStatus(Path url) throws IOException;
+  boolean copyRemoteDirToLocal(String remoteDir, String localDir)
+      throws IOException;
+
+  boolean existsRemoteFile(Path url) throws IOException;
+
+  FileStatus getRemoteFileStatus(Path url) throws IOException;
 }

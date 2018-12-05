@@ -48,10 +48,11 @@ public class Localization {
     int minimum = "a:b".split(":").length;
     int minimumWithPermission = "a:b:rw".split(":").length;
     int minimumParts = minimum;
-    int miniPartsWithHdfs = "hdfs://a:b".split(":").length;
-    int maximumParts = "hdfs://a:b:rw".split(":").length;
-    if (tokens[0].equals("hdfs")) {
-      minimumParts = miniPartsWithHdfs;
+    int miniPartsWithRemoteScheme = "scheme://a:b".split(":").length;
+    int maximumParts = "scheme://a:b:rw".split(":").length;
+    // If remote uri starts with a remote scheme
+    if (isSupportedScheme(tokens[0])) {
+      minimumParts = miniPartsWithRemoteScheme;
     }
     if (tokens.length < minimumParts
         || tokens.length > maximumParts) {
@@ -61,11 +62,11 @@ public class Localization {
     }
 
     /**
-     * RemoteUri starts with hdfs://.
+     * RemoteUri starts with remote scheme.
      * Merge part 0 and 1 to build a hdfs path in token[0].
      * toke[1] will be localPath to ease following logic
      * */
-    if (minimumParts == miniPartsWithHdfs) {
+    if (minimumParts == miniPartsWithRemoteScheme) {
       tokens[0] = tokens[0] + ":" + tokens[1];
       tokens[1] = tokens[2];
       if (tokens.length == maximumParts) {
@@ -117,4 +118,15 @@ public class Localization {
     this.mountPermission = mPermission;
   }
 
+  private boolean isSupportedScheme(String scheme) {
+    return scheme.equals("hdfs") || scheme.equals("oss")
+        || scheme.equals("s3a") || scheme.equals("s3n")
+        || scheme.equals("wasb") || scheme.equals("wasbs")
+        || scheme.equals("abfs") || scheme.equals("abfss")
+        || scheme.equals("adl") || scheme.equals("har")
+        || scheme.equals("har") || scheme.equals("ftp")
+        || scheme.equals("http") || scheme.equals("https")
+        || scheme.equals("viewfs") || scheme.equals("swebhdfs")
+        || scheme.equals("webhdfs") || scheme.equals("swift");
+  }
 }

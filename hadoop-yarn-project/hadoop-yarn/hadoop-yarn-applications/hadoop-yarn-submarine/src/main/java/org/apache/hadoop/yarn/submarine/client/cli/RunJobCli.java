@@ -130,9 +130,10 @@ public class RunJobCli extends AbstractCli {
         + "worker container(Docker)."
         + "Argument format is \"RemoteUri:LocalFilePath[:rw] \" (ro "
         + "permission is not supported yet)"
-        + " The RemoteUri can be a local or HDFS file or directory."
+        + " The RemoteUri can be a file or directory in local or"
+        + " HDFS or s3 or abfs or http .etc."
         + " The LocalFilePath can be a file path."
-        + " If it's a relative path, it'll be put"
+        + " If it's a relative path, it'll be"
         + " under container's implied working directory");
     options.addOption(CliConstants.KEYTAB, true, "Specify keytab used by the " +
         "job under security environment");

@@ -14,6 +14,7 @@
 
 package org.apache.hadoop.yarn.submarine.common.fs;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -22,7 +23,9 @@ import org.apache.hadoop.yarn.submarine.client.cli.CliConstants;
 import org.apache.hadoop.yarn.submarine.common.ClientContext;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 
 /**
  * Manages remote directories for staging, log, etc.
@@ -89,14 +92,23 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
 
   @Override
   public boolean isDir(String uri) throws IOException {
-    if (uri.startsWith("hdfs://")) {
+    if (isRemote(uri)) {
       return getFileSystem().getFileStatus(new Path(uri)).isDirectory();
     }
     return new File(uri).isDirectory();
   }
 
   @Override
-  public boolean copyFilesFromHdfs(String remoteDir, String localDir)
+  public boolean isRemote(String uri) {
+    String scheme = new Path(uri).toUri().getScheme();
+    if (null == scheme) {
+      return false;
+    }
+    return !scheme.startsWith("file://");
+  }
+
+  @Override
+  public boolean copyRemoteDirToLocal(String remoteDir, String localDir)
       throws IOException {
     // Delete old to avoid failure in FileUtil.copy
     File old = new File(localDir);
@@ -106,18 +118,18 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
             + old.getAbsolutePath());
       }
     }
-    return FileUtil.copy(fs, new Path(remoteDir),
+    return FileUtil.copy(getFileSystem(), new Path(remoteDir),
         new File(localDir), false,
         getFileSystem().getConf());
   }
 
   @Override
-  public boolean existsHdfsFile(Path url) throws IOException {
+  public boolean existsRemoteFile(Path url) throws IOException {
     return getFileSystem().exists(url);
   }
 
   @Override
-  public FileStatus getHdfsFileStatus(Path url) throws IOException {
+  public FileStatus getRemoteFileStatus(Path url) throws IOException {
     return getFileSystem().getFileStatus(url);
   }
 

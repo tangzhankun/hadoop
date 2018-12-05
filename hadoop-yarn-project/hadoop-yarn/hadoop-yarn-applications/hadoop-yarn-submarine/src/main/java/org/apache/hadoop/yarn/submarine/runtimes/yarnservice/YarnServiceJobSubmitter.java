@@ -38,6 +38,7 @@ import org.apache.hadoop.yarn.submarine.client.cli.param.RunJobParameters;
 import org.apache.hadoop.yarn.submarine.common.ClientContext;
 import org.apache.hadoop.yarn.submarine.common.Envs;
 import org.apache.hadoop.yarn.submarine.common.api.TaskType;
+import org.apache.hadoop.yarn.submarine.common.conf.SubmarineConfiguration;
 import org.apache.hadoop.yarn.submarine.common.conf.SubmarineLogs;
 import org.apache.hadoop.yarn.submarine.common.fs.RemoteDirectoryManager;
 import org.apache.hadoop.yarn.submarine.runtimes.common.JobSubmitter;
@@ -333,40 +334,29 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     FileSystem fs = rdm.getFileSystem();
     Path uploadedFilePath;
     FileStatus fileStatus;
-    // If it is a file path in HDFS, no upload
-    if (needHdfs(fileToUpload)) {
-      uploadedFilePath = new Path(fileToUpload);
-      if (!rdm.existsHdfsFile(uploadedFilePath)) {
-        throw new FileNotFoundException(
-            "File " + fileToUpload
-                + " seems a HDFS file, but doesn't exists.");
-      }
-      fileStatus = rdm.getHdfsFileStatus(uploadedFilePath);
-      LOG.info("Remote File already in HDFS, no need to upload. "
-          + fileStatus.getPath());
-    } else {
-      // Upload to remote FS under staging area
-      File localFile = new File(fileToUpload);
-      if (!localFile.exists()) {
-        throw new FileNotFoundException(
-            "Trying to upload file=" + localFile.getAbsolutePath()
-                + " to remote, but couldn't find local file.");
-      }
-      String filename = new File(fileToUpload).getName();
 
-      uploadedFilePath = new Path(stagingDir, filename);
-      if (!uploadedFiles.contains(uploadedFilePath)) {
-        if (SubmarineLogs.isVerbose()) {
-          LOG.info("Copying local file=" + fileToUpload + " to remote="
-              + uploadedFilePath);
-        }
-        fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
-        uploadedFiles.add(uploadedFilePath);
-      }
-
-      fileStatus = fs.getFileStatus(uploadedFilePath);
-      LOG.info("Uploaded file path = " + fileStatus.getPath());
+    // Upload to remote FS under staging area
+    File localFile = new File(fileToUpload);
+    if (!localFile.exists()) {
+      throw new FileNotFoundException(
+          "Trying to upload file=" + localFile.getAbsolutePath()
+              + " to remote, but couldn't find local file.");
     }
+    String filename = new File(fileToUpload).getName();
+
+    uploadedFilePath = new Path(stagingDir, filename);
+    if (!uploadedFiles.contains(uploadedFilePath)) {
+      if (SubmarineLogs.isVerbose()) {
+        LOG.info("Copying local file=" + fileToUpload + " to remote="
+            + uploadedFilePath);
+      }
+      fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
+      uploadedFiles.add(uploadedFilePath);
+    }
+
+    fileStatus = fs.getFileStatus(uploadedFilePath);
+    LOG.info("Uploaded file path = " + fileStatus.getPath());
+
     return fileStatus.getPath();
   }
 
@@ -399,38 +389,43 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     return new Path(srcFileStr).getName();
   }
 
-  private String mayDownloadAndZipIt(String remoteDir, String zipFileName)
+  private String mayDownloadDirAndZipIt(String remoteDir, String zipFileName)
       throws IOException {
+    RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
     String srcDir = remoteDir;
     String zipDirPath =
         System.getProperty("java.io.tmpdir") + "/" + zipFileName;
-    if (needHdfs(remoteDir)) {
+    if (rdm.isRemote(remoteDir)) {
       // Download them to temp dir
-      boolean downloaded = clientContext.getRemoteDirectoryManager()
-          .copyFilesFromHdfs(remoteDir, zipDirPath);
+      boolean downloaded = rdm.copyRemoteDirToLocal(remoteDir, zipDirPath);
       if (!downloaded) {
         throw new IOException("Failed to download files from "
             + remoteDir);
       }
-      LOG.info("Downloaded {} to {}", remoteDir, zipDirPath);
+      LOG.info("Downloaded remote: {} to local: {}", remoteDir, zipDirPath);
       srcDir = zipDirPath;
     }
+    //Append modification time and size to zip file name
+    File f = new File(srcDir);
+    String suffix = "_" + f.lastModified()
+        + "-" + f.length();
     // zip a local dir
-    return zipDir(srcDir, zipDirPath + ".zip");
+    return zipDir(srcDir, zipDirPath + suffix + ".zip");
   }
 
   private String zipDir(String srcDir, String dstFile) throws IOException {
     FileOutputStream fos = new FileOutputStream(dstFile);
     ZipOutputStream zos = new ZipOutputStream(fos);
     File srcFile = new File(srcDir);
-    addDirToZip(zos, srcFile);
+    LOG.info("Compressing {}", srcDir);
+    addDirToZip(zos, srcFile, srcFile);
     // close the ZipOutputStream
     zos.close();
     LOG.info("Compressed {} to {}", srcDir, dstFile);
     return dstFile;
   }
 
-  private void addDirToZip(ZipOutputStream zos, File srcFile)
+  private void addDirToZip(ZipOutputStream zos, File srcFile, File base)
       throws IOException {
     File[] files = srcFile.listFiles();
     if (null == files) {
@@ -440,13 +435,15 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     for (int i = 0; i < files.length; i++) {
       // if it's directory, add recursively
       if (files[i].isDirectory()) {
-        addDirToZip(zos, files[i]);
+        addDirToZip(zos, files[i], base);
         continue;
       }
       byte[] buffer = new byte[1024];
       try {
         fis = new FileInputStream(files[i]);
-        zos.putNextEntry(new ZipEntry(files[i].getName()));
+        String name =  base.toURI().relativize(files[i].toURI()).getPath();
+        LOG.info (" Zip adding: " + name);
+        zos.putNextEntry(new ZipEntry(name));
         int length;
         while ((length = fis.read(buffer)) > 0) {
           zos.write(buffer, 0, length);
@@ -651,10 +648,10 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   /**
    * Localize dependencies for all containers.
    * If remoteUri is a local directory,
-   * we'll compress it and upload to staging dir in HDFS
-   * If remoteUri is a HDFS directory, we'll download, compress it
-   * and upload to staging dir in HDFS
-   * If localFilePath is ".", we'll use remote file/dir name
+   * we'll zip it, upload to HDFS staging dir HDFS.
+   * If remoteUri is directory, we'll download it, zip it and upload
+   * to HDFS.
+   * If localFilePath is ".", we'll use remoteUri's file/dir name
    * */
   private void handleLocalizations(RunJobParameters parameters)
       throws IOException {
@@ -665,32 +662,68 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     List<Localization> locs = parameters.getLocalizations();
     String remoteUri;
     String containerLocalPath;
+    RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
     for (Localization loc : locs) {
       remoteUri = loc.getRemoteUri();
       containerLocalPath = loc.getLocalPath();
       String srcFileStr = remoteUri;
       ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
-      // If remote is a dir, may download from hdfs and compress files
-      if (clientContext.getRemoteDirectoryManager().isDir(remoteUri)) {
-        destFileType = ConfigFile.TypeEnum.ARCHIVE;
-        srcFileStr = mayDownloadAndZipIt(
-            remoteUri, getLastNameFromPath(srcFileStr));
+      Path resourceToLocalize = new Path(remoteUri);
+      boolean needUploadToHDFS = true;
+      // Check if remoteUri exists or exceed size
+      if (rdm.isRemote(remoteUri)) {
+        // check if exists
+        if (!rdm.existsRemoteFile(resourceToLocalize)) {
+          throw new FileNotFoundException(
+              "File " + remoteUri + " doesn't exists.");
+        }
+        // check remote file size
+        validFileSize(remoteUri);
+        needUploadToHDFS = false;
+      } else {
+        // Check if exists
+        File localFile = new File(remoteUri);
+        if (!localFile.exists()) {
+          throw new FileNotFoundException(
+              "File " + remoteUri + " doesn't exists.");
+        }
       }
-      Path hdfsDestUri = uploadToRemoteFile(stagingDir, srcFileStr);
+      /**
+       * Special handling for remoteUri directory.
+       * Due to unsupported localization of directory in yarn service
+       * We should download remote and zip it and upload to HDFS.
+       * (see YARN-9083 for more detail)
+       * */
+      if (rdm.isDir(remoteUri)) {
+        destFileType = ConfigFile.TypeEnum.ARCHIVE;
+        srcFileStr = mayDownloadDirAndZipIt(
+            remoteUri, getLastNameFromPath(srcFileStr));
+        needUploadToHDFS = true;
+      }
+      // Upload file to HDFS
+      if (needUploadToHDFS) {
+        resourceToLocalize = uploadToRemoteFile(stagingDir, srcFileStr);
+      }
+      // Remove .zip from zipped dir name
+      if (destFileType == ConfigFile.TypeEnum.ARCHIVE
+          && srcFileStr.endsWith(".zip")) {
+        // Delete local zip file
+        new File(srcFileStr).delete();
+        LOG.info("Deleted temp zip file: {}", srcFileStr);
+        int suffix_index = srcFileStr.lastIndexOf('_');
+        srcFileStr = srcFileStr.substring(0, suffix_index);
+      }
       // If provided, use the name of local uri
       if (!containerLocalPath.equals(".")
           && !containerLocalPath.equals("./")) {
         // Change the YARN localized file name to what'll used in container
         srcFileStr = getLastNameFromPath(containerLocalPath);
       }
-      // Remove the ".zip" from localized file name if archive
-      if (destFileType == ConfigFile.TypeEnum.ARCHIVE
-          && srcFileStr.endsWith(".zip")) {
-        srcFileStr = srcFileStr.substring(0, srcFileStr.length() - 4);
-      }
-      LOG.info("The localized file name is {}", srcFileStr);
+      String localizedName = getLastNameFromPath(srcFileStr);
+      LOG.info("The file/dir to be localized is {}", resourceToLocalize.toString());
+      LOG.info("Its localized file name will be {}", localizedName);
       serviceSpec.getConfiguration().getFiles().add(new ConfigFile().srcFile(
-          hdfsDestUri.toString()).destFile(getLastNameFromPath(srcFileStr))
+          resourceToLocalize.toString()).destFile(localizedName)
           .type(destFileType));
       // set mounts
       // if mount path is absolute, just use it.
@@ -703,6 +736,21 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
             mountStr, ",");
       }
     }
+  }
+
+  private void validFileSize(String uri) throws IOException {
+    FileStatus status = clientContext.getRemoteDirectoryManager()
+        .getRemoteFileStatus(new Path(uri));
+    long actualSizeGB = status.getLen()/1024/1024;
+    long maxFileSizeGB = clientContext.getSubmarineConfig()
+        .getLong(SubmarineConfiguration.MAX_ALLOWED_REMOTE_URI_SIZE_GB,
+            SubmarineConfiguration.DEFAULT_MAX_ALLOWED_REMOTE_URI_SIZE_GB);
+    if (actualSizeGB > maxFileSizeGB) {
+      throw new IOException(uri + " size(GB): "
+          + actualSizeGB + " exceeds configured max size:"
+          + maxFileSizeGB);
+    }
+
   }
 
   private String generateServiceSpecFile(Service service) throws IOException {

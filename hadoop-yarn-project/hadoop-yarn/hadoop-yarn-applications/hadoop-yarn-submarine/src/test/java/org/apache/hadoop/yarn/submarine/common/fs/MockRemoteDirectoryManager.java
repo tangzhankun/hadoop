@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
@@ -99,11 +100,26 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
 
   }
 
+  @Override
+  public boolean isRemote(String uri) throws IOException {
+    return new Path(uri).toUri().getScheme().startsWith("file://");
+  }
+
+  private String convertToStagingPath(String uri) throws IOException {
+    String ret = uri;
+    if (isRemote(uri)) {
+      String dirName = new Path(uri).getName();
+      ret = this.jobDir.getAbsolutePath()
+          + "/" + dirName;
+    }
+    return ret;
+  }
+
   /**
    * We use staging dir as mock HDFS dir.
    * */
   @Override
-  public boolean copyFilesFromHdfs(String remoteDir, String localDir)
+  public boolean copyRemoteDirToLocal(String remoteDir, String localDir)
       throws IOException {
     // mock the copy from HDFS into a local copy
     Path remoteToLocalDir = new Path(convertToStagingPath(remoteDir));
@@ -119,25 +135,15 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
         getFileSystem().getConf());
   }
 
-  private String convertToStagingPath(String uri) {
-    String ret = uri;
-    if (uri.startsWith("hdfs://")) {
-      String dirName = new Path(uri).getName();
-      ret = this.jobDir.getAbsolutePath()
-          + "/" + dirName;
-    }
-    return ret;
-  }
-
   @Override
-  public boolean existsHdfsFile(Path uri) throws IOException {
+  public boolean existsRemoteFile(Path uri) throws IOException {
     String fakeLocalFilePath = this.jobDir.getAbsolutePath()
         + "/" + uri.getName();
     return new File(fakeLocalFilePath).exists();
   }
 
   @Override
-  public FileStatus getHdfsFileStatus(Path p) throws IOException {
+  public FileStatus getRemoteFileStatus(Path p) throws IOException {
     return getFileSystem().getFileStatus(new Path(
         convertToStagingPath(p.toUri().toString())));
   }
