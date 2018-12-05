@@ -46,13 +46,14 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <hdds.version>0.4.0-SNAPSHOT</hdds.version>
 
     <!-- Apache Ratis version -->
-    <ratis.version>0.3.0-6f3419a-SNAPSHOT</ratis.version>
+    <ratis.version>0.4.0-b600fc2-SNAPSHOT</ratis.version>
 
     <bouncycastle.version>1.60</bouncycastle.version>
 
     <protobuf-maven-plugin.version>0.5.1</protobuf-maven-plugin.version>
     <os-maven-plugin.version>1.5.0.Final</os-maven-plugin.version>
 
+    <maven-surefire-plugin.version>3.0.0-M1</maven-surefire-plugin.version>
 
   </properties>
   <repositories>
