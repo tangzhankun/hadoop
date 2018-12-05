@@ -106,7 +106,11 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
 
   @Override
   public boolean isRemote(String uri) throws IOException {
-    return new Path(uri).toUri().getScheme().startsWith("file://");
+    String scheme = new Path(uri).toUri().getScheme();
+    if (null == scheme) {
+      return false;
+    }
+    return !scheme.startsWith("file://");
   }
 
   private String convertToStagingPath(String uri) throws IOException {

@@ -398,6 +398,10 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       boolean doZip)
       throws IOException {
     RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
+    //Append original modification time and size to zip file name
+    FileStatus status = rdm.getRemoteFileStatus(new Path(remoteDir));
+    String suffix = "_" + status.getModificationTime()
+        + "-" + status.getLen();
     String srcDir = remoteDir;
     String zipDirPath =
         System.getProperty("java.io.tmpdir") + "/" + zipFileName;
@@ -414,10 +418,6 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     if (!doZip) {
       return srcDir;
     }
-    //Append modification time and size to zip file name
-    File f = new File(srcDir);
-    String suffix = "_" + f.lastModified()
-        + "-" + f.length();
     // zip a local dir
     return zipDir(srcDir, zipDirPath + suffix + ".zip");
   }
@@ -738,7 +738,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       LOG.info("The file/dir to be localized is {}", resourceToLocalize.toString());
       LOG.info("Its localized file name will be {}", localizedName);
       serviceSpec.getConfiguration().getFiles().add(new ConfigFile().srcFile(
-          resourceToLocalize.toString()).destFile(localizedName)
+          resourceToLocalize.toUri().toString()).destFile(localizedName)
           .type(destFileType));
       // set mounts
       // if mount path is absolute, just use it.
@@ -756,14 +756,14 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   private void validFileSize(String uri) throws IOException {
     FileStatus status = clientContext.getRemoteDirectoryManager()
         .getRemoteFileStatus(new Path(uri));
-    long actualSizeGB = status.getLen()/1024/1024;
-    long maxFileSizeGB = clientContext.getSubmarineConfig()
-        .getLong(SubmarineConfiguration.MAX_ALLOWED_REMOTE_URI_SIZE_GB,
-            SubmarineConfiguration.DEFAULT_MAX_ALLOWED_REMOTE_URI_SIZE_GB);
-    if (actualSizeGB > maxFileSizeGB) {
-      throw new IOException(uri + " size(GB): "
-          + actualSizeGB + " exceeds configured max size:"
-          + maxFileSizeGB);
+    long actualSizeMB = status.getLen()/1024/1024;
+    long maxFileSizeMB = clientContext.getSubmarineConfig()
+        .getLong(SubmarineConfiguration.MAX_ALLOWED_REMOTE_URI_SIZE_MB,
+            SubmarineConfiguration.DEFAULT_MAX_ALLOWED_REMOTE_URI_SIZE_MB);
+    if (actualSizeMB > maxFileSizeMB) {
+      throw new IOException(uri + " size(MB): "
+          + actualSizeMB + " exceeds configured max size:"
+          + maxFileSizeMB);
     }
 
   }

@@ -22,11 +22,11 @@ public class SubmarineConfiguration extends Configuration {
   public static final String SUBMARINE_CONFIGURATION_PREFIX = "submarine";
 
   // Limit the size of remote directory/file to avoid exhaust local space
-  public static final String MAX_ALLOWED_REMOTE_URI_SIZE_GB =
-      SUBMARINE_CONFIGURATION_PREFIX + "max-allowed-remote-uri-size-gb";
+  public static final String MAX_ALLOWED_REMOTE_URI_SIZE_MB =
+      SUBMARINE_CONFIGURATION_PREFIX + "max-allowed-remote-uri-size-mb";
 
   // Default 2GB
-  public static final long DEFAULT_MAX_ALLOWED_REMOTE_URI_SIZE_GB = 2;
+  public static final long DEFAULT_MAX_ALLOWED_REMOTE_URI_SIZE_MB = 2048;
 
   public SubmarineConfiguration() {
     this(new Configuration(false), true);

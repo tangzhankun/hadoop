@@ -219,10 +219,9 @@ public class TestYarnServiceRunJobCli {
     Assert.assertEquals(3, files.size());
     ConfigFile file = files.get(0);
     Assert.assertEquals(ConfigFile.TypeEnum.STATIC, file.getType());
-    String expectedSrcLocalization = stagingDir.toUri().getPath()
-        + "/" + new Path(remoteUrl).getName();
+    String expectedSrcLocalization = remoteUrl;
     Assert.assertEquals(expectedSrcLocalization,
-        new Path(file.getSrcFile()).toUri().getPath());
+        file.getSrcFile());
     String expectedDstFileName = new Path(remoteUrl).getName();
     Assert.assertEquals(expectedDstFileName, file.getDestFile());
 
@@ -300,6 +299,10 @@ public class TestYarnServiceRunJobCli {
     Assert.assertTrue(remoteDir1.exists());
     Assert.assertTrue(remoteDir2.exists());
 
+    String suffix1 = "_" + remoteDir1.lastModified()
+        + "-" + remoteDir1.length();
+    String suffix2 = "_" + remoteDir2.lastModified()
+        + "-" + remoteDir2.length();
     runJobCli.run(
         new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
@@ -327,7 +330,7 @@ public class TestYarnServiceRunJobCli {
     // The hdfs dir should be download and compress and let YARN to uncompress
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
     String expectedSrcLocalization = stagingDir.toUri().getPath()
-        + "/" + new Path(remoteUrl).getName() + ".zip";
+        + "/" + new Path(remoteUrl).getName() + suffix1 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
     // Relative path in container, but not "." or "./". Use its own name
@@ -337,7 +340,7 @@ public class TestYarnServiceRunJobCli {
     file = files.get(1);
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
     expectedSrcLocalization = stagingDir.toUri().getPath()
-        + "/" + new Path(remoteUrl2).getName() + ".zip";
+        + "/" + new Path(remoteUrl2).getName() + suffix2 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
     expectedDstFileName = new Path(containPath2).getName();
@@ -346,7 +349,7 @@ public class TestYarnServiceRunJobCli {
     file = files.get(2);
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
     expectedSrcLocalization = stagingDir.toUri().getPath()
-        + "/" + new Path(remoteUrl).getName() + ".zip";
+        + "/" + new Path(remoteUrl).getName() + suffix1 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
     // Relative path in container ".", use remote path name
@@ -356,7 +359,7 @@ public class TestYarnServiceRunJobCli {
     file = files.get(3);
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
     expectedSrcLocalization = stagingDir.toUri().getPath()
-        + "/" + new Path(remoteUrl2).getName() + ".zip";
+        + "/" + new Path(remoteUrl2).getName() + suffix2 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
     // Relative path in container "./", use remote path name
@@ -417,6 +420,11 @@ public class TestYarnServiceRunJobCli {
     Assert.assertTrue(localDir1.exists());
     Assert.assertTrue(localDir2.exists());
 
+    String suffix1 = "_" + localDir1.lastModified()
+        + "-" + localDir1.length();
+    String suffix2 = "_" + localDir2.lastModified()
+        + "-" + localDir2.length();
+
     runJobCli.run(
         new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
@@ -444,7 +452,7 @@ public class TestYarnServiceRunJobCli {
         .getJobStagingArea("my-job", true);
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
     String expectedSrcLocalization = stagingDir.toUri().getPath()
-        + "/" + new Path(localUrl).getName() + ".zip";
+        + "/" + new Path(localUrl).getName() + suffix1 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
     String expectedDstFileName = new Path(containerPath).getName();
@@ -453,7 +461,7 @@ public class TestYarnServiceRunJobCli {
     file = files.get(1);
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
     expectedSrcLocalization = stagingDir.toUri().getPath()
-        + "/" + new Path(localUrl2).getName() + ".zip";
+        + "/" + new Path(localUrl2).getName() + suffix2 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
     expectedDstFileName = new Path(containPath2).getName();
@@ -462,7 +470,7 @@ public class TestYarnServiceRunJobCli {
     file = files.get(2);
     Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
     expectedSrcLocalization = stagingDir.toUri().getPath()
-        + "/" + new Path(localUrl2).getName() + ".zip";
+        + "/" + new Path(localUrl2).getName() + suffix2 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
     expectedDstFileName = new Path(localUrl2).getName();
