@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
@@ -84,8 +83,13 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public FileSystem getFileSystem() throws IOException {
+  public FileSystem getDefaultFileSystem() throws IOException {
     return FileSystem.getLocal(new Configuration());
+  }
+
+  @Override
+  public FileSystem getFileSystemByUri(String uri) throws IOException {
+    return getDefaultFileSystem();
   }
 
   @Override
@@ -95,7 +99,7 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
 
   @Override
   public boolean isDir(String uri) throws IOException {
-    return getFileSystem().getFileStatus(
+    return getDefaultFileSystem().getFileStatus(
         new Path(convertToStagingPath(uri))).isDirectory();
 
   }
@@ -119,20 +123,20 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
    * We use staging dir as mock HDFS dir.
    * */
   @Override
-  public boolean copyRemoteDirToLocal(String remoteDir, String localDir)
+  public boolean copyRemoteToLocal(String remoteUri, String localUri)
       throws IOException {
     // mock the copy from HDFS into a local copy
-    Path remoteToLocalDir = new Path(convertToStagingPath(remoteDir));
-    File old = new File(convertToStagingPath(localDir));
+    Path remoteToLocalDir = new Path(convertToStagingPath(remoteUri));
+    File old = new File(convertToStagingPath(localUri));
     if (old.isDirectory() && old.exists()) {
       if (!FileUtil.fullyDelete(old)) {
         throw new IOException("Cannot delete temp dir:"
             + old.getAbsolutePath());
       }
     }
-    return FileUtil.copy(getFileSystem(), remoteToLocalDir,
-        new File(localDir), false,
-        getFileSystem().getConf());
+    return FileUtil.copy(getDefaultFileSystem(), remoteToLocalDir,
+        new File(localUri), false,
+        getDefaultFileSystem().getConf());
   }
 
   @Override
@@ -144,7 +148,7 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
 
   @Override
   public FileStatus getRemoteFileStatus(Path p) throws IOException {
-    return getFileSystem().getFileStatus(new Path(
+    return getDefaultFileSystem().getFileStatus(new Path(
         convertToStagingPath(p.toUri().toString())));
   }
 

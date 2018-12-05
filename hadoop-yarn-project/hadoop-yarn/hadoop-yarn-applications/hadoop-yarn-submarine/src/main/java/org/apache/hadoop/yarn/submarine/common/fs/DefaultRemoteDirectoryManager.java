@@ -23,7 +23,6 @@ import org.apache.hadoop.yarn.submarine.client.cli.CliConstants;
 import org.apache.hadoop.yarn.submarine.common.ClientContext;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 
@@ -33,8 +32,10 @@ import java.net.URI;
  */
 public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
   private FileSystem fs;
+  private Configuration conf;
 
   public DefaultRemoteDirectoryManager(ClientContext context) {
+    this.conf = context.getYarnConfig();
     try {
       this.fs = FileSystem.get(context.getYarnConfig());
     } catch (IOException e) {
@@ -77,8 +78,13 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public FileSystem getFileSystem() {
+  public FileSystem getDefaultFileSystem() {
     return fs;
+  }
+
+  @Override
+  public FileSystem getFileSystemByUri(String uri) throws IOException {
+    return FileSystem.get(URI.create(uri), conf);
   }
 
   @Override
@@ -93,7 +99,7 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
   @Override
   public boolean isDir(String uri) throws IOException {
     if (isRemote(uri)) {
-      return getFileSystem().getFileStatus(new Path(uri)).isDirectory();
+      return getFileSystemByUri(uri).getFileStatus(new Path(uri)).isDirectory();
     }
     return new File(uri).isDirectory();
   }
@@ -108,29 +114,29 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
   }
 
   @Override
-  public boolean copyRemoteDirToLocal(String remoteDir, String localDir)
+  public boolean copyRemoteToLocal(String remoteUri, String localUri)
       throws IOException {
     // Delete old to avoid failure in FileUtil.copy
-    File old = new File(localDir);
+    File old = new File(localUri);
     if (old.exists()) {
       if (!FileUtil.fullyDelete(old)) {
         throw new IOException("Failed to delete dir:"
             + old.getAbsolutePath());
       }
     }
-    return FileUtil.copy(getFileSystem(), new Path(remoteDir),
-        new File(localDir), false,
-        getFileSystem().getConf());
+    return FileUtil.copy(getFileSystemByUri(remoteUri), new Path(remoteUri),
+        new File(localUri), false,
+        conf);
   }
 
   @Override
   public boolean existsRemoteFile(Path url) throws IOException {
-    return getFileSystem().exists(url);
+    return getFileSystemByUri(url.toUri().toString()).exists(url);
   }
 
   @Override
   public FileStatus getRemoteFileStatus(Path url) throws IOException {
-    return getFileSystem().getFileStatus(url);
+    return getFileSystemByUri(url.toUri().toString()).getFileStatus(url);
   }
 
   private Path getJobRootFolder(String jobName) throws IOException {

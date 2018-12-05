@@ -27,7 +27,9 @@ public interface RemoteDirectoryManager {
 
   Path getModelDir(String modelName, boolean create) throws IOException;
 
-  FileSystem getFileSystem() throws IOException;
+  FileSystem getDefaultFileSystem() throws IOException;
+
+  FileSystem getFileSystemByUri(String uri) throws IOException;
 
   Path getUserRootFolder() throws IOException;
 
@@ -35,7 +37,7 @@ public interface RemoteDirectoryManager {
 
   boolean isRemote(String uri) throws IOException;
 
-  boolean copyRemoteDirToLocal(String remoteDir, String localDir)
+  boolean copyRemoteToLocal(String remoteUri, String localUri)
       throws IOException;
 
   boolean existsRemoteFile(Path url) throws IOException;

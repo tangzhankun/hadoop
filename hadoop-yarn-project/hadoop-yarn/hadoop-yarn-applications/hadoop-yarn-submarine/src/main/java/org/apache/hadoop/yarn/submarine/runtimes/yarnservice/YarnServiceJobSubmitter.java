@@ -331,7 +331,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   private Path uploadToRemoteFile(Path stagingDir, String fileToUpload) throws
       IOException {
     RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
-    FileSystem fs = rdm.getFileSystem();
+    FileSystem fs = rdm.getDefaultFileSystem();
     Path uploadedFilePath;
     FileStatus fileStatus;
 
@@ -389,7 +389,13 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     return new Path(srcFileStr).getName();
   }
 
-  private String mayDownloadDirAndZipIt(String remoteDir, String zipFileName)
+  /**
+   * Download a remote uri(file/dir) and zip.
+   * Remote uri can be a local dir(won't download)
+   * or remote HDFS dir, s3 dir/file .etc
+   * */
+  private String mayDownloadAndZipIt(String remoteDir, String zipFileName,
+      boolean doZip)
       throws IOException {
     RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
     String srcDir = remoteDir;
@@ -397,13 +403,16 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         System.getProperty("java.io.tmpdir") + "/" + zipFileName;
     if (rdm.isRemote(remoteDir)) {
       // Download them to temp dir
-      boolean downloaded = rdm.copyRemoteDirToLocal(remoteDir, zipDirPath);
+      boolean downloaded = rdm.copyRemoteToLocal(remoteDir, zipDirPath);
       if (!downloaded) {
         throw new IOException("Failed to download files from "
             + remoteDir);
       }
       LOG.info("Downloaded remote: {} to local: {}", remoteDir, zipDirPath);
       srcDir = zipDirPath;
+    }
+    if (!doZip) {
+      return srcDir;
     }
     //Append modification time and size to zip file name
     File f = new File(srcDir);
@@ -690,16 +699,18 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       }
       /**
        * Special handling for remoteUri directory.
-       * Due to unsupported localization of directory in yarn service
-       * We should download remote and zip it and upload to HDFS.
-       * (see YARN-9083 for more detail)
        * */
       if (rdm.isDir(remoteUri)) {
         destFileType = ConfigFile.TypeEnum.ARCHIVE;
-        srcFileStr = mayDownloadDirAndZipIt(
-            remoteUri, getLastNameFromPath(srcFileStr));
+        srcFileStr = mayDownloadAndZipIt(
+            remoteUri, getLastNameFromPath(srcFileStr), true);
+        needUploadToHDFS = true;
+      } else if (rdm.isRemote(remoteUri) && !needHdfs(remoteUri)) {
+        srcFileStr = mayDownloadAndZipIt(
+            remoteUri, getLastNameFromPath(srcFileStr), false);
         needUploadToHDFS = true;
       }
+
       // Upload file to HDFS
       if (needUploadToHDFS) {
         resourceToLocalize = uploadToRemoteFile(stagingDir, srcFileStr);
@@ -708,8 +719,12 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       if (destFileType == ConfigFile.TypeEnum.ARCHIVE
           && srcFileStr.endsWith(".zip")) {
         // Delete local zip file
-        new File(srcFileStr).delete();
-        LOG.info("Deleted temp zip file: {}", srcFileStr);
+        boolean isdeleted = new File(srcFileStr).delete();
+        if (!isdeleted) {
+          LOG.warn("Failed to delete temp zip file: {}", srcFileStr);
+        } else {
+          LOG.info("Deleted temp zip file: {}", srcFileStr);
+        }
         int suffix_index = srcFileStr.lastIndexOf('_');
         srcFileStr = srcFileStr.substring(0, suffix_index);
       }
