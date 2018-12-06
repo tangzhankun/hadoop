@@ -156,4 +156,9 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
         convertToStagingPath(p.toUri().toString())));
   }
 
+  @Override
+  public long getRemoteFileSize(String uri) throws IOException {
+    return 100 * 1024 * 1024;
+  }
+
 }

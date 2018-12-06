@@ -392,7 +392,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   }
 
   /**
-   * Download a remote uri(file/dir) and zip.
+   * May download a remote uri(file/dir) and zip.
+   * Skip download if local dir
    * Remote uri can be a local dir(won't download)
    * or remote HDFS dir, s3 dir/file .etc
    * */
@@ -401,13 +402,15 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       throws IOException {
     RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
     //Append original modification time and size to zip file name
-    FileStatus status = rdm.getRemoteFileStatus(new Path(remoteDir));
-    String suffix = "_" + status.getModificationTime()
-        + "-" + status.getLen();
+    String suffix;
     String srcDir = remoteDir;
     String zipDirPath =
         System.getProperty("java.io.tmpdir") + "/" + zipFileName;
     if (rdm.isRemote(remoteDir)) {
+      //Append original modification time and size to zip file name
+      FileStatus status = rdm.getRemoteFileStatus(new Path(remoteDir));
+      suffix = "_" + status.getModificationTime()
+          + "-" + rdm.getRemoteFileSize(remoteDir);
       // Download them to temp dir
       boolean downloaded = rdm.copyRemoteToLocal(remoteDir, zipDirPath);
       if (!downloaded) {
@@ -416,6 +419,10 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       }
       LOG.info("Downloaded remote: {} to local: {}", remoteDir, zipDirPath);
       srcDir = zipDirPath;
+    } else {
+      File localDir = new File(remoteDir);
+      suffix = "_" + localDir.lastModified()
+          + "-" + localDir.length();
     }
     if (!doZip) {
       return srcDir;
@@ -424,7 +431,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     return zipDir(srcDir, zipDirPath + suffix + ".zip");
   }
 
-  private String zipDir(String srcDir, String dstFile) throws IOException {
+  @VisibleForTesting
+  public String zipDir(String srcDir, String dstFile) throws IOException {
     FileOutputStream fos = new FileOutputStream(dstFile);
     ZipOutputStream zos = new ZipOutputStream(fos);
     File srcFile = new File(srcDir);
@@ -757,18 +765,20 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   }
 
   private void validFileSize(String uri) throws IOException {
-    FileStatus status = clientContext.getRemoteDirectoryManager()
-        .getRemoteFileStatus(new Path(uri));
-    long actualSizeMB = status.getLen()/1024/1024;
+    long actualSizeByte = clientContext.getRemoteDirectoryManager()
+        .getRemoteFileSize(uri);
     long maxFileSizeMB = clientContext.getSubmarineConfig()
         .getLong(SubmarineConfiguration.MAX_ALLOWED_REMOTE_URI_SIZE_MB,
             SubmarineConfiguration.DEFAULT_MAX_ALLOWED_REMOTE_URI_SIZE_MB);
-    if (actualSizeMB > maxFileSizeMB) {
-      throw new IOException(uri + " size(MB): "
-          + actualSizeMB + " exceeds configured max size:"
-          + maxFileSizeMB);
-    }
+    LOG.info("Remote fie/dir: {}, size(Byte):{},"
+        + " Allowed max remote file/dir size: {}",
+        uri, actualSizeByte, maxFileSizeMB * 1024 * 1024);
 
+    if (actualSizeByte > maxFileSizeMB * 1024 * 1024) {
+      throw new IOException(uri + " size(Byte): "
+          + actualSizeByte + " exceeds configured max size:"
+          + maxFileSizeMB * 1024 * 1024);
+    }
   }
 
   private String generateServiceSpecFile(Service service) throws IOException {

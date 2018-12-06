@@ -33,14 +33,16 @@ public interface RemoteDirectoryManager {
 
   Path getUserRootFolder() throws IOException;
 
-  boolean isDir(String url) throws IOException;
+  boolean isDir(String uri) throws IOException;
 
   boolean isRemote(String uri) throws IOException;
 
   boolean copyRemoteToLocal(String remoteUri, String localUri)
       throws IOException;
 
-  boolean existsRemoteFile(Path url) throws IOException;
+  boolean existsRemoteFile(Path uri) throws IOException;
 
-  FileStatus getRemoteFileStatus(Path url) throws IOException;
+  FileStatus getRemoteFileStatus(Path uri) throws IOException;
+
+  long getRemoteFileSize(String uri) throws IOException;
 }

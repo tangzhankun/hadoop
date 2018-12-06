@@ -46,15 +46,11 @@ public class Localization {
   // Read write by default
   private String mountPermission = "rw";
 
-  private List<String> supportedScheme;
-
-  public Localization() {
-    supportedScheme = Arrays.asList(
-        "hdfs", "oss", "s3a", "s3n", "wasb",
-        "wasbs", "abfs", "abfss", "adl", "har",
-        "ftp", "http", "https", "viewfs", "swebhdfs",
-        "webhdfs", "swift");
-  }
+  private static final List<String> SUPPORTED_SCHEME = Arrays.asList(
+      "hdfs", "oss", "s3a", "s3n", "wasb",
+      "wasbs", "abfs", "abfss", "adl", "har",
+      "ftp", "http", "https", "viewfs", "swebhdfs",
+      "webhdfs", "swift");
 
   public void parse(String arg) throws ParseException {
     String[] tokens = arg.split(":");
@@ -132,6 +128,6 @@ public class Localization {
   }
 
   private boolean isSupportedScheme(String scheme) {
-    return supportedScheme.contains(scheme);
+    return SUPPORTED_SCHEME.contains(scheme);
   }
 }

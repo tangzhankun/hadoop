@@ -19,7 +19,7 @@ import org.apache.hadoop.conf.Configuration;
 public class SubmarineConfiguration extends Configuration {
   private static final String SUBMARINE_CONFIGURATION_FILE = "submarine.xml";
 
-  public static final String SUBMARINE_CONFIGURATION_PREFIX = "submarine";
+  public static final String SUBMARINE_CONFIGURATION_PREFIX = "submarine.";
 
   // Limit the size of remote directory/file to avoid exhaust local space
   public static final String MAX_ALLOWED_REMOTE_URI_SIZE_MB =

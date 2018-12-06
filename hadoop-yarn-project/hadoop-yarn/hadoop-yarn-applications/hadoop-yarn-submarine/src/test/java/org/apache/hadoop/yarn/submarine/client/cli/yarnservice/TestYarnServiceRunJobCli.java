@@ -29,7 +29,9 @@ import org.apache.hadoop.yarn.service.api.records.Service;
 import org.apache.hadoop.yarn.submarine.client.cli.RunJobCli;
 import org.apache.hadoop.yarn.submarine.common.MockClientContext;
 import org.apache.hadoop.yarn.submarine.common.api.TaskType;
+import org.apache.hadoop.yarn.submarine.common.conf.SubmarineConfiguration;
 import org.apache.hadoop.yarn.submarine.common.conf.SubmarineLogs;
+import org.apache.hadoop.yarn.submarine.common.fs.RemoteDirectoryManager;
 import org.apache.hadoop.yarn.submarine.runtimes.common.JobSubmitter;
 import org.apache.hadoop.yarn.submarine.runtimes.common.StorageKeyConstants;
 import org.apache.hadoop.yarn.submarine.runtimes.common.SubmarineStorage;
@@ -42,6 +44,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -50,7 +53,11 @@ import java.util.Map;
 
 import static org.apache.hadoop.yarn.service.exceptions.LauncherExitCodes.EXIT_SUCCESS;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestYarnServiceRunJobCli {
@@ -164,8 +171,8 @@ public class TestYarnServiceRunJobCli {
    * In the other hand, use MockRemoteDirectoryManager mock
    * implementation when check FileStatus or exists of HDFS file/dir
    * --localization hdfs:///user/yarn/script1.py:.
-   * --localization /tmp/script2.py:./
-   * --localization /tmp/script2.py:/opt/script.py
+   * --localization /temp/script2.py:./
+   * --localization /temp/script2.py:/opt/script.py
    */
   @Test
   public void testRunJobWithBasicLocalization() throws Exception {
@@ -185,6 +192,10 @@ public class TestYarnServiceRunJobCli {
         YarnServiceCliTestUtils.getMockClientContext();
     RunJobCli runJobCli = new RunJobCli(mockClientContext);
     Assert.assertFalse(SubmarineLogs.isVerbose());
+
+    RemoteDirectoryManager spyRdm =
+        spy(mockClientContext.getRemoteDirectoryManager());
+    mockClientContext.setRemoteDirectoryMgr(spyRdm);
 
     // create remote file in local staging dir to simulate HDFS
     Path stagingDir = mockClientContext.getRemoteDirectoryManager()
@@ -215,6 +226,10 @@ public class TestYarnServiceRunJobCli {
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
 
+    // No remote dir and hdfs file exists. Ensure download 0 times
+    verify(spyRdm, times(0)).copyRemoteToLocal(
+        anyString(), anyString());
+
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
     Assert.assertEquals(3, files.size());
     ConfigFile file = files.get(0);
@@ -226,6 +241,7 @@ public class TestYarnServiceRunJobCli {
     Assert.assertEquals(expectedDstFileName, file.getDestFile());
 
     file = files.get(1);
+    Assert.assertEquals(ConfigFile.TypeEnum.STATIC, file.getType());
     expectedSrcLocalization = stagingDir.toUri().getPath()
         + "/" + new Path(localUrl).getName();
     Assert.assertEquals(expectedSrcLocalization,
@@ -235,6 +251,7 @@ public class TestYarnServiceRunJobCli {
         new Path(file.getSrcFile()).toUri().getPath());
 
     file = files.get(2);
+    Assert.assertEquals(ConfigFile.TypeEnum.STATIC, file.getType());
     expectedSrcLocalization = stagingDir.toUri().getPath()
         + "/" + new Path(localUrl).getName();
     Assert.assertEquals(expectedSrcLocalization,
@@ -248,6 +265,98 @@ public class TestYarnServiceRunJobCli {
         .get("YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS");
     String expectedMounts = new Path(containerLocal3).getName()
         + ":" + containerLocal3 + ":rw";
+    Assert.assertTrue(env.contains(expectedMounts));
+  }
+
+  /**
+   * Non HDFS remote URI test.
+   * --localization https://a/b/1.patch:.
+   * --localization s3a://a/dir:/opt/mys3dir
+   */
+  @Test
+  public void testRunJobWithNonHDFSRemoteLocalization() throws Exception {
+    String remoteUri1 = "https://a/b/1.patch";
+    String containerLocal1 = ".";
+    String remoteUri2 = "s3a://a/s3dir";
+    String containerLocal2 = "/opt/mys3dir";
+
+    MockClientContext mockClientContext =
+        YarnServiceCliTestUtils.getMockClientContext();
+    RunJobCli runJobCli = new RunJobCli(mockClientContext);
+    Assert.assertFalse(SubmarineLogs.isVerbose());
+
+    RemoteDirectoryManager spyRdm =
+        spy(mockClientContext.getRemoteDirectoryManager());
+    mockClientContext.setRemoteDirectoryMgr(spyRdm);
+
+    // create remote file in local staging dir to simulate HDFS
+    Path stagingDir = mockClientContext.getRemoteDirectoryManager()
+        .getJobStagingArea("my-job", true);
+    File remoteFile1 = new File(stagingDir.toUri().getPath()
+        + "/" + new Path(remoteUri1).getName());
+    remoteFile1.createNewFile();
+    remoteFile1.deleteOnExit();
+    File remoteDir1 = new File(stagingDir.toUri().getPath()
+        + "/" + new Path(remoteUri2).getName());
+    remoteDir1.mkdir();
+    remoteDir1.deleteOnExit();
+    File remoteDir1File1 = new File(remoteDir1, "afile");
+    remoteDir1File1.createNewFile();
+    remoteDir1File1.deleteOnExit();
+
+    Assert.assertTrue(remoteFile1.exists());
+    Assert.assertTrue(remoteDir1.exists());
+    Assert.assertTrue(remoteDir1File1.exists());
+
+    String suffix1 = "_" + remoteDir1.lastModified()
+        + "-" + mockClientContext.getRemoteDirectoryManager()
+        .getRemoteFileSize(remoteUri2);
+    runJobCli.run(
+        new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+            "--input_path", "s3://input", "--checkpoint_path", "s3://output",
+            "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
+            "python run-job.py", "--worker_resources", "memory=2048M,vcores=2",
+            "--ps_resources", "memory=4096M,vcores=4", "--ps_docker_image",
+            "ps.image", "--worker_docker_image", "worker.image",
+            "--ps_launch_cmd", "python run-ps.py", "--verbose",
+            "--localization",
+            remoteUri1 + ":" + containerLocal1,
+            "--localization",
+            remoteUri2 + ":" + containerLocal2});
+    Service serviceSpec = getServiceSpecFromJobSubmitter(
+        runJobCli.getJobSubmitter());
+    Assert.assertEquals(3, serviceSpec.getComponents().size());
+
+    // Ensure download remote dir 4 times
+    verify(spyRdm, times(2)).copyRemoteToLocal(
+        anyString(), anyString());
+
+    List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
+    Assert.assertEquals(2, files.size());
+    ConfigFile file = files.get(0);
+    Assert.assertEquals(ConfigFile.TypeEnum.STATIC, file.getType());
+    String expectedSrcLocalization = stagingDir.toUri().getPath()
+        + "/" + new Path(remoteUri1).getName();
+    Assert.assertEquals(expectedSrcLocalization,
+        new Path(file.getSrcFile()).toUri().getPath());
+    String expectedDstFileName = new Path(remoteUri1).getName();
+    Assert.assertEquals(expectedDstFileName, file.getDestFile());
+
+    file = files.get(1);
+    Assert.assertEquals(ConfigFile.TypeEnum.ARCHIVE, file.getType());
+    expectedSrcLocalization = stagingDir.toUri().getPath()
+        + "/" + new Path(remoteUri2).getName() + suffix1 + ".zip";
+    Assert.assertEquals(expectedSrcLocalization,
+        new Path(file.getSrcFile()).toUri().getPath());
+    expectedDstFileName = new Path(containerLocal2).getName();
+    Assert.assertEquals(expectedSrcLocalization,
+        new Path(file.getSrcFile()).toUri().getPath());
+
+    // Ensure env value is correct
+    String env = serviceSpec.getConfiguration().getEnv()
+        .get("YARN_CONTAINER_RUNTIME_DOCKER_MOUNTS");
+    String expectedMounts = new Path(remoteUri2).getName()
+        + ":" + containerLocal2 + ":rw";
     Assert.assertTrue(env.contains(expectedMounts));
   }
 
@@ -271,6 +380,9 @@ public class TestYarnServiceRunJobCli {
     RunJobCli runJobCli = new RunJobCli(mockClientContext);
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
+    RemoteDirectoryManager spyRdm =
+        spy(mockClientContext.getRemoteDirectoryManager());
+    mockClientContext.setRemoteDirectoryMgr(spyRdm);
     // create remote file in local staging dir to simulate HDFS
     Path stagingDir = mockClientContext.getRemoteDirectoryManager()
         .getJobStagingArea("my-job", true);
@@ -300,9 +412,11 @@ public class TestYarnServiceRunJobCli {
     Assert.assertTrue(remoteDir2.exists());
 
     String suffix1 = "_" + remoteDir1.lastModified()
-        + "-" + remoteDir1.length();
+        + "-" + mockClientContext.getRemoteDirectoryManager()
+        .getRemoteFileSize(remoteUrl);
     String suffix2 = "_" + remoteDir2.lastModified()
-        + "-" + remoteDir2.length();
+        + "-" + mockClientContext.getRemoteDirectoryManager()
+        .getRemoteFileSize(remoteUrl2);
     runJobCli.run(
         new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
             "--input_path", "s3://input", "--checkpoint_path", "s3://output",
@@ -323,6 +437,9 @@ public class TestYarnServiceRunJobCli {
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
 
+    // Ensure download remote dir 4 times
+    verify(spyRdm, times(4)).copyRemoteToLocal(
+        anyString(), anyString());
     // Ensure files will be localized
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
     Assert.assertEquals(4, files.size());
@@ -376,6 +493,133 @@ public class TestYarnServiceRunJobCli {
   }
 
   /**
+   * Test remote file/dir size exceeds limit.
+   * Max 10MB in configuration, mock remote will
+   * always return file size 100MB.
+   * This configuration will fail the job which has remoteUri
+   * But don't impact local dir/file
+   *
+   * --localization https://a/b/1.patch:.
+   * --localization s3a://a/dir:/opt/mys3dir
+   * --localization /temp/script2.py:./
+   */
+  @Test
+  public void testRunJobRemoteUriExceedLocalizationSize() throws Exception {
+    String remoteUri1 = "https://a/b/1.patch";
+    String containerLocal1 = ".";
+    String remoteUri2 = "s3a://a/s3dir";
+    String containerLocal2 = "/opt/mys3dir";
+    String localUri1 = "/temp/script2";
+    String containerLocal3 = "./";
+
+    MockClientContext mockClientContext =
+        YarnServiceCliTestUtils.getMockClientContext();
+    SubmarineConfiguration submarineConf = new SubmarineConfiguration();
+    /**
+     * Max 10MB, mock remote will always return file size 100MB.
+     * */
+    submarineConf.set(SubmarineConfiguration.MAX_ALLOWED_REMOTE_URI_SIZE_MB,
+        "10");
+    mockClientContext.setSubmarineConfig(submarineConf);
+
+    RunJobCli runJobCli = new RunJobCli(mockClientContext);
+    Assert.assertFalse(SubmarineLogs.isVerbose());
+
+    // create remote file in local staging dir to simulate HDFS
+    Path stagingDir = mockClientContext.getRemoteDirectoryManager()
+        .getJobStagingArea("my-job", true);
+    File remoteFile1 = new File(stagingDir.toUri().getPath()
+        + "/" + new Path(remoteUri1).getName());
+    remoteFile1.createNewFile();
+    remoteFile1.deleteOnExit();
+    File remoteDir1 = new File(stagingDir.toUri().getPath()
+        + "/" + new Path(remoteUri2).getName());
+    remoteDir1.mkdir();
+    remoteDir1.deleteOnExit();
+    File remoteDir1File1 = new File(remoteDir1, "afile");
+    remoteDir1File1.createNewFile();
+    remoteDir1File1.deleteOnExit();
+
+    String fakeLocalDir = System.getProperty("java.io.tmpdir");
+    // create local file, we need to put it under local temp dir
+    File localFile1 = new File(fakeLocalDir,
+        new Path(localUri1).getName());
+    localFile1.createNewFile();
+    localFile1.deleteOnExit();
+
+
+    Assert.assertTrue(remoteFile1.exists());
+    Assert.assertTrue(remoteDir1.exists());
+    Assert.assertTrue(remoteDir1File1.exists());
+
+    String suffix1 = "_" + remoteDir1.lastModified()
+        + "-" + remoteDir1.length();
+    try {
+      runJobCli = new RunJobCli(mockClientContext);
+      runJobCli.run(
+          new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+              "--input_path", "s3://input", "--checkpoint_path", "s3://output",
+              "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
+              "python run-job.py", "--worker_resources",
+              "memory=2048M,vcores=2",
+              "--ps_resources", "memory=4096M,vcores=4", "--ps_docker_image",
+              "ps.image", "--worker_docker_image", "worker.image",
+              "--ps_launch_cmd", "python run-ps.py", "--verbose",
+              "--localization",
+              remoteUri1 + ":" + containerLocal1});
+    } catch (IOException e) {
+      Assert.assertTrue(e.getMessage()
+          .contains("104857600 exceeds configured max size:10485760"));
+    }
+
+    try {
+      runJobCli = new RunJobCli(mockClientContext);
+      runJobCli.run(
+          new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+              "--input_path", "s3://input", "--checkpoint_path", "s3://output",
+              "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
+              "python run-job.py", "--worker_resources",
+              "memory=2048M,vcores=2",
+              "--ps_resources", "memory=4096M,vcores=4", "--ps_docker_image",
+              "ps.image", "--worker_docker_image", "worker.image",
+              "--ps_launch_cmd", "python run-ps.py", "--verbose",
+              "--localization",
+              remoteUri2 + ":" + containerLocal2,
+              "--localization",
+              localFile1.getAbsolutePath() + ":" + containerLocal3});
+    } catch (IOException e) {
+      Assert.assertTrue(e.getMessage()
+          .contains("104857600 exceeds configured max size:10485760"));
+    }
+
+    try {
+      runJobCli = new RunJobCli(mockClientContext);
+      runJobCli.run(
+          new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
+              "--input_path", "s3://input", "--checkpoint_path", "s3://output",
+              "--num_workers", "3", "--num_ps", "2", "--worker_launch_cmd",
+              "python run-job.py", "--worker_resources",
+              "memory=2048M,vcores=2",
+              "--ps_resources", "memory=4096M,vcores=4", "--ps_docker_image",
+              "ps.image", "--worker_docker_image", "worker.image",
+              "--ps_launch_cmd", "python run-ps.py", "--verbose",
+              "--localization",
+              localFile1.getAbsolutePath() + ":" + containerLocal3});
+    } catch (IOException e) {
+      // Shouldn't fail local uri
+      Assert.assertTrue(false);
+    }
+
+    Service serviceSpec = getServiceSpecFromJobSubmitter(
+        runJobCli.getJobSubmitter());
+    Assert.assertEquals(3, serviceSpec.getComponents().size());
+
+    List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
+    Assert.assertEquals(1, files.size());
+  }
+
+  /**
+   * Test local dir
    * --localization /user/yarn/mydir:./mydir1
    * --localization /user/yarn/mydir2:/opt/dir2:rw
    * --localization /user/yarn/mydir2:.
@@ -394,6 +638,9 @@ public class TestYarnServiceRunJobCli {
     RunJobCli runJobCli = new RunJobCli(mockClientContext);
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
+    RemoteDirectoryManager spyRdm =
+        spy(mockClientContext.getRemoteDirectoryManager());
+    mockClientContext.setRemoteDirectoryMgr(spyRdm);
     // create local file
     File localDir1 = new File(fakeLocalDir,
         localUrl);
@@ -444,6 +691,10 @@ public class TestYarnServiceRunJobCli {
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
 
+    // we shouldn't do any download
+    verify(spyRdm, times(0)).copyRemoteToLocal(
+        anyString(), anyString());
+
     // Ensure dirs will be zipped and localized
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
     Assert.assertEquals(3, files.size());
@@ -484,6 +735,34 @@ public class TestYarnServiceRunJobCli {
 
     Assert.assertTrue(env.contains(expectedMounts));
   }
+
+  /**
+   * Test zip function
+   * */
+  @Test
+  public void testYarnServiceSubmitterZipFunction()
+      throws Exception {
+    MockClientContext mockClientContext =
+        YarnServiceCliTestUtils.getMockClientContext();
+    RunJobCli runJobCli = new RunJobCli(mockClientContext);
+    YarnServiceJobSubmitter submitter = (YarnServiceJobSubmitter)mockClientContext
+        .getRuntimeFactory().getJobSubmitterInstance();
+    String fakeLocalDir = System.getProperty("java.io.tmpdir");
+    String localUrl = "/user/yarn/mydir";
+    // create local file
+    File localDir1 = new File(fakeLocalDir,
+        localUrl);
+    localDir1.mkdirs();
+    File temp1 = new File(localDir1.getAbsolutePath() + "/1.py");
+    File temp2 = new File(localDir1.getAbsolutePath() + "/2.py");
+    temp1.createNewFile();
+    temp2.createNewFile();
+    temp1.deleteOnExit();
+    temp2.deleteOnExit();
+    localDir1.deleteOnExit();
+
+  }
+
 
   @Test
   public void testBasicRunJobForDistributedTrainingWithTensorboard()

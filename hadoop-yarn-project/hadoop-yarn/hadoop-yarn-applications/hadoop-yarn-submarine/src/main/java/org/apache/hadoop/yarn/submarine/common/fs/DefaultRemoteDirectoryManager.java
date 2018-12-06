@@ -139,6 +139,12 @@ public class DefaultRemoteDirectoryManager implements RemoteDirectoryManager {
     return getFileSystemByUri(url.toUri().toString()).getFileStatus(url);
   }
 
+  @Override
+  public long getRemoteFileSize(String uri) throws IOException {
+    return getFileSystemByUri(uri)
+        .getContentSummary(new Path(uri)).getSpaceConsumed();
+  }
+
   private Path getJobRootFolder(String jobName) throws IOException {
     Path userRoot = getUserRootFolder();
     Path jobRootPath = new Path(userRoot, jobName);
