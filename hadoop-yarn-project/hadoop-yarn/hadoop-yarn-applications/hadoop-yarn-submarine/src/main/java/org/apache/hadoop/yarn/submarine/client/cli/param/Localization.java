@@ -20,6 +20,9 @@ package org.apache.hadoop.yarn.submarine.client.cli.param;
 
 import org.apache.commons.cli.ParseException;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Localization parameter.
  * */
@@ -42,6 +45,16 @@ public class Localization {
 
   // Read write by default
   private String mountPermission = "rw";
+
+  private List<String> supportedScheme;
+
+  public Localization() {
+    supportedScheme = Arrays.asList(
+        "hdfs", "oss", "s3a", "s3n", "wasb",
+        "wasbs", "abfs", "abfss", "adl", "har",
+        "ftp", "http", "https", "viewfs", "swebhdfs",
+        "webhdfs", "swift");
+  }
 
   public void parse(String arg) throws ParseException {
     String[] tokens = arg.split(":");
@@ -119,14 +132,6 @@ public class Localization {
   }
 
   private boolean isSupportedScheme(String scheme) {
-    return scheme.equals("hdfs") || scheme.equals("oss")
-        || scheme.equals("s3a") || scheme.equals("s3n")
-        || scheme.equals("wasb") || scheme.equals("wasbs")
-        || scheme.equals("abfs") || scheme.equals("abfss")
-        || scheme.equals("adl") || scheme.equals("har")
-        || scheme.equals("har") || scheme.equals("ftp")
-        || scheme.equals("http") || scheme.equals("https")
-        || scheme.equals("viewfs") || scheme.equals("swebhdfs")
-        || scheme.equals("webhdfs") || scheme.equals("swift");
+    return supportedScheme.contains(scheme);
   }
 }

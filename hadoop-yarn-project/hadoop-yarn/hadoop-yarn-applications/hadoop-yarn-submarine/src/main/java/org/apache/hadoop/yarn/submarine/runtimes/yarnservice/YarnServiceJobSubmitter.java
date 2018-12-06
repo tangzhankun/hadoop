@@ -453,7 +453,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       try {
         fis = new FileInputStream(files[i]);
         String name =  base.toURI().relativize(files[i].toURI()).getPath();
-        LOG.info (" Zip adding: " + name);
+        LOG.info(" Zip adding: " + name);
         zos.putNextEntry(new ZipEntry(name));
         int length;
         while ((length = fis.read(buffer)) > 0) {
@@ -727,8 +727,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         } else {
           LOG.info("Deleted temp zip file: {}", srcFileStr);
         }
-        int suffix_index = srcFileStr.lastIndexOf('_');
-        srcFileStr = srcFileStr.substring(0, suffix_index);
+        int suffixIndex = srcFileStr.lastIndexOf('_');
+        srcFileStr = srcFileStr.substring(0, suffixIndex);
       }
       // If provided, use the name of local uri
       if (!containerLocalPath.equals(".")
@@ -737,7 +737,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         srcFileStr = getLastNameFromPath(containerLocalPath);
       }
       String localizedName = getLastNameFromPath(srcFileStr);
-      LOG.info("The file/dir to be localized is {}", resourceToLocalize.toString());
+      LOG.info("The file/dir to be localized is {}",
+          resourceToLocalize.toString());
       LOG.info("Its localized file name will be {}", localizedName);
       serviceSpec.getConfiguration().getFiles().add(new ConfigFile().srcFile(
           resourceToLocalize.toUri().toString()).destFile(localizedName)
