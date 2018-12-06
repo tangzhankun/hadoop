@@ -737,7 +737,7 @@ public class TestYarnServiceRunJobCli {
   }
 
   /**
-   * Test zip function
+   * TODO: Test zip function
    * */
   @Test
   public void testYarnServiceSubmitterZipFunction()
