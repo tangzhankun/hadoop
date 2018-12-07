@@ -18,6 +18,7 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -406,6 +407,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     String srcDir = remoteDir;
     String zipDirPath =
         System.getProperty("java.io.tmpdir") + "/" + zipFileName;
+    boolean needDeleteTempDir = false;
     if (rdm.isRemote(remoteDir)) {
       //Append original modification time and size to zip file name
       FileStatus status = rdm.getRemoteFileStatus(new Path(remoteDir));
@@ -419,6 +421,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       }
       LOG.info("Downloaded remote: {} to local: {}", remoteDir, zipDirPath);
       srcDir = zipDirPath;
+      needDeleteTempDir = true;
     } else {
       File localDir = new File(remoteDir);
       suffix = "_" + localDir.lastModified()
@@ -428,7 +431,12 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       return srcDir;
     }
     // zip a local dir
-    return zipDir(srcDir, zipDirPath + suffix + ".zip");
+    String zipFileUri = zipDir(srcDir, zipDirPath + suffix + ".zip");
+    // delete downloaded temp dir
+    if (needDeleteTempDir) {
+      deleteFiles(srcDir);
+    }
+    return zipFileUri;
   }
 
   @VisibleForTesting
@@ -442,6 +450,14 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     zos.close();
     LOG.info("Compressed {} to {}", srcDir, dstFile);
     return dstFile;
+  }
+
+  private void deleteFiles(String localUri) {
+    boolean success = FileUtil.fullyDelete(new File(localUri));
+    if (!success) {
+      LOG.warn("Fail to delete {}", localUri);
+    }
+    LOG.info("Deleted {}", localUri);
   }
 
   private void addDirToZip(ZipOutputStream zos, File srcFile, File base)
@@ -710,6 +726,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       /**
        * Special handling for remoteUri directory.
        * */
+      boolean needDeleteTempFile = false;
       if (rdm.isDir(remoteUri)) {
         destFileType = ConfigFile.TypeEnum.ARCHIVE;
         srcFileStr = mayDownloadAndZipIt(
@@ -719,22 +736,21 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         srcFileStr = mayDownloadAndZipIt(
             remoteUri, getLastNameFromPath(srcFileStr), false);
         needUploadToHDFS = true;
+        needDeleteTempFile = true;
       }
 
       // Upload file to HDFS
       if (needUploadToHDFS) {
         resourceToLocalize = uploadToRemoteFile(stagingDir, srcFileStr);
       }
+      if (needDeleteTempFile) {
+        deleteFiles(srcFileStr);
+      }
       // Remove .zip from zipped dir name
       if (destFileType == ConfigFile.TypeEnum.ARCHIVE
           && srcFileStr.endsWith(".zip")) {
         // Delete local zip file
-        boolean isdeleted = new File(srcFileStr).delete();
-        if (!isdeleted) {
-          LOG.warn("Failed to delete temp zip file: {}", srcFileStr);
-        } else {
-          LOG.info("Deleted temp zip file: {}", srcFileStr);
-        }
+        deleteFiles(srcFileStr);
         int suffixIndex = srcFileStr.lastIndexOf('_');
         srcFileStr = srcFileStr.substring(0, suffixIndex);
       }

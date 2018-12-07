@@ -545,6 +545,8 @@ public class TestYarnServiceRunJobCli {
     // No remote dir and hdfs file exists. Ensure download 0 times
     verify(spyRdm, times(0)).copyRemoteToLocal(
         anyString(), anyString());
+    // Ensure local original files are not deleted
+    Assert.assertTrue(localFile1.exists());
 
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
     Assert.assertEquals(3, files.size());
@@ -644,9 +646,20 @@ public class TestYarnServiceRunJobCli {
         runJobCli.getJobSubmitter());
     Assert.assertEquals(3, serviceSpec.getComponents().size());
 
-    // Ensure download remote dir 4 times
+    // Ensure download remote dir 2 times
     verify(spyRdm, times(2)).copyRemoteToLocal(
         anyString(), anyString());
+
+    // Ensure downloaded temp files are deleted
+    Assert.assertFalse(new File(System.getProperty("java.io.tmpdir")
+        + "/" + new Path(remoteUri1).getName()).exists());
+    Assert.assertFalse(new File(System.getProperty("java.io.tmpdir")
+        + "/" + new Path(remoteUri2).getName()).exists());
+
+    // Ensure zip file are deleted
+    Assert.assertFalse(new File(System.getProperty("java.io.tmpdir")
+        + "/" + new Path(remoteUri2).getName()
+        + "_" + suffix1 + ".zip").exists());
 
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
     Assert.assertEquals(2, files.size());
@@ -665,6 +678,7 @@ public class TestYarnServiceRunJobCli {
         + "/" + new Path(remoteUri2).getName() + suffix1 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
+
     expectedDstFileName = new Path(containerLocal2).getName();
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
@@ -755,6 +769,20 @@ public class TestYarnServiceRunJobCli {
     // Ensure download remote dir 4 times
     verify(spyRdm, times(4)).copyRemoteToLocal(
         anyString(), anyString());
+
+    // Ensure downloaded temp files are deleted
+    Assert.assertFalse(new File(System.getProperty("java.io.tmpdir")
+        + "/" + new Path(remoteUrl).getName()).exists());
+    Assert.assertFalse(new File(System.getProperty("java.io.tmpdir")
+        + "/" + new Path(remoteUrl2).getName()).exists());
+    // Ensure zip file are deleted
+    Assert.assertFalse(new File(System.getProperty("java.io.tmpdir")
+        + "/" + new Path(remoteUrl).getName()
+        + suffix1 + ".zip").exists());
+    Assert.assertFalse(new File(System.getProperty("java.io.tmpdir")
+        + "/" + new Path(remoteUrl2).getName()
+        + suffix2 + ".zip").exists());
+
     // Ensure files will be localized
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
     Assert.assertEquals(4, files.size());
@@ -765,6 +793,7 @@ public class TestYarnServiceRunJobCli {
         + "/" + new Path(remoteUrl).getName() + suffix1 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
+
     // Relative path in container, but not "." or "./". Use its own name
     String expectedDstFileName = new Path(containerPath).getName();
     Assert.assertEquals(expectedDstFileName, file.getDestFile());
@@ -775,6 +804,7 @@ public class TestYarnServiceRunJobCli {
         + "/" + new Path(remoteUrl2).getName() + suffix2 + ".zip";
     Assert.assertEquals(expectedSrcLocalization,
         new Path(file.getSrcFile()).toUri().getPath());
+
     expectedDstFileName = new Path(containPath2).getName();
     Assert.assertEquals(expectedDstFileName, file.getDestFile());
 
@@ -1062,6 +1092,18 @@ public class TestYarnServiceRunJobCli {
     // we shouldn't do any download
     verify(spyRdm, times(0)).copyRemoteToLocal(
         anyString(), anyString());
+
+    // Ensure local original files are not deleted
+    Assert.assertTrue(localDir1.exists());
+    Assert.assertTrue(localDir2.exists());
+
+    // Ensure zip file are deleted
+    Assert.assertFalse(new File(System.getProperty("java.io.tmpdir")
+        + "/" + new Path(localUrl).getName()
+        + suffix1 + ".zip").exists());
+    Assert.assertFalse(new File(System.getProperty("java.io.tmpdir")
+        + "/" + new Path(localUrl2).getName()
+        + suffix2 + ".zip").exists());
 
     // Ensure dirs will be zipped and localized
     List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();

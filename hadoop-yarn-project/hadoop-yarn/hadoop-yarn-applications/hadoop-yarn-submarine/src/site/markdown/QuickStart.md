@@ -70,8 +70,8 @@ usage: job run
                               directly used to launch the worker
  -worker_resources <arg>      Resource of each worker, for example
                               memory-mb=2048,vcores=2,yarn.io/gpu=2
- -localization <arg>          Specify localization to make remote files
-                              available to worker container (Docker).
+ -localization <arg>          Specify localization to remote/local
+                              file/directory available to all container(Docker).
                               Argument format is "RemoteUri:LocalFilePath[:rw]"
                               (ro permission is not supported yet).
                               The RemoteUri can be a file or directory in local
@@ -81,13 +81,11 @@ usage: job run
                               working directory.
                               This option can be set mutiple times.
                               Examples are
-                              "...
-                              -localization ./mydir1:. \
-                              -localization hdfs:///user/yarn/mydir2:/opt/data \
-                              -localization hdfs:///user/yarn/myfile1:./ \
-                              -localization https:///a/b/myfile2:./myfile" \
-                              -localization /user/yarn/mydir3:/opt/mydir3 \
-                              ..."
+                              -localization "hdfs:///user/yarn/mydir2:/opt/data"
+                              -localization "s3a:///a/b/myfile1:./"
+                              -localization "https:///a/b/myfile2:./myfile"
+                              -localization "/user/yarn/mydir3:/opt/mydir3"
+                              -localization "./mydir1:."
 ```
 ### Submarine Configuration
 
