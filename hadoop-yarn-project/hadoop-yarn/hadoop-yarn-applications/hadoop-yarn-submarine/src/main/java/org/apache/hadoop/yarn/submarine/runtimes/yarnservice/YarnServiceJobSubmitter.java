@@ -329,8 +329,8 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
 
   private Path uploadToRemoteFile(Path stagingDir, String fileToUpload) throws
       IOException {
-    RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
-    FileSystem fs = rdm.getDefaultFileSystem();
+    FileSystem fs = clientContext.getRemoteDirectoryManager()
+        .getDefaultFileSystem();
 
     // Upload to remote FS under staging area
     File localFile = new File(fileToUpload);
@@ -704,7 +704,6 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         }
         // check remote file size
         validFileSize(remoteUri);
-        needUploadToHDFS = false;
       } else {
         // Check if exists
         File localFile = new File(remoteUri);
@@ -721,12 +720,16 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         destFileType = ConfigFile.TypeEnum.ARCHIVE;
         srcFileStr = mayDownloadAndZipIt(
             remoteUri, getLastNameFromPath(srcFileStr), true);
-        needUploadToHDFS = true;
-      } else if (rdm.isRemote(remoteUri) && !needHdfs(remoteUri)) {
-        srcFileStr = mayDownloadAndZipIt(
-            remoteUri, getLastNameFromPath(srcFileStr), false);
-        needUploadToHDFS = true;
-        needDeleteTempFile = true;
+      } else if (rdm.isRemote(remoteUri)) {
+        if (!needHdfs(remoteUri)) {
+          // Non HDFS remote uri. Non directory, no need to zip
+          srcFileStr = mayDownloadAndZipIt(
+              remoteUri, getLastNameFromPath(srcFileStr), false);
+          needDeleteTempFile = true;
+        } else {
+          // HDFS file, no need to upload
+          needUploadToHDFS = false;
+        }
       }
 
       // Upload file to HDFS
