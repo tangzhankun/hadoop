@@ -190,11 +190,9 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
           "Failed to locate core-site.xml / hdfs-site.xml from class path");
     }
     uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir,
-        coreSite.getAbsolutePath(), "core-site.xml", comp,
-        ConfigFile.TypeEnum.STATIC);
+        coreSite.getAbsolutePath(), "core-site.xml", comp);
     uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir,
-        hdfsSite.getAbsolutePath(), "hdfs-site.xml", comp,
-        ConfigFile.TypeEnum.STATIC);
+        hdfsSite.getAbsolutePath(), "hdfs-site.xml", comp);
 
     // DEBUG
     if (SubmarineLogs.isVerbose()) {
@@ -309,16 +307,14 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   }
 
   private void uploadToRemoteFileAndLocalizeToContainerWorkDir(Path stagingDir,
-      String fileToUpload, String destFilename, Component comp,
-      ConfigFile.TypeEnum type)
+      String fileToUpload, String destFilename, Component comp)
       throws IOException {
     Path uploadedFilePath = uploadToRemoteFile(stagingDir, fileToUpload);
-    locateRemoteFileToContainerWorkDir(destFilename, comp, uploadedFilePath,
-        type);
+    locateRemoteFileToContainerWorkDir(destFilename, comp, uploadedFilePath);
   }
 
   private void locateRemoteFileToContainerWorkDir(String destFilename,
-      Component comp, Path uploadedFilePath, ConfigFile.TypeEnum type)
+      Component comp, Path uploadedFilePath)
       throws IOException {
     FileSystem fs = FileSystem.get(clientContext.getYarnConfig());
 
@@ -328,15 +324,13 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     // Set it to component's files list
     comp.getConfiguration().getFiles().add(new ConfigFile().srcFile(
         fileStatus.getPath().toUri().toString()).destFile(destFilename)
-        .type(type));
+        .type(ConfigFile.TypeEnum.STATIC));
   }
 
   private Path uploadToRemoteFile(Path stagingDir, String fileToUpload) throws
       IOException {
     RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
     FileSystem fs = rdm.getDefaultFileSystem();
-    Path uploadedFilePath;
-    FileStatus fileStatus;
 
     // Upload to remote FS under staging area
     File localFile = new File(fileToUpload);
@@ -347,7 +341,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     }
     String filename = new File(fileToUpload).getName();
 
-    uploadedFilePath = new Path(stagingDir, filename);
+    Path uploadedFilePath = new Path(stagingDir, filename);
     if (!uploadedFiles.contains(uploadedFilePath)) {
       if (SubmarineLogs.isVerbose()) {
         LOG.info("Copying local file=" + fileToUpload + " to remote="
@@ -356,11 +350,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
       fs.copyFromLocalFile(new Path(fileToUpload), uploadedFilePath);
       uploadedFiles.add(uploadedFilePath);
     }
-
-    fileStatus = fs.getFileStatus(uploadedFilePath);
-    LOG.info("Uploaded file path = " + fileStatus.getPath());
-
-    return fileStatus.getPath();
+    return uploadedFilePath;
   }
 
   private void setPermission(Path destPath, FsPermission permission) throws
@@ -381,7 +371,7 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
         component);
     String destScriptFileName = getScriptFileName(taskType);
     uploadToRemoteFileAndLocalizeToContainerWorkDir(stagingDir, localScriptFile,
-        destScriptFileName, component, ConfigFile.TypeEnum.STATIC);
+        destScriptFileName, component);
 
     component.setLaunchCommand("./" + destScriptFileName);
     componentToLocalLaunchScriptPath.put(taskType.getComponentName(),

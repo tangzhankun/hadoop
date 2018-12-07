@@ -77,7 +77,7 @@ usage: job run
                               The RemoteUri can be a file or directory in local
                               or HDFS or s3 or abfs or http .etc.
                               The LocalFilePath can be absolute or relative.
-                              If relative, it'll be under container's implied 
+                              If relative, it'll be under container's implied
                               working directory.
                               This option can be set mutiple times.
                               Examples are

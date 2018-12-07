@@ -19,7 +19,6 @@
 package org.apache.hadoop.yarn.submarine.client.cli.yarnservice;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -1181,14 +1180,14 @@ public class TestYarnServiceRunJobCli {
 
     File localSubDir = new File(localDir1.getAbsolutePath(), localSubDirName);
     localSubDir.mkdir();
-    File temp3 = new File(localSubDir.getAbsolutePath(),"3.py");
+    File temp3 = new File(localSubDir.getAbsolutePath(), "3.py");
     temp3.createNewFile();
 
 
     String zipFilePath = submitter.zipDir(localDir1.getAbsolutePath(),
         fakeLocalDir + "/user/yarn/mydir.zip");
     File zipFile = new File(zipFilePath);
-    File unzipTargetDir = new File (fakeLocalDir, "unzipDir");
+    File unzipTargetDir = new File(fakeLocalDir, "unzipDir");
     FileUtil.unZip(zipFile, unzipTargetDir);
     Assert.assertTrue(
         new File(fakeLocalDir + "/unzipDir/1.py").exists());
