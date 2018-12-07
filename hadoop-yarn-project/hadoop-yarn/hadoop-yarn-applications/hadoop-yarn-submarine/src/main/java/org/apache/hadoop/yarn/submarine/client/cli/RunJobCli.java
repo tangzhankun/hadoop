@@ -127,14 +127,24 @@ public class RunJobCli extends AbstractCli {
         + "Notebook_UI=https://master-0:7070");
     options.addOption(CliConstants.LOCALIZATION, true, "Specify "
         + "localization to make remote files available to "
-        + "worker container(Docker)."
+        + "worker container (Docker)."
         + "Argument format is \"RemoteUri:LocalFilePath[:rw] \" (ro "
         + "permission is not supported yet)"
         + " The RemoteUri can be a file or directory in local or"
         + " HDFS or s3 or abfs or http .etc."
-        + " The LocalFilePath can be a file path."
+        + " The LocalFilePath can be absolute or relative."
         + " If it's a relative path, it'll be"
-        + " under container's implied working directory");
+        + " under container's implied working directory"
+        + " but sub directory is not supported yet."
+        + " This option can be set mutiple times."
+        + " Examples are"
+        + "..."
+        + "-localization ./mydir1:. \\"
+        + "-localization hdfs:///user/yarn/mydir2:/opt/data \\"
+        + "-localization hdfs:///user/yarn/myfile1:./ \\"
+        + "-localization https:///a/b/myfile2:./myfile \\"
+        + "-localization /user/yarn/mydir3:/opt/mydir3 \\"
+        + "...");
     options.addOption(CliConstants.KEYTAB, true, "Specify keytab used by the " +
         "job under security environment");
     options.addOption(CliConstants.PRINCIPAL, true, "Specify principal used " +
