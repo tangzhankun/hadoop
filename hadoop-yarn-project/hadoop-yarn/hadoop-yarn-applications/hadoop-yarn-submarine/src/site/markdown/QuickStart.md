@@ -94,7 +94,7 @@ For submarine internal configuration, please create a `submarine.xml` which shou
 |Configuration Name | Description |
 |:---- |:---- |
 | `submarine.runtime.class` | Optional. Full qualified class name for your runtime factory. |
-| `submarine.max-allowed-remote-uri-size-mb` | Optional. This sets a size limit to the file/directory to be localized in "remoteUri" of "-localization" CLI option. 2GB by default. |
+| `submarine.localization.max-allowed-file-size-mb` | Optional. This sets a size limit to the file/directory to be localized in "-localization" CLI option. 2GB by default. |
 
 
 

@@ -55,6 +55,7 @@ import static org.apache.hadoop.yarn.service.exceptions.LauncherExitCodes.EXIT_S
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -844,7 +845,7 @@ public class TestYarnServiceRunJobCli {
   }
 
   /**
-   * Test remote file/dir size exceeds limit.
+   * Test if file/dir to be localized whose size exceeds limit.
    * Max 10MB in configuration, mock remote will
    * always return file size 100MB.
    * This configuration will fail the job which has remoteUri
@@ -866,17 +867,20 @@ public class TestYarnServiceRunJobCli {
     MockClientContext mockClientContext =
         YarnServiceCliTestUtils.getMockClientContext();
     SubmarineConfiguration submarineConf = new SubmarineConfiguration();
+    RemoteDirectoryManager spyRdm =
+        spy(mockClientContext.getRemoteDirectoryManager());
+    mockClientContext.setRemoteDirectoryMgr(spyRdm);
     /**
      * Max 10MB, mock remote will always return file size 100MB.
      * */
-    submarineConf.set(SubmarineConfiguration.MAX_ALLOWED_REMOTE_URI_SIZE_MB,
+    submarineConf.set(SubmarineConfiguration.LOCALIZATION_MAX_ALLOWED_FILE_SIZE_MB,
         "10");
     mockClientContext.setSubmarineConfig(submarineConf);
 
     RunJobCli runJobCli = new RunJobCli(mockClientContext);
     Assert.assertFalse(SubmarineLogs.isVerbose());
 
-    // create remote file in local staging dir to simulate HDFS
+    // create remote file in local staging dir to simulate
     Path stagingDir = mockClientContext.getRemoteDirectoryManager()
         .getJobStagingArea("my-job", true);
     File remoteFile1 = new File(stagingDir.toUri().getPath()
@@ -915,11 +919,15 @@ public class TestYarnServiceRunJobCli {
               "--localization",
               remoteUri1 + ":" + containerLocal1});
     } catch (IOException e) {
-      Assert.assertTrue(e.getMessage()
-          .contains("104857600 exceeds configured max size:10485760"));
+      // Shouldn't have exception because it's within file size limit
+      Assert.assertFalse(true);
     }
-
+    // we should download because fail fast
+    verify(spyRdm, times(1)).copyRemoteToLocal(
+        anyString(), anyString());
     try {
+      // reset
+      reset(spyRdm);
       runJobCli = new RunJobCli(mockClientContext);
       runJobCli.run(
           new String[]{"--name", "my-job", "--docker_image", "tf-docker:1.1.0",
@@ -930,6 +938,8 @@ public class TestYarnServiceRunJobCli {
               "--ps_resources", "memory=4096M,vcores=4", "--ps_docker_image",
               "ps.image", "--worker_docker_image", "worker.image",
               "--ps_launch_cmd", "python run-ps.py", "--verbose",
+              "--localization",
+              remoteUri1 + ":" + containerLocal1,
               "--localization",
               remoteUri2 + ":" + containerLocal2,
               "--localization",
@@ -937,6 +947,9 @@ public class TestYarnServiceRunJobCli {
     } catch (IOException e) {
       Assert.assertTrue(e.getMessage()
           .contains("104857600 exceeds configured max size:10485760"));
+      // we shouldn't do any download because fail fast
+      verify(spyRdm, times(0)).copyRemoteToLocal(
+          anyString(), anyString());
     }
 
     try {
@@ -953,16 +966,12 @@ public class TestYarnServiceRunJobCli {
               "--localization",
               localFile1.getAbsolutePath() + ":" + containerLocal3});
     } catch (IOException e) {
-      // Shouldn't fail local uri
-      Assert.assertTrue(false);
+      Assert.assertTrue(e.getMessage()
+          .contains("104857600 exceeds configured max size:10485760"));
+      // we shouldn't do any download because fail fast
+      verify(spyRdm, times(0)).copyRemoteToLocal(
+          anyString(), anyString());
     }
-
-    Service serviceSpec = getServiceSpecFromJobSubmitter(
-        runJobCli.getJobSubmitter());
-    Assert.assertEquals(3, serviceSpec.getComponents().size());
-
-    List<ConfigFile> files = serviceSpec.getConfiguration().getFiles();
-    Assert.assertEquals(1, files.size());
 
     localFile1.delete();
     remoteDir1File1.delete();

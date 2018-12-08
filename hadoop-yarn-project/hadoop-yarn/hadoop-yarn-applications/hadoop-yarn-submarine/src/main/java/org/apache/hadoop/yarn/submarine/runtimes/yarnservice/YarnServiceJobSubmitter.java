@@ -688,22 +688,18 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     String remoteUri;
     String containerLocalPath;
     RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
+
+    // Check to fail fast
     for (Localization loc : locs) {
       remoteUri = loc.getRemoteUri();
-      containerLocalPath = loc.getLocalPath();
-      String srcFileStr = remoteUri;
-      ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
       Path resourceToLocalize = new Path(remoteUri);
-      boolean needUploadToHDFS = true;
-      // Check if remoteUri exists or exceed size
+      // Check if remoteUri exists
       if (rdm.isRemote(remoteUri)) {
         // check if exists
         if (!rdm.existsRemoteFile(resourceToLocalize)) {
           throw new FileNotFoundException(
               "File " + remoteUri + " doesn't exists.");
         }
-        // check remote file size
-        validFileSize(remoteUri);
       } else {
         // Check if exists
         File localFile = new File(remoteUri);
@@ -712,6 +708,18 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
               "File " + remoteUri + " doesn't exists.");
         }
       }
+      // check remote file size
+      validFileSize(remoteUri);
+    }
+    // Start download remote if needed and upload to HDFS
+    for (Localization loc : locs) {
+      remoteUri = loc.getRemoteUri();
+      containerLocalPath = loc.getLocalPath();
+      String srcFileStr = remoteUri;
+      ConfigFile.TypeEnum destFileType = ConfigFile.TypeEnum.STATIC;
+      Path resourceToLocalize = new Path(remoteUri);
+      boolean needUploadToHDFS = true;
+
       /**
        * Special handling for remoteUri directory.
        * */
@@ -774,14 +782,22 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
   }
 
   private void validFileSize(String uri) throws IOException {
-    long actualSizeByte = clientContext.getRemoteDirectoryManager()
-        .getRemoteFileSize(uri);
+    RemoteDirectoryManager rdm = clientContext.getRemoteDirectoryManager();
+    long actualSizeByte;
+    String locationType = "Local";
+    if (rdm.isRemote(uri)) {
+      actualSizeByte = clientContext.getRemoteDirectoryManager()
+          .getRemoteFileSize(uri);
+      locationType = "Remote";
+    } else {
+      actualSizeByte = FileUtil.getDU(new File(uri));
+    }
     long maxFileSizeMB = clientContext.getSubmarineConfig()
-        .getLong(SubmarineConfiguration.MAX_ALLOWED_REMOTE_URI_SIZE_MB,
+        .getLong(SubmarineConfiguration.LOCALIZATION_MAX_ALLOWED_FILE_SIZE_MB,
             SubmarineConfiguration.DEFAULT_MAX_ALLOWED_REMOTE_URI_SIZE_MB);
-    LOG.info("Remote fie/dir: {}, size(Byte):{},"
-        + " Allowed max remote file/dir size: {}",
-        uri, actualSizeByte, maxFileSizeMB * 1024 * 1024);
+    LOG.info("{} fie/dir: {}, size(Byte):{},"
+        + " Allowed max file/dir size: {}",
+        locationType, uri, actualSizeByte, maxFileSizeMB * 1024 * 1024);
 
     if (actualSizeByte > maxFileSizeMB * 1024 * 1024) {
       throw new IOException(uri + " size(Byte): "
@@ -858,8 +874,6 @@ public class YarnServiceJobSubmitter implements JobSubmitter {
     appAdminClient.stop();
     return appid;
   }
-
-
 
   @VisibleForTesting
   public Service getServiceSpec() {

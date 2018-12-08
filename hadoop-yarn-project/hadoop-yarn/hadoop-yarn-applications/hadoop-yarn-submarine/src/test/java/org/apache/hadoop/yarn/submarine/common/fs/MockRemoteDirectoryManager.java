@@ -158,6 +158,10 @@ public class MockRemoteDirectoryManager implements RemoteDirectoryManager {
 
   @Override
   public long getRemoteFileSize(String uri) throws IOException {
+    // 5 byte for this file to test
+    if (uri.equals("https://a/b/1.patch")) {
+      return 5;
+    }
     return 100 * 1024 * 1024;
   }
 
