@@ -873,7 +873,8 @@ public class TestYarnServiceRunJobCli {
     /**
      * Max 10MB, mock remote will always return file size 100MB.
      * */
-    submarineConf.set(SubmarineConfiguration.LOCALIZATION_MAX_ALLOWED_FILE_SIZE_MB,
+    submarineConf.set(
+        SubmarineConfiguration.LOCALIZATION_MAX_ALLOWED_FILE_SIZE_MB,
         "10");
     mockClientContext.setSubmarineConfig(submarineConf);
 
