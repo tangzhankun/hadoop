@@ -127,7 +127,7 @@ static void append_config(const char* cfg_filepath, char values[]) {
     printf("FAIL: Could not open configuration file: %s\n", cfg_filepath);
     exit(1);
   }
-  fprintf(file, values);
+  fprintf(file, "%s", values);
   fclose(file);
 
   // Read config file
