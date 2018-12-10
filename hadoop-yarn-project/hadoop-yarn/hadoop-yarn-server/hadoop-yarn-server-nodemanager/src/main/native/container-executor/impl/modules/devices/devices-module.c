@@ -63,7 +63,6 @@ static int is_block_device(const char* value) {
     fprintf(ERRORFILE, "Failed to construct system block device path.\n");
     goto cleanup;
   }
-  
   struct stat sb;
   // file exists, is block device
   if (stat(block_path, &sb) == 0) {
