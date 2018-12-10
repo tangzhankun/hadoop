@@ -121,7 +121,7 @@ static void write_and_load_devices_module_to_cfg(const char* cfg_filepath, int e
   reload_devices_configuration();
 }
 
-static void append_config(const char* cfg_filepath, char* values) {
+static void append_config(const char* cfg_filepath, char[] values) {
   FILE *file = fopen(cfg_filepath, "a");
   if (file == NULL) {
     printf("FAIL: Could not open configuration file: %s\n", cfg_filepath);
@@ -206,7 +206,8 @@ TEST_F(TestDevicesModule, test_update_cgroup_parameter_with_config) {
   const char *filename = TEST_ROOT "/test_update_cgroup_parameter_with_config.cfg";
   write_and_load_devices_module_to_cfg(filename, 1);
   // Add denied numbers
-  append_config(filename, "devices.denied-numbers=243:1\n");
+  char tokens[] = "devices.denied-numbers=243:1\n";
+  append_config(filename, tokens);
 
   char* container_id = (char*) "container_1498064906505_0001_01_000001";
   char excluded_devices[] = "c-243:0-rwm,c-243:1-rwm";
