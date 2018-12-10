@@ -121,7 +121,7 @@ static void write_and_load_devices_module_to_cfg(const char* cfg_filepath, int e
   reload_devices_configuration();
 }
 
-static void append_config(const char* cfg_filepath, char[] values) {
+static void append_config(const char* cfg_filepath, char values[]) {
   FILE *file = fopen(cfg_filepath, "a");
   if (file == NULL) {
     printf("FAIL: Could not open configuration file: %s\n", cfg_filepath);
