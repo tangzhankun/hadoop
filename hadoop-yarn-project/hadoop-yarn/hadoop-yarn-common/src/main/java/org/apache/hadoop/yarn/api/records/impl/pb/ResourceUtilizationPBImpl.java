@@ -211,10 +211,19 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     LOG.debug("Init typedResourceUtilization");
     ResourceUtilizationProtoOrBuilder p = viaProto ? proto : builder;
     ResourceInformation[] types = ResourceUtils.getResourceTypesArray();
+    for (ResourceInformation ri : types) {
+      LOG.debug("ResourceInformation:" + ri);
+    }
     Map<String, Integer> indexMap = ResourceUtils.getResourceTypeIndex();
     this.resourceUtilizations = new TypedResourceUtilization[types.length];
     LOG.debug("TypedResourceUtilization array size:" + types.length);
     LOG.debug("p.getTypedResourcesList().size:" + p.getTypedResourcesList().size());
+    for (int i = 2; i < types.length; i++) {
+      resourceUtilizations[i] = TypedResourceUtilization.newInstance(types[i]
+          , 0);
+      LOG.debug("Init one typed resource utilization "
+          + this.resourceUtilizations[i]);
+    }
     for (TypedResourceUtilizationProto entry : p.getTypedResourcesList()) {
       ResourceInformationProto riProto = entry.getCapability();
       if (riProto.hasKey()) {
