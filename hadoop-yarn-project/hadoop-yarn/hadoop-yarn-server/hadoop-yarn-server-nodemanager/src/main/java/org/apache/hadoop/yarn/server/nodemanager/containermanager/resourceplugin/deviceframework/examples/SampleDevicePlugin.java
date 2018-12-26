@@ -18,17 +18,23 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.examples;
 
+import org.apache.hadoop.yarn.server.nodemanager.NodeResourceMonitorImpl;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
 public class SampleDevicePlugin implements DevicePlugin {
+  private final static Logger LOG =
+      LoggerFactory.getLogger(SampleDevicePlugin.class);
+
   @Override
   public DeviceRegisterRequest getRegisterRequestInfo() throws Exception {
     return DeviceRegisterRequest.Builder.newInstance()
@@ -40,6 +46,7 @@ public class SampleDevicePlugin implements DevicePlugin {
     Random random = new Random();
     TreeSet<Device> r = new TreeSet<>();
     int count = random.nextInt(10);
+    LOG.info("Random device count: " + count);
     for (int i = 0; i < count; i++) {
       r.add(Device.Builder.newInstance()
           .setId(i)

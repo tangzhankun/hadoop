@@ -65,6 +65,7 @@ public class NodeResourceMonitorImpl extends AbstractService implements
 
   /**
    * Interval pluggable device interval.
+   * -1.0f means disable monitor
    * */
   private double pluggableDeviceMonitorInterval;
 
@@ -98,18 +99,27 @@ public class NodeResourceMonitorImpl extends AbstractService implements
         conf.getBoolean(
             YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
             YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
-
+    // Check if the framework is enabled
     if (deviceFrameworkEnabled) {
-      this.pluggableDeviceMonitorEnabled =
-          conf.getBoolean(
-              YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_MONITOR_ENABLED,
-              YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
-      if (this.pluggableDeviceMonitorEnabled) {
-        this.pluggableDeviceMonitorInterval = conf.getDouble(
-            YarnConfiguration.NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL,
-            YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL);
-        LOG.info("Monitor pluggable device is enabled. Interval-Hour: "
+      pluggableDeviceMonitorInterval = conf.getDouble(
+          YarnConfiguration.NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL,
+          YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL);
+      // negative means disabled
+      if (this.pluggableDeviceMonitorInterval < 0) {
+        LOG.info("Monitor pluggable device is disabled. Interval-Hour:"
             + this.pluggableDeviceMonitorInterval);
+        pluggableDeviceMonitorEnabled = false;
+      }
+      pluggableDeviceMonitorEnabled = true;
+      if (!isEnabled() && pluggableDeviceMonitorEnabled) {
+        LOG.warn("Please enable node monitoring first by a correct setting of "
+            + YarnConfiguration.NM_RESOURCE_MON_INTERVAL_MS);
+        LOG.warn("Monitor pluggable device is disabled");
+        pluggableDeviceMonitorEnabled = false;
+      }
+      if (pluggableDeviceMonitorEnabled) {
+        LOG.info("Monitor pluggable device is enabled. Interval-Hour: "
+            + pluggableDeviceMonitorInterval);
       }
     }
 
@@ -195,7 +205,9 @@ public class NodeResourceMonitorImpl extends AbstractService implements
                 (int) (pmem >> 20), // B -> MB
                 (int) (vmem >> 20), // B -> MB
                 vcores); // Used Virtual Cores
-        mayUpdateNodeDevicesUtilization(nodeUtilization);
+        if (pluggableDeviceMonitorEnabled) {
+          mayUpdateNodeDevicesUtilization(nodeUtilization);
+        }
         // Publish the node utilization metrics to node manager
         // metrics system.
         NodeManagerMetrics nmMetrics = nmContext.getNodeManagerMetrics();
@@ -222,7 +234,7 @@ public class NodeResourceMonitorImpl extends AbstractService implements
         LOG.info("Not the perfect time to trigger device monitoring");
         return;
       }
-      LOG.info("Monitoring the pluggable devices");
+      LOG.info("Start querying the pluggable devices");
       lastDeviceMonitorTimestamp = System.currentTimeMillis();
       Map<String, ResourcePlugin> plugins =
           nmContext.getResourcePluginManager().getNameToPlugins();
@@ -235,11 +247,16 @@ public class NodeResourceMonitorImpl extends AbstractService implements
           DevicePlugin dp = dpa.getDevicePlugin();
           try {
             Set<Device> devices = dp.getDevices();
-            nodeUti.setResourceValue(entry.getKey(), devices.size());
-            nodeUti.setUsedResourceValue(entry.getKey(),
-                allUsed.get(entry.getKey()).size());
-            // update deviceMappingManager's state
-            dpm.updateDeviceSet(entry.getKey(), devices);
+            try {
+              nodeUti.setResourceValue(entry.getKey(), devices.size());
+              nodeUti.setUsedResourceValue(entry.getKey(),
+                  allUsed.get(entry.getKey()).size());
+              // update deviceMappingManager's state
+              dpm.updateDeviceSet(entry.getKey(), devices);
+            } catch (Exception e) {
+              LOG.warn("Unexpected exception in updating node deivces:"
+                  + e.getMessage());
+            }
           } catch (Exception e) {
             LOG.warn("Unexpected exception in {}'s method getDevices. {}",
                 dp.getClass(), e.getMessage());
