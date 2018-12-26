@@ -45,7 +45,7 @@ public class SampleDevicePlugin implements DevicePlugin {
   public Set<Device> getDevices() throws Exception {
     Random random = new Random();
     TreeSet<Device> r = new TreeSet<>();
-    int count = random.nextInt(10);
+    int count = random.nextInt(10) + 1;
     LOG.info("Random device count: " + count);
     for (int i = 0; i < count; i++) {
       r.add(Device.Builder.newInstance()
