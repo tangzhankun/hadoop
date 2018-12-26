@@ -255,8 +255,8 @@ public class NodeResourceMonitorImpl extends AbstractService implements
               // update deviceMappingManager's state
               dpm.updateDeviceSet(entry.getKey(), devices);
             } catch (Exception e) {
-              LOG.warn("Unexpected exception in updating node deivces:"
-                  + e.getStackTrace());
+              LOG.warn("Unexpected exception in updating node deivces:");
+              e.printStackTrace();
             }
           } catch (Exception e) {
             LOG.warn("Unexpected exception in {}'s method getDevices. {}",
