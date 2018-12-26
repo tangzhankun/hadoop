@@ -79,4 +79,11 @@ public abstract class TypedResourceUtilization {
   @Public
   @Unstable
   public abstract void setUsed(long count);
+
+  @Override
+  public String toString() {
+    return "TypedResourceUtilization: " + getLatestCapability()
+        + ", used:" + getUsed();
+  }
+
 }

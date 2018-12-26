@@ -138,6 +138,7 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     maybeInitBuilder();
     Objects.requireNonNull(name);
     initTypedResourceUtilization();
+    LOG.debug("setResourceValue begin");
     Integer index = ResourceUtils.getResourceTypeIndex().get(name);
     if (index != null) {
       TypedResourceUtilization tru = resourceUtilizations[index];
@@ -145,6 +146,8 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
           ResourceInformation.newInstance(tru.getLatestCapability());
       ri.setValue(value);
       resourceUtilizations[index].setLatestCapability(ri);
+      LOG.debug("setResourceValue:" + resourceUtilizations[index]);
+      return;
     }
     throw new ResourceNotFoundException("Unknown resource:" + name);
   }
@@ -163,9 +166,12 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     maybeInitBuilder();
     Objects.requireNonNull(name);
     initTypedResourceUtilization();
+    LOG.debug("setUsedResourceValue begin");
     Integer index = ResourceUtils.getResourceTypeIndex().get(name);
     if (index != null) {
       resourceUtilizations[index].setUsed(used);
+      LOG.debug("setUsedResourceValue:" + resourceUtilizations[index]);
+      return;
     }
     throw new ResourceNotFoundException("Unknown resource:" + name);
   }
@@ -202,6 +208,7 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     if (this.resourceUtilizations != null) {
       return;
     }
+    LOG.debug("Init typedResourceUtilization");
     ResourceUtilizationProtoOrBuilder p = viaProto ? proto : builder;
     ResourceInformation[] types = ResourceUtils.getResourceTypesArray();
     Map<String, Integer> indexMap = ResourceUtils.getResourceTypeIndex();
@@ -215,6 +222,7 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
         } else {
           this.resourceUtilizations[index] =
               new TypedResourceUtilizationPBImpl(entry);
+          LOG.debug(this.resourceUtilizations[index]);
         }
       }
     } // end for

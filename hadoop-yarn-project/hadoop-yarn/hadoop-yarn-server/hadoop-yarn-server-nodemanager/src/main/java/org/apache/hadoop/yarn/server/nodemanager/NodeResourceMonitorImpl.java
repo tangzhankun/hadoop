@@ -249,14 +249,14 @@ public class NodeResourceMonitorImpl extends AbstractService implements
           try {
             Set<Device> devices = dp.getDevices();
             try {
+              LOG.debug(" Resource name: " + entry.getKey());
               nodeUti.setResourceValue(entry.getKey(), devices.size());
               nodeUti.setUsedResourceValue(entry.getKey(),
                   allUsed.get(entry.getKey()).size());
               // update deviceMappingManager's state
               dpm.updateDeviceSet(entry.getKey(), devices);
             } catch (Exception e) {
-              LOG.warn("Unexpected exception in updating node deivces:");
-              e.printStackTrace();
+              LOG.warn("Unexpected exception in updating node deivces");
             }
           } catch (Exception e) {
             LOG.warn("Unexpected exception in {}'s method getDevices. {}",
