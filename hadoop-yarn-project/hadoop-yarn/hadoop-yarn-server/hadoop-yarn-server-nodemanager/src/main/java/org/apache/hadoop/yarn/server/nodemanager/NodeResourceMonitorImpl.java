@@ -99,6 +99,13 @@ public class NodeResourceMonitorImpl extends AbstractService implements
         conf.getBoolean(
             YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
             YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
+
+    this.resourceCalculatorPlugin =
+        ResourceCalculatorPlugin.getNodeResourceMonitorPlugin(conf);
+
+    LOG.info(" Using ResourceCalculatorPlugin : "
+        + this.resourceCalculatorPlugin);
+
     // Check if the framework is enabled
     if (deviceFrameworkEnabled) {
       pluggableDeviceMonitorInterval = conf.getDouble(
@@ -122,12 +129,6 @@ public class NodeResourceMonitorImpl extends AbstractService implements
             + pluggableDeviceMonitorInterval);
       }
     }
-
-    this.resourceCalculatorPlugin =
-        ResourceCalculatorPlugin.getNodeResourceMonitorPlugin(conf);
-
-    LOG.info(" Using ResourceCalculatorPlugin : "
-        + this.resourceCalculatorPlugin);
   }
 
   /**
