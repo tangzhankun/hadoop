@@ -65,6 +65,10 @@ public class DevicePluginAdapter implements ResourcePlugin {
     return deviceMappingManager;
   }
 
+  public DevicePlugin getDevicePlugin() {
+    return devicePlugin;
+  }
+
   @Override
   public void initialize(Context context) throws YarnException {
     deviceResourceUpdater = new DeviceResourceUpdaterImpl(

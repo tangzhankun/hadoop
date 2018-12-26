@@ -55,6 +55,7 @@ import org.apache.hadoop.yarn.api.records.NodeAttribute;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.NodeState;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.api.records.ResourceOption;
 import org.apache.hadoop.yarn.api.records.ResourceUtilization;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -90,6 +91,7 @@ import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.Resources;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -829,7 +831,20 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
         .getLastHealthReportTime());
     rmNode.setAggregatedContainersUtilization(statusEvent
         .getAggregatedContainersUtilization());
-    rmNode.setNodeUtilization(statusEvent.getNodeUtilization());
+    ResourceUtilization utilization = statusEvent.getNodeUtilization();
+    rmNode.setNodeUtilization(utilization);
+    // Get resource from utilization and update RMNode
+    Resource newResource = Resource.newInstance(rmNode.getTotalCapability());
+    Map<String, ResourceInformation> types = ResourceUtils.getResourceTypes();
+    for (Map.Entry<String, ResourceInformation> entry : types.entrySet()) {
+      newResource.setResourceValue(entry.getKey(),
+          utilization.getResourceValue(entry.getKey()));
+    }
+    ResourceOption resourceOption = ResourceOption.newInstance(newResource,
+        -1);
+    rmNode.getRMContext().getDispatcher().getEventHandler()
+        .handle(new RMNodeResourceUpdateEvent(rmNode.getNodeID(),
+            resourceOption));
     return remoteNodeHealthStatus;
   }
 

@@ -20,12 +20,21 @@ package org.apache.hadoop.yarn.server.nodemanager;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.api.records.ResourceUtilization;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePlugin;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DeviceMappingManager;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework.DevicePluginAdapter;
 import org.apache.hadoop.yarn.server.nodemanager.metrics.NodeManagerMetrics;
 import org.apache.hadoop.yarn.util.ResourceCalculatorPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of the node resource monitor. It periodically tracks the
@@ -49,6 +58,22 @@ public class NodeResourceMonitorImpl extends AbstractService implements
   /** Current <em>resource utilization</em> of the node. */
   private ResourceUtilization nodeUtilization;
 
+  /**
+   * If monitor pluggable device is needed.
+   * */
+  private boolean pluggableDeviceMonitorEnabled;
+
+  /**
+   * Interval pluggable device interval.
+   * */
+  private double pluggableDeviceMonitorInterval;
+
+  /**
+   * Last timestamp that we monitor devices
+   * */
+  private long lastDeviceMonitorTimestamp;
+
+
   private Context nmContext;
 
   /**
@@ -68,6 +93,25 @@ public class NodeResourceMonitorImpl extends AbstractService implements
     this.monitoringInterval =
         conf.getLong(YarnConfiguration.NM_RESOURCE_MON_INTERVAL_MS,
             YarnConfiguration.DEFAULT_NM_RESOURCE_MON_INTERVAL_MS);
+
+    boolean deviceFrameworkEnabled =
+        conf.getBoolean(
+            YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
+            YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
+
+    if (deviceFrameworkEnabled) {
+      this.pluggableDeviceMonitorEnabled =
+          conf.getBoolean(
+              YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_MONITOR_ENABLED,
+              YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
+      if (this.pluggableDeviceMonitorEnabled) {
+        this.pluggableDeviceMonitorInterval = conf.getDouble(
+            YarnConfiguration.NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL,
+            YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL);
+        LOG.info("Monitor pluggable device is enabled. Interval-Hour: "
+            + this.pluggableDeviceMonitorInterval);
+      }
+    }
 
     this.resourceCalculatorPlugin =
         ResourceCalculatorPlugin.getNodeResourceMonitorPlugin(conf);
@@ -151,7 +195,7 @@ public class NodeResourceMonitorImpl extends AbstractService implements
                 (int) (pmem >> 20), // B -> MB
                 (int) (vmem >> 20), // B -> MB
                 vcores); // Used Virtual Cores
-
+        mayUpdateNodeDevicesUtilization(nodeUtilization);
         // Publish the node utilization metrics to node manager
         // metrics system.
         NodeManagerMetrics nmMetrics = nmContext.getNodeManagerMetrics();
@@ -169,6 +213,39 @@ public class NodeResourceMonitorImpl extends AbstractService implements
           break;
         }
       }
+    }
+
+    private void mayUpdateNodeDevicesUtilization(ResourceUtilization nodeUti) {
+      long current = System.currentTimeMillis();
+      if ((current - lastDeviceMonitorTimestamp) <
+          pluggableDeviceMonitorInterval * 3600000) {
+        LOG.info("Not the perfect time to trigger device monitoring");
+        return;
+      }
+      LOG.info("Monitoring the pluggable devices");
+      lastDeviceMonitorTimestamp = System.currentTimeMillis();
+      Map<String, ResourcePlugin> plugins =
+          nmContext.getResourcePluginManager().getNameToPlugins();
+      DeviceMappingManager dpm =
+          nmContext.getResourcePluginManager().getDeviceMappingManager();
+      Map<String, Map<Device, ContainerId>> allUsed = dpm.getAllUsedDevices();
+      for (Map.Entry<String, ResourcePlugin> entry : plugins.entrySet()) {
+        if (entry.getValue() instanceof DevicePluginAdapter) {
+          DevicePluginAdapter dpa = (DevicePluginAdapter)entry.getValue();
+          DevicePlugin dp = dpa.getDevicePlugin();
+          try {
+            Set<Device> devices = dp.getDevices();
+            nodeUti.setResourceValue(entry.getKey(), devices.size());
+            nodeUti.setUsedResourceValue(entry.getKey(),
+                allUsed.get(entry.getKey()).size());
+            // update deviceMappingManager's state
+            dpm.updateDeviceSet(entry.getKey(), devices);
+          } catch (Exception e) {
+            LOG.warn("Unexpected exception in {}'s method getDevices. {}",
+                dp.getClass(), e.getMessage());
+          }
+        }
+      } // end for
     }
   }
 

@@ -1620,6 +1620,26 @@ public class YarnConfiguration extends Configuration {
       false;
 
   /**
+   * This setting controls if pluggable device plugin monitoring is enabled.
+   * */
+  @Private
+  public static final String NM_PLUGGABLE_DEVICE_FRAMEWORK_MONITOR_ENABLED =
+      NM_PREFIX + "pluggable-device-framework.monitor.enabled";
+
+  @Private
+  public static final boolean DEFAULT_NM_PLUGGABLE_DEVICE_MONITOR_ENABLED =
+      false;
+
+  /**
+   * This setting configures monitoring intervals for pluggable devices.
+   * One hour by default.
+   * */
+  @Private
+  public static final String NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL =
+      NM_PREFIX + "pluggable-device-framework.monitor.interval-hour";
+
+  public static double DEFAULT_NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL = 1;
+  /**
    * This setting contains vendor plugin class names for
    * device plugin framework to load. Split by comma
    * */

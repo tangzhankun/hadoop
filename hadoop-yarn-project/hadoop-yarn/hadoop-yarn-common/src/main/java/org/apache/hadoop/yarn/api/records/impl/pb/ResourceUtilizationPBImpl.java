@@ -18,33 +18,67 @@
 
 package org.apache.hadoop.yarn.api.records.impl.pb;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.yarn.api.records.ResourceInformation;
+import org.apache.hadoop.yarn.api.records.TypedResourceUtilization;
+import org.apache.hadoop.yarn.exceptions.ResourceNotFoundException;
+import org.apache.hadoop.yarn.proto.YarnProtos.ResourceInformationProto;
+import org.apache.hadoop.yarn.proto.YarnProtos.TypedResourceUtilizationProto;
 import org.apache.hadoop.yarn.proto.YarnProtos.ResourceUtilizationProto;
 import org.apache.hadoop.yarn.proto.YarnProtos.ResourceUtilizationProtoOrBuilder;
 import org.apache.hadoop.yarn.api.records.ResourceUtilization;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
+
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Objects;
 
 @Private
 @Unstable
 public class ResourceUtilizationPBImpl extends ResourceUtilization {
+
+  private static final Log LOG = LogFactory
+      .getLog(ResourceUtilizationPBImpl.class);
+
   private ResourceUtilizationProto proto = ResourceUtilizationProto
       .getDefaultInstance();
   private ResourceUtilizationProto.Builder builder = null;
   private boolean viaProto = false;
 
+  TypedResourceUtilization[] resourceUtilizations = null;
+
   public ResourceUtilizationPBImpl() {
     builder = ResourceUtilizationProto.newBuilder();
+    initTypedResourceUtilization();
   }
 
   public ResourceUtilizationPBImpl(ResourceUtilizationProto proto) {
     this.proto = proto;
     viaProto = true;
+    initTypedResourceUtilization();
   }
 
   public ResourceUtilizationProto getProto() {
+    mergeLocalToBuilder();
     proto = viaProto ? proto : builder.build();
     viaProto = true;
     return proto;
+  }
+
+  private void mergeLocalToBuilder() {
+    builder.clearTypedResources();
+    if (resourceUtilizations != null && resourceUtilizations.length != 0) {
+      ArrayList<TypedResourceUtilizationProto> list = new ArrayList<>();
+      for (TypedResourceUtilization rtu : resourceUtilizations) {
+        TypedResourceUtilizationProto proto =
+            ((TypedResourceUtilizationPBImpl)rtu).getProto();
+        list.add(proto);
+      }
+      builder.addAllTypedResources(list);
+    }
   }
 
   private void maybeInitBuilder() {
@@ -91,6 +125,52 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
   }
 
   @Override
+  public long getResourceValue(String name) {
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
+    if (index != null) {
+      return resourceUtilizations[index].getLatestCapability().getValue();
+    }
+    throw new ResourceNotFoundException("Unknown resource:" + name);
+  }
+
+  @Override
+  public void setResourceValue(String name, long value) {
+    maybeInitBuilder();
+    Objects.requireNonNull(name);
+    initTypedResourceUtilization();
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
+    if (index != null) {
+      TypedResourceUtilization tru = resourceUtilizations[index];
+      ResourceInformation ri =
+          ResourceInformation.newInstance(tru.getLatestCapability());
+      ri.setValue(value);
+      resourceUtilizations[index].setLatestCapability(ri);
+    }
+    throw new ResourceNotFoundException("Unknown resource:" + name);
+  }
+
+  @Override
+  public long getUsedResourceValue(String name) {
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
+    if (index != null) {
+      return resourceUtilizations[index].getUsed();
+    }
+    throw new ResourceNotFoundException("Unknown resource:" + name);
+  }
+
+  @Override
+  public void setUsedResourceValue(String name, long used) {
+    maybeInitBuilder();
+    Objects.requireNonNull(name);
+    initTypedResourceUtilization();
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
+    if (index != null) {
+      resourceUtilizations[index].setUsed(used);
+    }
+    throw new ResourceNotFoundException("Unknown resource:" + name);
+  }
+
+  @Override
   public int compareTo(ResourceUtilization other) {
     int diff = this.getPhysicalMemory() - other.getPhysicalMemory();
     if (diff == 0) {
@@ -100,5 +180,43 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
       }
     }
     return diff;
+  }
+
+  @Override
+  public int hashCode() {
+    return getProto().hashCode();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == null) {
+      return false;
+    }
+    if (other.getClass().isAssignableFrom(this.getClass())) {
+      return this.getProto().equals(this.getClass().cast(other).getProto());
+    }
+    return false;
+  }
+
+  private void initTypedResourceUtilization() {
+    if (this.resourceUtilizations != null) {
+      return;
+    }
+    ResourceUtilizationProtoOrBuilder p = viaProto ? proto : builder;
+    ResourceInformation[] types = ResourceUtils.getResourceTypesArray();
+    Map<String, Integer> indexMap = ResourceUtils.getResourceTypeIndex();
+    this.resourceUtilizations = new TypedResourceUtilization[types.length];
+    for (TypedResourceUtilizationProto entry : p.getTypedResourcesList()) {
+      ResourceInformationProto riProto = entry.getCapability();
+      if (riProto.hasKey()) {
+        Integer index = indexMap.get(riProto.getKey());
+        if (index == null) {
+          LOG.warn("Got unknown resource type: " + riProto.getKey() + "; skipping");
+        } else {
+          this.resourceUtilizations[index] =
+              new TypedResourceUtilizationPBImpl(entry);
+        }
+      }
+    } // end for
   }
 }
