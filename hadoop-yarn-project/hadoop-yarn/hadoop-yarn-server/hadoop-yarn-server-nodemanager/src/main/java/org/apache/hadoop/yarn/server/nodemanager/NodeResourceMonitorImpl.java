@@ -232,10 +232,10 @@ public class NodeResourceMonitorImpl extends AbstractService implements
       long current = System.currentTimeMillis();
       if ((current - lastDeviceMonitorTimestamp) <
           pluggableDeviceMonitorInterval * 3600000) {
-        LOG.info("Not the perfect time to trigger device monitoring");
+        LOG.info("Not the perfect time to get device info");
         return;
       }
-      LOG.info("Start querying the pluggable devices");
+      LOG.info("Start querying the latest devices info");
       lastDeviceMonitorTimestamp = System.currentTimeMillis();
       Map<String, ResourcePlugin> plugins =
           nmContext.getResourcePluginManager().getNameToPlugins();
@@ -256,7 +256,7 @@ public class NodeResourceMonitorImpl extends AbstractService implements
               dpm.updateDeviceSet(entry.getKey(), devices);
             } catch (Exception e) {
               LOG.warn("Unexpected exception in updating node deivces:"
-                  + e.getMessage());
+                  + e.getStackTrace());
             }
           } catch (Exception e) {
             LOG.warn("Unexpected exception in {}'s method getDevices. {}",
