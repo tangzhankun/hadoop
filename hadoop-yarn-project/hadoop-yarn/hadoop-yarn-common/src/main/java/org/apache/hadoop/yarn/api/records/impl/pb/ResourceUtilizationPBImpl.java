@@ -213,6 +213,8 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     ResourceInformation[] types = ResourceUtils.getResourceTypesArray();
     Map<String, Integer> indexMap = ResourceUtils.getResourceTypeIndex();
     this.resourceUtilizations = new TypedResourceUtilization[types.length];
+    LOG.debug("TypedResourceUtilization array size:" + types.length);
+    LOG.debug("p.getTypedResourcesList().size:" + p.getTypedResourcesList().size());
     for (TypedResourceUtilizationProto entry : p.getTypedResourcesList()) {
       ResourceInformationProto riProto = entry.getCapability();
       if (riProto.hasKey()) {
