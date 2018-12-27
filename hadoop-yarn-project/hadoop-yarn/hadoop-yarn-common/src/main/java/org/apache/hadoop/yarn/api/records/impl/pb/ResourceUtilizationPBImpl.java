@@ -72,7 +72,9 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     if (resourceUtilizations != null && resourceUtilizations.length != 0) {
       ArrayList<TypedResourceUtilizationProto> list = new ArrayList<>();
       for (TypedResourceUtilization rtu : resourceUtilizations) {
-        Objects.requireNonNull(rtu);
+        if (rtu == null) {
+          continue;
+        }
         TypedResourceUtilizationProto proto =
             ((TypedResourceUtilizationPBImpl)rtu).getProto();
         list.add(proto);
@@ -250,5 +252,6 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
         }
       }
     } // end for
+    viaProto = true;
   }
 }
