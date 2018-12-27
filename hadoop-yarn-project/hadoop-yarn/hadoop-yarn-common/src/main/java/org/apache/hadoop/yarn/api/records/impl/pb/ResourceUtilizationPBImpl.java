@@ -227,17 +227,16 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
           new TypedResourceUtilization[types.length - 2];
     }
     LOG.debug("TypedResourceUtilization array size:" + types.length);
-    if (!viaProto) {
-      LOG.debug("Try init typed resource utilization");
-      for (int i = 0; i < types.length - 2; i++) {
-        resourceUtilizations[i] =
-            TypedResourceUtilization.newInstance(types[i + 2]
-                , 0);
-        LOG.debug("Inited one typed resource utilization "
-            + this.resourceUtilizations[i]);
-      }
-      return;
+
+    LOG.debug("Try init typed resource utilization");
+    for (int i = 0; i < types.length - 2; i++) {
+      resourceUtilizations[i] =
+          TypedResourceUtilization.newInstance(types[i + 2]
+              , 0);
+      LOG.debug("Inited one typed resource utilization "
+          + this.resourceUtilizations[i]);
     }
+
     LOG.debug("p.getTypedResourcesList().size:" + p.getTypedResourcesList().size());
     for (TypedResourceUtilizationProto entry : p.getTypedResourcesList()) {
       ResourceInformationProto riProto = entry.getCapability();
