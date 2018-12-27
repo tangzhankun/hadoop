@@ -846,13 +846,15 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
         }
         long newValue = utilization.getResourceValue(entry.getKey());
         // -1 means no update for this type of resource
-        if (newValue != -1) {
-          newResource.setResourceValue(entry.getKey(),
-              utilization.getResourceValue(entry.getKey()));
-          LOG.debug("Node monitor update " + entry.getKey()
-              + " to " + utilization.getResourceValue(entry.getKey()));
-          needUpdate = true;
+        if (newValue == -1) {
+          LOG.debug("No resource update for " + entry.getKey());
+          continue;
         }
+        newResource.setResourceValue(entry.getKey(),
+            utilization.getResourceValue(entry.getKey()));
+        LOG.debug("Node monitor update " + entry.getKey()
+            + " to " + utilization.getResourceValue(entry.getKey()));
+        needUpdate = true;
       }
       if (needUpdate) {
         ResourceOption resourceOption = ResourceOption.newInstance(newResource,
