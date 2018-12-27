@@ -67,7 +67,7 @@ public class NodeResourceMonitorImpl extends AbstractService implements
    * Interval pluggable device interval.
    * -1.0f means disable monitor
    * */
-  private double pluggableDeviceMonitorInterval;
+  private float pluggableDeviceMonitorInterval;
 
   /**
    * Last timestamp that we monitor devices
@@ -108,7 +108,7 @@ public class NodeResourceMonitorImpl extends AbstractService implements
 
     // Check if the framework is enabled
     if (deviceFrameworkEnabled) {
-      pluggableDeviceMonitorInterval = conf.getDouble(
+      pluggableDeviceMonitorInterval = conf.getFloat(
           YarnConfiguration.NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL,
           YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL);
       // negative means disabled

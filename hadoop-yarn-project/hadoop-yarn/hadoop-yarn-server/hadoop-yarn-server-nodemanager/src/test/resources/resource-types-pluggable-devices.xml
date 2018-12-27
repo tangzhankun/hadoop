@@ -18,6 +18,6 @@
 
     <property>
         <name>yarn.resource-types</name>
-        <value>cmp.com/cmp,cmpA.com/hdwA</value>
+        <value>cmp.com/cmp,cmpA.com/hdwA,sample.com/sample</value>
     </property>
 </configuration>

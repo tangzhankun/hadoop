@@ -52,13 +52,11 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
 
   public ResourceUtilizationPBImpl() {
     builder = ResourceUtilizationProto.newBuilder();
-    initTypedResourceUtilization();
   }
 
   public ResourceUtilizationPBImpl(ResourceUtilizationProto proto) {
     this.proto = proto;
     viaProto = true;
-    initTypedResourceUtilization();
   }
 
   public ResourceUtilizationProto getProto() {
@@ -126,7 +124,9 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
 
   @Override
   public long getResourceValue(String name) {
-    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
+    Objects.requireNonNull(name);
+    initTypedResourceUtilization();
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name) - 2;
     if (index != null) {
       return resourceUtilizations[index].getLatestCapability().getValue();
     }
@@ -139,7 +139,7 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     Objects.requireNonNull(name);
     initTypedResourceUtilization();
     LOG.debug("setResourceValue begin");
-    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name) - 2;
     if (index != null) {
       TypedResourceUtilization tru = resourceUtilizations[index];
       ResourceInformation ri =
@@ -154,7 +154,9 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
 
   @Override
   public long getUsedResourceValue(String name) {
-    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
+    Objects.requireNonNull(name);
+    initTypedResourceUtilization();
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name) - 2;
     if (index != null) {
       return resourceUtilizations[index].getUsed();
     }
@@ -167,7 +169,7 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     Objects.requireNonNull(name);
     initTypedResourceUtilization();
     LOG.debug("setUsedResourceValue begin");
-    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name) - 2;
     if (index != null) {
       resourceUtilizations[index].setUsed(used);
       LOG.debug("setUsedResourceValue:" + resourceUtilizations[index]);
@@ -215,19 +217,28 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
       LOG.debug("ResourceInformation:" + ri);
     }
     Map<String, Integer> indexMap = ResourceUtils.getResourceTypeIndex();
-    this.resourceUtilizations = new TypedResourceUtilization[types.length];
-    LOG.debug("TypedResourceUtilization array size:" + types.length);
-    LOG.debug("p.getTypedResourcesList().size:" + p.getTypedResourcesList().size());
-    for (int i = 2; i < types.length; i++) {
-      resourceUtilizations[i] = TypedResourceUtilization.newInstance(types[i]
-          , 0);
-      LOG.debug("Init one typed resource utilization "
-          + this.resourceUtilizations[i]);
+    // only store typed resource. Exclude CPU and memory
+    if (types.length > 2) {
+      this.resourceUtilizations =
+          new TypedResourceUtilization[types.length - 2];
     }
+    LOG.debug("TypedResourceUtilization array size:" + types.length);
+    if (!viaProto) {
+      LOG.debug("Try init typed resource utilization");
+      for (int i = 0; i < types.length - 2; i++) {
+        resourceUtilizations[i] =
+            TypedResourceUtilization.newInstance(types[i + 2]
+                , 0);
+        LOG.debug("Inited one typed resource utilization "
+            + this.resourceUtilizations[i]);
+      }
+      return;
+    }
+    LOG.debug("p.getTypedResourcesList().size:" + p.getTypedResourcesList().size());
     for (TypedResourceUtilizationProto entry : p.getTypedResourcesList()) {
       ResourceInformationProto riProto = entry.getCapability();
       if (riProto.hasKey()) {
-        Integer index = indexMap.get(riProto.getKey());
+        Integer index = indexMap.get(riProto.getKey()) - 2;
         if (index == null) {
           LOG.warn("Got unknown resource type: " + riProto.getKey() + "; skipping");
         } else {
