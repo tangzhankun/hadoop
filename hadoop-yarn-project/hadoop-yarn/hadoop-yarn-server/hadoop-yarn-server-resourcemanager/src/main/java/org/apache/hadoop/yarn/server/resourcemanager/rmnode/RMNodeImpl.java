@@ -832,6 +832,7 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
     rmNode.setAggregatedContainersUtilization(statusEvent
         .getAggregatedContainersUtilization());
     ResourceUtilization utilization = statusEvent.getNodeUtilization();
+    Objects.requireNonNull(utilization);
     rmNode.setNodeUtilization(utilization);
     // Get resource from utilization and update RMNode
     Resource newResource = Resource.newInstance(rmNode.getTotalCapability());
