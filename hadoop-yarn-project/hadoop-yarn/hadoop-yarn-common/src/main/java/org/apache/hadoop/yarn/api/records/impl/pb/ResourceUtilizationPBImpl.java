@@ -60,9 +60,7 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
   }
 
   public ResourceUtilizationProto getProto() {
-    if (viaProto) {
-      maybeInitBuilder();
-    }
+    maybeInitBuilder();
     mergeLocalToBuilder();
     proto = viaProto ? proto : builder.build();
     viaProto = true;
@@ -74,6 +72,7 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     if (resourceUtilizations != null && resourceUtilizations.length != 0) {
       ArrayList<TypedResourceUtilizationProto> list = new ArrayList<>();
       for (TypedResourceUtilization rtu : resourceUtilizations) {
+        Objects.requireNonNull(rtu);
         TypedResourceUtilizationProto proto =
             ((TypedResourceUtilizationPBImpl)rtu).getProto();
         list.add(proto);
