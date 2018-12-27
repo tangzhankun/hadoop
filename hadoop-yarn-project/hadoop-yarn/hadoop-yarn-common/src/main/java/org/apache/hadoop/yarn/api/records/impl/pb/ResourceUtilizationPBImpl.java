@@ -218,6 +218,11 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     ResourceUtilizationProtoOrBuilder p = viaProto ? proto : builder;
     ResourceInformation[] types = ResourceUtils.getResourceTypesArray();
     for (ResourceInformation ri : types) {
+      if (ri.getName().equals(ResourceInformation.VCORES_URI)
+          || ri.getName().equals(ResourceInformation.MEMORY_URI)) {
+        continue;
+      }
+      ri.setValue(-1);
       LOG.debug("ResourceInformation:" + ri);
     }
     Map<String, Integer> indexMap = ResourceUtils.getResourceTypeIndex();
