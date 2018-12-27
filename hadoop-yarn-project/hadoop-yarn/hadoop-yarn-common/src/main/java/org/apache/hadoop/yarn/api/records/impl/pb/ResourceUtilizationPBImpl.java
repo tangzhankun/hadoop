@@ -60,6 +60,9 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
   }
 
   public ResourceUtilizationProto getProto() {
+    if (viaProto) {
+      maybeInitBuilder();
+    }
     mergeLocalToBuilder();
     proto = viaProto ? proto : builder.build();
     viaProto = true;

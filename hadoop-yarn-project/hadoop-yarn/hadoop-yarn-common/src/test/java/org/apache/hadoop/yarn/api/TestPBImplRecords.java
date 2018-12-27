@@ -207,6 +207,7 @@ import org.apache.hadoop.yarn.api.records.impl.pb.ResourcePBImpl;
 import org.apache.hadoop.yarn.api.records.impl.pb.ResourceRequestPBImpl;
 import org.apache.hadoop.yarn.api.records.impl.pb.ResourceSizingPBImpl;
 import org.apache.hadoop.yarn.api.records.impl.pb.ResourceTypeInfoPBImpl;
+import org.apache.hadoop.yarn.api.records.impl.pb.ResourceUtilizationPBImpl;
 import org.apache.hadoop.yarn.api.records.impl.pb.SchedulingRequestPBImpl;
 import org.apache.hadoop.yarn.api.records.impl.pb.SerializedExceptionPBImpl;
 import org.apache.hadoop.yarn.api.records.impl.pb.StrictPreemptionContractPBImpl;
@@ -214,7 +215,8 @@ import org.apache.hadoop.yarn.api.records.impl.pb.TokenPBImpl;
 import org.apache.hadoop.yarn.api.records.impl.pb.URLPBImpl;
 import org.apache.hadoop.yarn.api.records.impl.pb.UpdateContainerRequestPBImpl;
 import org.apache.hadoop.yarn.api.records.impl.pb.YarnClusterMetricsPBImpl;
-import org.apache.hadoop.yarn.proto.YarnProtos;
+import org.apache.hadoop.yarn.proto.YarnProtos.ResourceTypeInfoProto;
+import org.apache.hadoop.yarn.proto.YarnProtos.ResourceUtilizationProto;
 import org.apache.hadoop.yarn.proto.YarnProtos.ApplicationAttemptIdProto;
 import org.apache.hadoop.yarn.proto.YarnProtos.ApplicationAttemptReportProto;
 import org.apache.hadoop.yarn.proto.YarnProtos.ApplicationIdProto;
@@ -881,6 +883,12 @@ public class TestPBImplRecords extends BasePBImplRecordsTest {
   }
 
   @Test
+  public void testResourceUtilizationPBImpl() throws Exception {
+    validatePBImplRecord(ResourceUtilizationPBImpl.class,
+        ResourceUtilizationProto.class);
+  }
+
+  @Test
   public void testPreemptionContainerPBImpl() throws Exception {
     validatePBImplRecord(PreemptionContainerPBImpl.class,
         PreemptionContainerProto.class);
@@ -1245,7 +1253,7 @@ public class TestPBImplRecords extends BasePBImplRecordsTest {
   @Test
   public void testResourceTypesInfoPBImpl() throws Exception {
     validatePBImplRecord(ResourceTypeInfoPBImpl.class,
-        YarnProtos.ResourceTypeInfoProto.class);
+        ResourceTypeInfoProto.class);
   }
 
   @Test
