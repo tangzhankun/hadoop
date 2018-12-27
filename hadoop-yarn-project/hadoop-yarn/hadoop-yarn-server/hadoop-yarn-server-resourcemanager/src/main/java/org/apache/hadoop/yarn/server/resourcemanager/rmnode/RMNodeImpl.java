@@ -836,15 +836,25 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
     // Get resource from utilization and update RMNode
     Resource newResource = Resource.newInstance(rmNode.getTotalCapability());
     Map<String, ResourceInformation> types = ResourceUtils.getResourceTypes();
-    for (Map.Entry<String, ResourceInformation> entry : types.entrySet()) {
-      newResource.setResourceValue(entry.getKey(),
-          utilization.getResourceValue(entry.getKey()));
+    if (types.size() > 2) {
+      boolean needUpdate = false;
+      for (Map.Entry<String, ResourceInformation> entry : types.entrySet()) {
+        if (entry.getKey().equals(ResourceInformation.MEMORY_URI)
+            || entry.getKey().equals(ResourceInformation.VCORES_URI)) {
+          continue;
+        }
+        newResource.setResourceValue(entry.getKey(),
+            utilization.getResourceValue(entry.getKey()));
+        needUpdate = true;
+      }
+      if (needUpdate) {
+        ResourceOption resourceOption = ResourceOption.newInstance(newResource,
+            -1);
+        rmNode.getRMContext().getDispatcher().getEventHandler()
+            .handle(new RMNodeResourceUpdateEvent(rmNode.getNodeID(),
+                resourceOption));
+      }
     }
-    ResourceOption resourceOption = ResourceOption.newInstance(newResource,
-        -1);
-    rmNode.getRMContext().getDispatcher().getEventHandler()
-        .handle(new RMNodeResourceUpdateEvent(rmNode.getNodeID(),
-            resourceOption));
     return remoteNodeHealthStatus;
   }
 

@@ -153,7 +153,8 @@ public class TestRMNodeTransitions {
         new TestNodeListManagerEventDispatcher());
 
     NodeId nodeId = BuilderUtils.newNodeId("localhost", 0);
-    node = new RMNodeImpl(nodeId, rmContext, null, 0, 0, null, null, null);
+    Resource capability = Resource.newInstance(1024, 2);
+    node = new RMNodeImpl(nodeId, rmContext, null, 0, 0, null, capability, null);
     nodesListManagerEvent =  null;
     nodesListManagerEventsNodeStateSequence.clear();
   }
