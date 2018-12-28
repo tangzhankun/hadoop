@@ -58,6 +58,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.api.records.ResourceOption;
 import org.apache.hadoop.yarn.api.records.ResourceUtilization;
+import org.apache.hadoop.yarn.api.records.impl.pb.ResourceUtilizationPBImpl;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
@@ -833,8 +834,13 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
         .getAggregatedContainersUtilization());
     ResourceUtilization utilization = statusEvent.getNodeUtilization();
     rmNode.setNodeUtilization(utilization);
+    // May update typed resource capacity in RMNode and scheduler
+    mayUpdateNodeCapability(rmNode, utilization);
+    return remoteNodeHealthStatus;
+  }
 
-    // Get resource from utilization and may update RMNode
+  private static void mayUpdateNodeCapability(RMNodeImpl rmNode,
+      ResourceUtilization utilization) {
     Map<String, ResourceInformation> types = ResourceUtils.getResourceTypes();
     if (types.size() > 2) {
       Resource newResource = Resource.newInstance(rmNode.getTotalCapability());
@@ -866,8 +872,7 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
             .handle(new RMNodeResourceUpdateEvent(rmNode.getNodeID(),
                 resourceOption));
       }
-    }
-    return remoteNodeHealthStatus;
+    } // end if
   }
 
   public static class AddNodeTransition implements
