@@ -845,17 +845,18 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
             || type.equals(ResourceInformation.VCORES_URI)) {
           continue;
         }
+        long oldValue = newResource.getResourceValue(type);
         long newValue = utilization.getResourceValue(type);
-        // -1 means no update for this type of resource
-        if (newValue == -1) {
-          LOG.debug("No resource update for " + type);
+        // -1 means no need to update for this type of resource
+        if (newValue == -1 || oldValue == newValue) {
+          LOG.debug("No resource update needed for " + type + ", old value: "
+              + oldValue + ", new value: " + newValue);
           continue;
         }
         LOG.debug("Update node resource per monitoring, " + type
-            + " value update from: " + newResource.getResourceValue(type)
-            + " to: " + utilization.getResourceValue(type));
-        newResource.setResourceValue(type,
-            utilization.getResourceValue(type));
+            + " value update from: " + oldValue
+            + " to: " + newValue);
+        newResource.setResourceValue(type, newValue);
         needUpdate = true;
       }
       if (needUpdate) {
