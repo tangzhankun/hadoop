@@ -840,21 +840,22 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
       Resource newResource = Resource.newInstance(rmNode.getTotalCapability());
       boolean needUpdate = false;
       for (Map.Entry<String, ResourceInformation> entry : types.entrySet()) {
-        if (entry.getKey().equals(ResourceInformation.MEMORY_URI)
-            || entry.getKey().equals(ResourceInformation.VCORES_URI)) {
+        String type = entry.getKey();
+        if (type.equals(ResourceInformation.MEMORY_URI)
+            || type.equals(ResourceInformation.VCORES_URI)) {
           continue;
         }
-        long newValue = utilization.getResourceValue(entry.getKey());
+        long newValue = utilization.getResourceValue(type);
         // -1 means no update for this type of resource
         if (newValue == -1) {
-          LOG.debug("No resource update for " + entry.getKey());
+          LOG.debug("No resource update for " + type);
           continue;
         }
-        newResource.setResourceValue(entry.getKey(),
-            utilization.getResourceValue(entry.getKey()));
-        LOG.debug("Monitor node resource " + entry.getKey()
-            + " need update from: " + entry.getValue().getValue()
-            + " to: " + utilization.getResourceValue(entry.getKey()));
+        LOG.debug("Update node resource per monitoring, " + type
+            + " value update from: " + newResource.getResourceValue(type)
+            + " to: " + utilization.getResourceValue(type));
+        newResource.setResourceValue(type,
+            utilization.getResourceValue(type));
         needUpdate = true;
       }
       if (needUpdate) {
