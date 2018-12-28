@@ -97,7 +97,7 @@ public class DeviceMappingManager {
 
   public synchronized void addDeviceSet(String resourceName,
       Set<Device> deviceSet) {
-    LOG.info("Adding new resource: " + "type:"
+    LOG.info("Adding new resource: type:"
         + resourceName + "," + deviceSet);
     allAllowedDevices.put(resourceName, new TreeSet<>(deviceSet));
     allUsedDevices.put(resourceName, new TreeMap<>());
@@ -105,7 +105,7 @@ public class DeviceMappingManager {
 
   public synchronized void updateDeviceSet(String resourceName,
       Set<Device> deviceSet) {
-    LOG.info("Updating resource: " + "type:"
+    LOG.info("Updating resource: type:"
         + resourceName + "," + deviceSet);
     allAllowedDevices.put(resourceName, new TreeSet<>(deviceSet));
   }

@@ -852,8 +852,9 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
         }
         newResource.setResourceValue(entry.getKey(),
             utilization.getResourceValue(entry.getKey()));
-        LOG.debug("Node monitor update " + entry.getKey()
-            + " to " + utilization.getResourceValue(entry.getKey()));
+        LOG.debug("Monitor node resource " + entry.getKey()
+            + " need update from: " + entry.getValue().getValue()
+            + " to: " + utilization.getResourceValue(entry.getKey()));
         needUpdate = true;
       }
       if (needUpdate) {

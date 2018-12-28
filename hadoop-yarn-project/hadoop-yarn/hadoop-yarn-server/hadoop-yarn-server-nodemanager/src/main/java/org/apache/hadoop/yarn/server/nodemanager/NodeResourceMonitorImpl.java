@@ -95,31 +95,35 @@ public class NodeResourceMonitorImpl extends AbstractService implements
         conf.getLong(YarnConfiguration.NM_RESOURCE_MON_INTERVAL_MS,
             YarnConfiguration.DEFAULT_NM_RESOURCE_MON_INTERVAL_MS);
 
-    boolean deviceFrameworkEnabled =
-        conf.getBoolean(
-            YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
-            YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
-
     this.resourceCalculatorPlugin =
         ResourceCalculatorPlugin.getNodeResourceMonitorPlugin(conf);
 
     LOG.info(" Using ResourceCalculatorPlugin : "
         + this.resourceCalculatorPlugin);
 
+    mayEnablePluggableDeviceMonitor(conf);
+  }
+
+  private void mayEnablePluggableDeviceMonitor(Configuration conf) {
     // Check if the framework is enabled
+    boolean deviceFrameworkEnabled =
+        conf.getBoolean(
+            YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED,
+            YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
     if (deviceFrameworkEnabled) {
       pluggableDeviceMonitorInterval = conf.getFloat(
           YarnConfiguration.NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL,
           YarnConfiguration.DEFAULT_NM_PLUGGABLE_DEVICE_MONITOR_INTERVAL);
-      // negative means disabled
+      pluggableDeviceMonitorEnabled = true;
+      // Negative value means disabled
       if (this.pluggableDeviceMonitorInterval < 0) {
         LOG.info("Monitor pluggable device is disabled. Interval-Hour:"
             + this.pluggableDeviceMonitorInterval);
         pluggableDeviceMonitorEnabled = false;
       }
-      pluggableDeviceMonitorEnabled = true;
-      if (!isEnabled() && pluggableDeviceMonitorEnabled) {
-        LOG.warn("Please enable node monitoring first by a correct setting of "
+      // Check if node monitor is enabled
+      if (pluggableDeviceMonitorEnabled && !isEnabled()) {
+        LOG.warn("Please enable node monitoring first by setting "
             + YarnConfiguration.NM_RESOURCE_MON_INTERVAL_MS);
         LOG.warn("Monitor pluggable device is disabled");
         pluggableDeviceMonitorEnabled = false;
@@ -235,7 +239,7 @@ public class NodeResourceMonitorImpl extends AbstractService implements
         LOG.info("Not the perfect time to get device info");
         return;
       }
-      LOG.info("Start querying the latest devices info");
+      LOG.info("Start getting the latest devices info");
       lastDeviceMonitorTimestamp = System.currentTimeMillis();
       Map<String, ResourcePlugin> plugins =
           nmContext.getResourcePluginManager().getNameToPlugins();
@@ -249,14 +253,14 @@ public class NodeResourceMonitorImpl extends AbstractService implements
           try {
             Set<Device> devices = dp.getDevices();
             try {
-              LOG.debug(" Resource name: " + entry.getKey());
+              // Update node utilization
               nodeUti.setResourceValue(entry.getKey(), devices.size());
               nodeUti.setUsedResourceValue(entry.getKey(),
                   allUsed.get(entry.getKey()).size());
-              // update deviceMappingManager's state
+              // Update deviceMappingManager's state
               dpm.updateDeviceSet(entry.getKey(), devices);
             } catch (Exception e) {
-              LOG.warn("Unexpected exception in updating node deivces");
+              LOG.warn("Unexpected exception in updating node devices");
             }
           } catch (Exception e) {
             LOG.warn("Unexpected exception in {}'s method getDevices. {}",

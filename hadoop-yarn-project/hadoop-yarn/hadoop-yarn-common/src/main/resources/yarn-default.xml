@@ -3824,12 +3824,12 @@
 
   <property>
     <description>
-      This setting controls if enable monitor vendor device. If devices have
-      soft or hard failure. Corresponding resource value will be updated.
-      Disabled by default.
+      This setting controls the interval(float type value in hour) of monitor
+      vendor device. If devices have soft or hard failure, the corresponding
+      resource value will be updated. -1.0 means disabled by default.
     </description>
-    <name>yarn.nodemanager.pluggable-device-framework.monitor.enabled</name>
-    <value>false</value>
+    <name>yarn.nodemanager.pluggable-device-framework.monitor.interval-hour</name>
+    <value>-1.0</value>
   </property>
 
   <property>
