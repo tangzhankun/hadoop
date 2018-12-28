@@ -859,7 +859,7 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
               + oldValue + ", new value: " + newValue);
           continue;
         }
-        LOG.debug("Update node resource per monitoring, " + type
+        LOG.debug("Request to update resource per monitoring, " + type
             + " value update from: " + oldValue
             + " to: " + newValue);
         newResource.setResourceValue(type, newValue);
