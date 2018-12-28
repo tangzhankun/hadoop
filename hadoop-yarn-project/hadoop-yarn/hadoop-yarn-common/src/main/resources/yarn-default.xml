@@ -3824,6 +3824,16 @@
 
   <property>
     <description>
+      This setting controls if enable monitor vendor device. If devices have
+      soft or hard failure. Corresponding resource value will be updated.
+      Disabled by default.
+    </description>
+    <name>yarn.nodemanager.pluggable-device-framework.monitor.enabled</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <description>
       When yarn.nodemanager.resource.gpu.allowed-gpu-devices=auto specified,
       YARN NodeManager needs to run GPU discovery binary (now only support
       nvidia-smi) to get GPU-related information.

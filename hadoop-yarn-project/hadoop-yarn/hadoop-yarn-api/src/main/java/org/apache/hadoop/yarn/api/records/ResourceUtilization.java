@@ -106,6 +106,42 @@ public abstract class ResourceUtilization implements
   @Unstable
   public abstract void setCPU(float cpu);
 
+  /**
+   * Get current total count of a typed resource by name
+   * @param name name of typed resource
+   * @return count
+   * */
+  @Public
+  @Unstable
+  public abstract long getResourceValue(String name);
+
+  /**
+   * Set current total count of a typed resource
+   * @param name the name
+   * @param value count of the resource
+   * */
+  @Public
+  @Unstable
+  public abstract void setResourceValue(String name, long value);
+
+  /**
+   * Get used count of a typed resource by name
+   * @param name name of typed resource
+   * @return count of used resource
+   * */
+  @Public
+  @Unstable
+  public abstract long getUsedResourceValue(String name);
+
+  /**
+   * Set used count of a typed resource
+   * @param name the name
+   * @param used count of the used resource
+   * */
+  @Public
+  @Unstable
+  public abstract void setUsedResourceValue(String name, long used);
+
   @Override
   public int hashCode() {
     final int prime = 263167;

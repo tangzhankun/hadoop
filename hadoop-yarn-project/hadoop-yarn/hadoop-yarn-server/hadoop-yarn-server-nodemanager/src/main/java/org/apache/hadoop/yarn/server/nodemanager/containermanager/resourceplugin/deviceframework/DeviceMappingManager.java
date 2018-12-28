@@ -103,6 +103,13 @@ public class DeviceMappingManager {
     allUsedDevices.put(resourceName, new TreeMap<>());
   }
 
+  public synchronized void updateDeviceSet(String resourceName,
+      Set<Device> deviceSet) {
+    LOG.info("Updating resource: " + "type:"
+        + resourceName + "," + deviceSet);
+    allAllowedDevices.put(resourceName, new TreeSet<>(deviceSet));
+  }
+
   public DeviceAllocation assignDevices(String resourceName,
       Container container)
       throws ResourceHandlerException {

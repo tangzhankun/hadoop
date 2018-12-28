@@ -55,6 +55,7 @@ import org.apache.hadoop.yarn.api.records.NodeAttribute;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.NodeState;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.api.records.ResourceOption;
 import org.apache.hadoop.yarn.api.records.ResourceUtilization;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -90,6 +91,7 @@ import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.Resources;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -829,7 +831,39 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
         .getLastHealthReportTime());
     rmNode.setAggregatedContainersUtilization(statusEvent
         .getAggregatedContainersUtilization());
-    rmNode.setNodeUtilization(statusEvent.getNodeUtilization());
+    ResourceUtilization utilization = statusEvent.getNodeUtilization();
+    rmNode.setNodeUtilization(utilization);
+
+    // Get resource from utilization and may update RMNode
+    Map<String, ResourceInformation> types = ResourceUtils.getResourceTypes();
+    if (types.size() > 2) {
+      Resource newResource = Resource.newInstance(rmNode.getTotalCapability());
+      boolean needUpdate = false;
+      for (Map.Entry<String, ResourceInformation> entry : types.entrySet()) {
+        if (entry.getKey().equals(ResourceInformation.MEMORY_URI)
+            || entry.getKey().equals(ResourceInformation.VCORES_URI)) {
+          continue;
+        }
+        long newValue = utilization.getResourceValue(entry.getKey());
+        // -1 means no update for this type of resource
+        if (newValue == -1) {
+          LOG.debug("No resource update for " + entry.getKey());
+          continue;
+        }
+        newResource.setResourceValue(entry.getKey(),
+            utilization.getResourceValue(entry.getKey()));
+        LOG.debug("Node monitor update " + entry.getKey()
+            + " to " + utilization.getResourceValue(entry.getKey()));
+        needUpdate = true;
+      }
+      if (needUpdate) {
+        ResourceOption resourceOption = ResourceOption.newInstance(newResource,
+            -1);
+        rmNode.getRMContext().getDispatcher().getEventHandler()
+            .handle(new RMNodeResourceUpdateEvent(rmNode.getNodeID(),
+                resourceOption));
+      }
+    }
     return remoteNodeHealthStatus;
   }
 

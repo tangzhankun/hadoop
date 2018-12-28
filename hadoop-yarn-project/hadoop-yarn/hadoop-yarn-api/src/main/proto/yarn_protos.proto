@@ -82,6 +82,12 @@ message ResourceUtilizationProto {
   optional int32 pmem = 1;
   optional int32 vmem = 2;
   optional float cpu = 3;
+  repeated TypedResourceUtilizationProto typed_resources = 4;
+}
+
+message TypedResourceUtilizationProto {
+  optional ResourceInformationProto capability = 1;
+  optional int64 used = 2;
 }
 
 message ResourceOptionProto {
