@@ -134,7 +134,7 @@ public class NodeResourceMonitorImpl extends AbstractService implements
       }
     } else {
       LOG.debug("Monitor pluggable device is disabled due to the framework " +
-          " is disabled. To enable, first set true to "
+          "is disabled. To enable, first set true to "
           + YarnConfiguration.NM_PLUGGABLE_DEVICE_FRAMEWORK_ENABLED);
     }
   }
