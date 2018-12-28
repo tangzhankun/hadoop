@@ -72,9 +72,6 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     if (resourceUtilizations != null && resourceUtilizations.length != 0) {
       ArrayList<TypedResourceUtilizationProto> list = new ArrayList<>();
       for (TypedResourceUtilization rtu : resourceUtilizations) {
-        if (rtu == null) {
-          continue;
-        }
         TypedResourceUtilizationProto proto =
             ((TypedResourceUtilizationPBImpl)rtu).getProto();
         list.add(proto);
@@ -130,9 +127,9 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
   public long getResourceValue(String name) {
     Objects.requireNonNull(name);
     initTypedResourceUtilization();
-    Integer index = ResourceUtils.getResourceTypeIndex().get(name) - 2;
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
     if (index != null) {
-      return resourceUtilizations[index].getLatestCapability().getValue();
+      return resourceUtilizations[index - 2].getLatestCapability().getValue();
     }
     throw new ResourceNotFoundException("Unknown resource:" + name);
   }
@@ -143,8 +140,9 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     Objects.requireNonNull(name);
     initTypedResourceUtilization();
     LOG.debug("setResourceValue begin");
-    Integer index = ResourceUtils.getResourceTypeIndex().get(name) - 2;
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
     if (index != null) {
+      index = index - 2;
       TypedResourceUtilization tru = resourceUtilizations[index];
       ResourceInformation ri =
           ResourceInformation.newInstance(tru.getLatestCapability());
@@ -160,8 +158,9 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
   public long getUsedResourceValue(String name) {
     Objects.requireNonNull(name);
     initTypedResourceUtilization();
-    Integer index = ResourceUtils.getResourceTypeIndex().get(name) - 2;
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
     if (index != null) {
+      index = index - 2;
       return resourceUtilizations[index].getUsed();
     }
     throw new ResourceNotFoundException("Unknown resource:" + name);
@@ -173,8 +172,9 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     Objects.requireNonNull(name);
     initTypedResourceUtilization();
     LOG.debug("setUsedResourceValue begin");
-    Integer index = ResourceUtils.getResourceTypeIndex().get(name) - 2;
+    Integer index = ResourceUtils.getResourceTypeIndex().get(name);
     if (index != null) {
+      index = index - 2;
       resourceUtilizations[index].setUsed(used);
       LOG.debug("setUsedResourceValue:" + resourceUtilizations[index]);
       return;
@@ -214,48 +214,46 @@ public class ResourceUtilizationPBImpl extends ResourceUtilization {
     if (this.resourceUtilizations != null) {
       return;
     }
-    LOG.debug("Init typedResourceUtilization");
-    ResourceUtilizationProtoOrBuilder p = viaProto ? proto : builder;
+    LOG.debug("Init TypedResourceUtilization array");
     ResourceInformation[] types = ResourceUtils.getResourceTypesArray();
     for (ResourceInformation ri : types) {
       if (ri.getName().equals(ResourceInformation.VCORES_URI)
           || ri.getName().equals(ResourceInformation.MEMORY_URI)) {
         continue;
       }
+      /**
+       * Set -1 to indicate a meaningless value.
+       * RM don't need to update with this.
+       */
       ri.setValue(-1);
-      LOG.debug("ResourceInformation:" + ri);
     }
     Map<String, Integer> indexMap = ResourceUtils.getResourceTypeIndex();
-    // only store typed resource. Exclude CPU and memory
+    // Only store typed resource. Excludes CPU and memory
     if (types.length > 2) {
       this.resourceUtilizations =
           new TypedResourceUtilization[types.length - 2];
     }
     LOG.debug("TypedResourceUtilization array size:" + types.length);
-
-    LOG.debug("Try init typed resource utilization");
     for (int i = 0; i < types.length - 2; i++) {
       resourceUtilizations[i] =
           TypedResourceUtilization.newInstance(types[i + 2]
               , 0);
-      LOG.debug("Inited one typed resource utilization "
+      LOG.debug("Init one typed resource utilization to: "
           + this.resourceUtilizations[i]);
     }
-
-    LOG.debug("p.getTypedResourcesList().size:" + p.getTypedResourcesList().size());
+    // Update if has valid proto
+    ResourceUtilizationProtoOrBuilder p = viaProto ? proto : builder;
     for (TypedResourceUtilizationProto entry : p.getTypedResourcesList()) {
       ResourceInformationProto riProto = entry.getCapability();
       if (riProto.hasKey()) {
-        Integer index = indexMap.get(riProto.getKey()) - 2;
+        Integer index = indexMap.get(riProto.getKey());
         if (index == null) {
           LOG.warn("Got unknown resource type: " + riProto.getKey() + "; skipping");
         } else {
-          this.resourceUtilizations[index] =
+          this.resourceUtilizations[index - 2] =
               new TypedResourceUtilizationPBImpl(entry);
-          LOG.debug(this.resourceUtilizations[index]);
         }
       }
     } // end for
-    viaProto = true;
   }
 }
