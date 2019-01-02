@@ -133,7 +133,6 @@ int check_trusted_image(const struct configuration *command_config, const struct
           // if image doesn't exists, docker pull will automatically happen
           found = 1;
           fprintf(LOGFILE, "image: %s is trusted top-level image.\n", image_name);
-          free(registry_ptr);
           break;
         }
       }
