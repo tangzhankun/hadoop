@@ -345,6 +345,7 @@ public class DeviceMappingManager {
     private String resourceName;
 
     private Set<Device> allowed = Collections.emptySet();
+
     private Set<Device> denied = Collections.emptySet();
 
     DeviceAllocation(String resName, Set<Device> a,
@@ -360,6 +361,10 @@ public class DeviceMappingManager {
 
     public Set<Device> getAllowed() {
       return allowed;
+    }
+
+    public Set<Device> getDenied() {
+      return denied;
     }
 
     @Override

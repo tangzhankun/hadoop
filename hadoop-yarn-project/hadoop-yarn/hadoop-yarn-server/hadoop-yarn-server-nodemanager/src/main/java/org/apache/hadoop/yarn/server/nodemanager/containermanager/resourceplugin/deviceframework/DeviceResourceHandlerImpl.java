@@ -21,17 +21,24 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.server.nodemanager.Context;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperation;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -52,19 +59,27 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   private final CGroupsHandler cGroupsHandler;
   private final PrivilegedOperationExecutor privilegedOperationExecutor;
   private final DevicePluginAdapter devicePluginAdapter;
+  private final Context nmContext;
+
+  // This will be used by container-executor to add necessary clis
+  public static final String EXCLUDED_DEVICES_CLI_OPTION = "--excluded_devices";
+  public static final String ALLOWED_DEVICES_CLI_OPTION = "--allowed_devices";
+  public static final String CONTAINER_ID_CLI_OPTION = "--container_id";
 
   public DeviceResourceHandlerImpl(String reseName,
       DevicePlugin devPlugin,
       DevicePluginAdapter devPluginAdapter,
       DeviceMappingManager devMappingManager,
       CGroupsHandler cgHandler,
-      PrivilegedOperationExecutor operation) {
+      PrivilegedOperationExecutor operation,
+      Context ctx) {
     this.devicePluginAdapter = devPluginAdapter;
     this.resourceName = reseName;
     this.devicePlugin = devPlugin;
     this.cGroupsHandler = cgHandler;
     this.privilegedOperationExecutor = operation;
     this.deviceMappingManager = devMappingManager;
+    this.nmContext = ctx;
   }
 
   @Override
@@ -101,8 +116,9 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     LOG.debug("Allocated to "
         + containerIdStr + ": " + allocation);
 
+    DeviceRuntimeSpec spec;
     try {
-      devicePlugin.onDevicesAllocated(
+      spec = devicePlugin.onDevicesAllocated(
           allocation.getAllowed(), YarnRuntimeType.RUNTIME_DEFAULT);
     } catch (Exception e) {
       throw new ResourceHandlerException("Exception thrown from"
@@ -110,10 +126,51 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     }
 
     // cgroups operation based on allocation
-    /**
-     * TODO: implement a general container-executor device module
-     * */
+    if (spec != null) {
+      LOG.warn("Runtime spec in non-Docker container is not supported yet!");
+    }
+    // Create device cgroups for the container
+    cGroupsHandler.createCGroup(CGroupsHandler.CGroupController.DEVICES,
+        containerIdStr);
+    // non-Docker, use cgroups to do isolation
+    if (!DockerLinuxContainerRuntime.isDockerContainerRequested(
+        nmContext.getConf(),
+        container.getLaunchContext().getEnvironment())) {
+      try {
+        // Execute c-e to setup GPU isolation before launch the container
+        PrivilegedOperation privilegedOperation = new PrivilegedOperation(
+            PrivilegedOperation.OperationType.DEVICE,
+            Arrays.asList(CONTAINER_ID_CLI_OPTION, containerIdStr));
+        if (!allocation.getAllowed().isEmpty()) {
+          List<Integer> minorNumbers = new ArrayList<>();
+          for (Device deniedDevice : allocation.getDenied()) {
+            // add type and mode
 
+            minorNumbers.add(deniedDevice.getMinorNumber());
+          }
+          privilegedOperation.appendArgs(
+              Arrays.asList(EXCLUDED_DEVICES_CLI_OPTION,
+              StringUtils.join(",", minorNumbers)));
+        }
+
+        privilegedOperationExecutor.executePrivilegedOperation(
+            privilegedOperation, true);
+      } catch (PrivilegedOperationException e) {
+        cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
+            containerIdStr);
+        LOG.warn("Could not update cgroup for container", e);
+        throw new ResourceHandlerException(e);
+      }
+
+      List<PrivilegedOperation> ret = new ArrayList<>();
+      ret.add(new PrivilegedOperation(
+          PrivilegedOperation.OperationType.ADD_PID_TO_CGROUP,
+          PrivilegedOperation.CGROUP_ARG_PREFIX + cGroupsHandler
+              .getPathForCGroupTasks(CGroupsHandler.CGroupController.DEVICES,
+                  containerIdStr)));
+
+      return ret;
+    }
     return null;
   }
 
