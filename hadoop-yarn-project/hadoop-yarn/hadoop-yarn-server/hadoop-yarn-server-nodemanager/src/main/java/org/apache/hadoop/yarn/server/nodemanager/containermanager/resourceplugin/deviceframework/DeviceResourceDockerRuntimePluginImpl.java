@@ -136,7 +136,6 @@ public class DeviceResourceDockerRuntimePluginImpl
     return null;
   }
 
-  @VisibleForTesting
   protected boolean requestsDevice(String resourceName, Container container) {
     return DeviceMappingManager.
         getRequestedDeviceCount(resourceName, container.getResource()) > 0;

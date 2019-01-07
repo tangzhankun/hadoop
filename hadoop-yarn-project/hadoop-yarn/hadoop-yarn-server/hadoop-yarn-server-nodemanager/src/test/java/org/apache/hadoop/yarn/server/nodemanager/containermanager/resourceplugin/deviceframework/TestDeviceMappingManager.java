@@ -162,7 +162,7 @@ public class TestDeviceMappingManager {
       DeviceResourceHandlerImpl dri = new DeviceResourceHandlerImpl(
           resourceName,
           new MyTestPlugin(), null,
-          dmmSpy, null, null);
+          dmmSpy, null, null, null);
       Future<Integer> f = containerLauncher.submit(new MyContainerLaunch(
           dri, c, i, false));
     }
@@ -252,7 +252,7 @@ public class TestDeviceMappingManager {
       DeviceResourceHandlerImpl dri = new DeviceResourceHandlerImpl(
           resourceName,
           new MyTestPlugin(), null,
-          dmmSpy, null, null);
+          dmmSpy, null, null, null);
       Future<Integer> f = containerLauncher.submit(new MyContainerLaunch(
           dri, c, i, true));
     }
