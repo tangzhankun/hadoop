@@ -37,6 +37,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -141,18 +142,36 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
         PrivilegedOperation privilegedOperation = new PrivilegedOperation(
             PrivilegedOperation.OperationType.DEVICE,
             Arrays.asList(CONTAINER_ID_CLI_OPTION, containerIdStr));
-        if (!allocation.getAllowed().isEmpty()) {
-          List<Integer> minorNumbers = new ArrayList<>();
+        if (!allocation.getDenied().isEmpty()) {
+          String devType;
+          int majorNumber;
+          int minorNumber;
+          List<String> devNumbers = new ArrayList<>();
           for (Device deniedDevice : allocation.getDenied()) {
-            // add type and mode
-
-            minorNumbers.add(deniedDevice.getMinorNumber());
+            majorNumber = deniedDevice.getMajorNumber();
+            minorNumber = deniedDevice.getMajorNumber();
+            // Add device type
+            devType = getDeviceType(majorNumber, minorNumber);
+            devNumbers.add(devType + "-" + majorNumber + ":" + minorNumber);
           }
           privilegedOperation.appendArgs(
               Arrays.asList(EXCLUDED_DEVICES_CLI_OPTION,
-              StringUtils.join(",", minorNumbers)));
+              StringUtils.join(",", devNumbers)));
         }
 
+        if (!allocation.getAllowed().isEmpty()) {
+          int majorNumber;
+          int minorNumber;
+          List<String> devNumbers = new ArrayList<>();
+          for (Device deniedDevice : allocation.getDenied()) {
+            majorNumber = deniedDevice.getMajorNumber();
+            minorNumber = deniedDevice.getMajorNumber();
+            devNumbers.add(majorNumber + ":" + minorNumber);
+          }
+          privilegedOperation.appendArgs(
+              Arrays.asList(ALLOWED_DEVICES_CLI_OPTION,
+                  StringUtils.join(",", devNumbers)));
+        }
         privilegedOperationExecutor.executePrivilegedOperation(
             privilegedOperation, true);
       } catch (PrivilegedOperationException e) {
@@ -208,4 +227,18 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
         ", devicePluginAdapter=" + devicePluginAdapter +
         '}';
   }
+
+  /**
+   * Get the device type used for cgroups value set.
+   * If /sys/dev/char/major:minor exists,
+   * */
+  private String getDeviceType(int major, int minor) {
+    File searchFile =
+        new File("/sys/dev/char/" + major + ":" + minor);
+    if (searchFile.exists()) {
+      return "c";
+    }
+    return "b";
+  }
+
 }
