@@ -107,6 +107,7 @@ public class NvidiaGPUPlugin implements DevicePlugin {
       output = Shell.execCommand(environment,
           new String[]{pathOfGpuBinary, "--query-gpu=index,pci.bus_id",
               "--format=csv,noheader"}, MAX_EXEC_TIMEOUT_MS);
+
       String[] lines = output.split("\n");
       int id = 0;
       for (String oneLine : lines) {
@@ -181,5 +182,26 @@ public class NvidiaGPUPlugin implements DevicePlugin {
           shexec.getExitCode());
     }
     return output;
+  }
+
+  public class ShellExecutor {
+    public String getDevNumber(String devName) {
+      String output = null;
+      // output "major:minor" in hex
+      Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(
+          new String[]{"stat", "-c", "%t:%T", "/dev/" + devName});
+      try {
+        LOG.debug("Get major numbers from /dev/" + devName);
+        shexec.execute();
+        output = shexec.getOutput().trim();
+      } catch (IOException e) {
+        String msg =
+            "Failed to get major number from reading /dev/" + devName;
+        LOG.warn(msg);
+        LOG.debug("Command output:" + shexec.getOutput() + ", exit code:" +
+            shexec.getExitCode());
+      }
+      return output;
+    }
   }
 }

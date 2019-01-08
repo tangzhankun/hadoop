@@ -138,7 +138,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
         nmContext.getConf(),
         container.getLaunchContext().getEnvironment())) {
       try {
-        // Execute c-e to setup GPU isolation before launch the container
+        // Execute c-e to setup device isolation before launch the container
         PrivilegedOperation privilegedOperation = new PrivilegedOperation(
             PrivilegedOperation.OperationType.DEVICE,
             Arrays.asList(CONTAINER_ID_CLI_OPTION, containerIdStr));
