@@ -151,7 +151,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
           List<String> devNumbers = new ArrayList<>();
           for (Device deniedDevice : allocation.getDenied()) {
             majorNumber = deniedDevice.getMajorNumber();
-            minorNumber = deniedDevice.getMajorNumber();
+            minorNumber = deniedDevice.getMinorNumber();
             // Add device type
             devType = getDeviceType(deniedDevice.getDevPath());
             if (devType != null) {
@@ -171,7 +171,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
           List<String> devNumbers = new ArrayList<>();
           for (Device deniedDevice : allocation.getDenied()) {
             majorNumber = deniedDevice.getMajorNumber();
-            minorNumber = deniedDevice.getMajorNumber();
+            minorNumber = deniedDevice.getMinorNumber();
             devNumbers.add(majorNumber + ":" + minorNumber);
           }
           privilegedOperation.appendArgs(
@@ -245,7 +245,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     String output = "c";
     // output "major:minor" in hex
     Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(
-        new String[]{"stat", "-c", "%F", "/dev/" + devName});
+        new String[]{"stat", "-c", "%F", devName});
     try {
       LOG.debug("Get device type from /dev/" + devName);
       shexec.execute();
@@ -258,6 +258,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
       LOG.warn(msg);
       LOG.debug("Command output:" + shexec.getOutput() + ", exit code:" +
           shexec.getExitCode());
+      return null;
     }
     return output;
   }
