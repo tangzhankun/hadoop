@@ -21,6 +21,7 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
@@ -38,6 +39,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -151,12 +153,16 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
             majorNumber = deniedDevice.getMajorNumber();
             minorNumber = deniedDevice.getMajorNumber();
             // Add device type
-            devType = getDeviceType(majorNumber, minorNumber);
-            devNumbers.add(devType + "-" + majorNumber + ":" + minorNumber);
+            devType = getDeviceType(deniedDevice.getDevPath());
+            if (devType != null) {
+              devNumbers.add(devType + "-" + majorNumber + ":" + minorNumber);
+            }
           }
-          privilegedOperation.appendArgs(
-              Arrays.asList(EXCLUDED_DEVICES_CLI_OPTION,
-              StringUtils.join(",", devNumbers)));
+          if (devNumbers.size() != 0) {
+            privilegedOperation.appendArgs(
+                Arrays.asList(EXCLUDED_DEVICES_CLI_OPTION,
+                    StringUtils.join(",", devNumbers)));
+          }
         }
 
         if (!allocation.getAllowed().isEmpty()) {
@@ -230,15 +236,30 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
 
   /**
    * Get the device type used for cgroups value set.
-   * If /sys/dev/char/major:minor exists,
    * */
-  private String getDeviceType(int major, int minor) {
-    File searchFile =
-        new File("/sys/dev/char/" + major + ":" + minor);
-    if (searchFile.exists()) {
-      return "c";
+  private String getDeviceType(String devName) {
+    if (devName.isEmpty()) {
+      LOG.warn("Empty device path provided, cannot decide type");
+      return null;
     }
-    return "b";
+    String output = "c";
+    // output "major:minor" in hex
+    Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(
+        new String[]{"stat", "-c", "%F", "/dev/" + devName});
+    try {
+      LOG.debug("Get device type from /dev/" + devName);
+      shexec.execute();
+      output = shexec.getOutput().trim();
+      LOG.debug("stat output:" + shexec.getOutput());
+      output = output.startsWith("c") ? "c" : "b";
+    } catch (IOException e) {
+      String msg =
+          "Failed to get device type from stat /dev/" + devName;
+      LOG.warn(msg);
+      LOG.debug("Command output:" + shexec.getOutput() + ", exit code:" +
+          shexec.getExitCode());
+    }
+    return output;
   }
 
 }
