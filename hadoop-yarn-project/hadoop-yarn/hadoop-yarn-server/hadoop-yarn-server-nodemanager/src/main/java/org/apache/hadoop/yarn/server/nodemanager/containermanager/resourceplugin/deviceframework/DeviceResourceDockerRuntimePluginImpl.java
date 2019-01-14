@@ -152,14 +152,18 @@ public class DeviceResourceDockerRuntimePluginImpl
 
   private void getAllocatedDevices(Container container, Set<Device> allocated) {
     // get allocated devices
+    LOG.debug("Try get allocated devices");
     ContainerId containerId = container.getContainerId();
     allocated = cachedAllocation.get(containerId);
     if (null == allocated) {
       return;
     }
+    LOG.debug("CachedAllocation missed for " + containerId);
     Map<Device, ContainerId> assignedDevice = devicePluginAdapter
         .getDeviceMappingManager()
         .getAllUsedDevices().get(resourceName);
+    LOG.debug("Get from deviceMappingManager: " + assignedDevice + ","
+        + resourceName);
     for (Map.Entry<Device, ContainerId> entry : assignedDevice.entrySet()) {
       if (entry.getValue().equals(containerId)) {
         allocated.add(entry.getKey());
