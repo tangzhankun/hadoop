@@ -164,12 +164,15 @@ public class DeviceResourceDockerRuntimePluginImpl
         .getAllUsedDevices().get(resourceName);
     LOG.debug("Get from deviceMappingManager: " + assignedDevice + ","
         + resourceName);
-    for (Map.Entry<Device, ContainerId> entry : assignedDevice.entrySet()) {
-      if (entry.getValue().equals(containerId)) {
-        allocated.add(entry.getKey());
+    if (assignedDevice != null && assignedDevice.size() > 0) {
+      allocated = new TreeSet<>();
+      for (Map.Entry<Device, ContainerId> entry : assignedDevice.entrySet()) {
+        if (entry.getValue().equals(containerId)) {
+          allocated.add(entry.getKey());
+        }
       }
+      cachedAllocation.put(containerId, allocated);
     }
-    cachedAllocation.put(containerId, allocated);
   }
 
   public synchronized DeviceRuntimeSpec getRuntimeSpec(Container container) {
