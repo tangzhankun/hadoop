@@ -155,7 +155,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     LOG.debug("Try get allocated devices");
     ContainerId containerId = container.getContainerId();
     allocated = cachedAllocation.get(containerId);
-    if (null == allocated) {
+    if (allocated != null) {
       return;
     }
     LOG.debug("CachedAllocation missed for " + containerId);
