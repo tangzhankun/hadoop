@@ -155,7 +155,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
             // Add device type
             devType = getDeviceType(deniedDevice.getDevPath());
             if (devType != null) {
-              devNumbers.add(devType + "-" + majorNumber + ":" + minorNumber);
+              devNumbers.add(devType + "-" + majorNumber + ":" + minorNumber + "-rwm");
             }
           }
           if (devNumbers.size() != 0) {
