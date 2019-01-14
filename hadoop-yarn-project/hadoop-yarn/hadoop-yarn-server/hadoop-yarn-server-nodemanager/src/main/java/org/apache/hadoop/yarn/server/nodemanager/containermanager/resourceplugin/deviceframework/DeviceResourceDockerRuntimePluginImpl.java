@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -60,15 +59,22 @@ public class DeviceResourceDockerRuntimePluginImpl
   @Override
   public void updateDockerRunCommand(DockerRunCommand dockerRunCommand,
       Container container) throws ContainerExecutionException {
+    LOG.debug("Try to update docker run command.");
     if(!requestsDevice(resourceName, container)) {
       return;
     }
     DeviceRuntimeSpec deviceRuntimeSpec = getRuntimeSpec(container);
     if (deviceRuntimeSpec == null) {
+      LOG.warn("The container return null for device runtime spec");
       return;
     }
+    // handle runtime
+    dockerRunCommand.addRuntime(deviceRuntimeSpec.getContainerRuntime());
+    LOG.debug("Handle docker container runtime type: "
+        + deviceRuntimeSpec.getContainerRuntime());
     // handle device mounts
     Set<MountDeviceSpec> deviceMounts = deviceRuntimeSpec.getDeviceMounts();
+    LOG.debug("Handle device mounts: " + deviceMounts);
     for (MountDeviceSpec mountDeviceSpec : deviceMounts) {
       dockerRunCommand.addDevice(
           mountDeviceSpec.getDevicePathInHost(),
@@ -76,6 +82,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     }
     // handle volume mounts
     Set<MountVolumeSpec> mountVolumeSpecs = deviceRuntimeSpec.getVolumeMounts();
+    LOG.debug("Handle volume mounts: " + mountVolumeSpecs);
     for (MountVolumeSpec mountVolumeSpec : mountVolumeSpecs) {
       if (mountVolumeSpec.getReadOnly()) {
         dockerRunCommand.addReadOnlyMountLocation(
@@ -89,6 +96,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     }
     // handle envs
     dockerRunCommand.addEnv(deviceRuntimeSpec.getEnvs());
+    LOG.debug("Handle envs: " + deviceRuntimeSpec.getEnvs());
   }
 
   @Override
@@ -108,6 +116,7 @@ public class DeviceResourceDockerRuntimePluginImpl
             DockerVolumeCommand.VOLUME_CREATE_SUB_COMMAND);
         command.setDriverName(volumeSec.getVolumeDriver());
         command.setVolumeName(volumeSec.getVolumeName());
+        LOG.debug("Get volume create request from plugin:" + volumeClaims);
         return command;
       }
     }
@@ -179,6 +188,7 @@ public class DeviceResourceDockerRuntimePluginImpl
       }
       cachedSpec.put(containerId, deviceRuntimeSpec);
     }
+    LOG.debug("Get runtime spec from plugin:" + deviceRuntimeSpec);
     return deviceRuntimeSpec;
   }
 
