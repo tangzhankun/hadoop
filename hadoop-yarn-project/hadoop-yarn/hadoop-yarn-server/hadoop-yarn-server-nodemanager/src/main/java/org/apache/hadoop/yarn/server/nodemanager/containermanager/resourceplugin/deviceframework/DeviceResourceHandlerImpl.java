@@ -247,7 +247,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(
         new String[]{"stat", "-c", "%F", devName});
     try {
-      LOG.debug("Get device type from /dev/" + devName);
+      LOG.debug("Get device type from " + devName);
       shexec.execute();
       output = shexec.getOutput().trim();
       LOG.debug("stat output:" + shexec.getOutput());
