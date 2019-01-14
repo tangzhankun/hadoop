@@ -151,7 +151,6 @@ public class DeviceResourceDockerRuntimePluginImpl
 
   private Set<Device> getAllocatedDevices(Container container) {
     // get allocated devices
-    LOG.debug("Try get allocated devices");
     Set<Device> allocated;
     ContainerId containerId = container.getContainerId();
     allocated = cachedAllocation.get(containerId);
@@ -161,13 +160,12 @@ public class DeviceResourceDockerRuntimePluginImpl
     Map<Device, ContainerId> assignedDevice = devicePluginAdapter
         .getDeviceMappingManager()
         .getAllUsedDevices().get(resourceName);
-    LOG.debug("Create allocation from deviceMappingManager: " + assignedDevice + ","
-        + resourceName);
+    LOG.debug("Get allocation from deviceMappingManager: "
+        + assignedDevice + ", " + resourceName);
     if (assignedDevice != null && assignedDevice.size() > 0) {
       allocated = new TreeSet<>();
       for (Map.Entry<Device, ContainerId> entry : assignedDevice.entrySet()) {
         if (entry.getValue().equals(containerId)) {
-          LOG.debug("ZHANKUN-debug found one:" + entry.getKey());
           allocated.add(entry.getKey());
         }
       }
@@ -199,7 +197,6 @@ public class DeviceResourceDockerRuntimePluginImpl
       }
       cachedSpec.put(containerId, deviceRuntimeSpec);
     }
-    LOG.debug("Get runtime spec from plugin:" + deviceRuntimeSpec);
     return deviceRuntimeSpec;
   }
 
