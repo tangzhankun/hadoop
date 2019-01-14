@@ -137,6 +137,8 @@ public class NvidiaGPUPlugin implements DevicePlugin {
   @Override
   public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
       YarnRuntimeType yarnRuntime) throws Exception {
+    LOG.debug("Generating runtime spec for allocated devices: "
+        + allocatedDevices + ", " + yarnRuntime.getName());
     if (yarnRuntime == YarnRuntimeType.RUNTIME_DEFAULT) {
       return null;
     }

@@ -130,8 +130,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     if(!requestsDevice(resourceName, container)) {
       return null;
     }
-    Set<Device> allocated = new TreeSet<>();
-    getAllocatedDevices(container, allocated);
+    Set<Device> allocated = getAllocatedDevices(container);
     try {
       devicePlugin.onDevicesReleased(allocated);
     } catch (Exception e) {
@@ -150,37 +149,42 @@ public class DeviceResourceDockerRuntimePluginImpl
         getRequestedDeviceCount(resourceName, container.getResource()) > 0;
   }
 
-  private void getAllocatedDevices(Container container, Set<Device> allocated) {
+  private Set<Device> getAllocatedDevices(Container container) {
     // get allocated devices
     LOG.debug("Try get allocated devices");
+    Set<Device> allocated;
     ContainerId containerId = container.getContainerId();
     allocated = cachedAllocation.get(containerId);
     if (allocated != null) {
-      return;
+      return allocated;
     }
-    LOG.debug("CachedAllocation missed for " + containerId);
     Map<Device, ContainerId> assignedDevice = devicePluginAdapter
         .getDeviceMappingManager()
         .getAllUsedDevices().get(resourceName);
-    LOG.debug("Get from deviceMappingManager: " + assignedDevice + ","
+    LOG.debug("Create allocation from deviceMappingManager: " + assignedDevice + ","
         + resourceName);
     if (assignedDevice != null && assignedDevice.size() > 0) {
       allocated = new TreeSet<>();
       for (Map.Entry<Device, ContainerId> entry : assignedDevice.entrySet()) {
         if (entry.getValue().equals(containerId)) {
+          LOG.debug("ZHANKUN-debug found one:" + entry.getKey());
           allocated.add(entry.getKey());
         }
       }
       cachedAllocation.put(containerId, allocated);
     }
+    return allocated;
   }
 
   public synchronized DeviceRuntimeSpec getRuntimeSpec(Container container) {
     ContainerId containerId = container.getContainerId();
     DeviceRuntimeSpec deviceRuntimeSpec = cachedSpec.get(containerId);
     if (deviceRuntimeSpec == null) {
-      Set<Device> allocated = new TreeSet<>();
-      getAllocatedDevices(container, allocated);
+      Set<Device> allocated = getAllocatedDevices(container);
+      if (allocated == null || allocated.size() == 0) {
+        LOG.error("Cannot get allocation of container:" + containerId);
+        return null;
+      }
       try {
         deviceRuntimeSpec = devicePlugin.onDevicesAllocated(allocated,
             YarnRuntimeType.RUNTIME_DOCKER);
@@ -188,7 +192,7 @@ public class DeviceResourceDockerRuntimePluginImpl
         LOG.error("Exception thrown in onDeviceAllocated of "
             + devicePlugin.getClass() + e.getMessage());
       }
-      if (null == deviceRuntimeSpec) {
+      if (deviceRuntimeSpec == null) {
         LOG.error("Null DeviceRuntimeSpec value got," +
             " please check plugin logic");
         return null;
