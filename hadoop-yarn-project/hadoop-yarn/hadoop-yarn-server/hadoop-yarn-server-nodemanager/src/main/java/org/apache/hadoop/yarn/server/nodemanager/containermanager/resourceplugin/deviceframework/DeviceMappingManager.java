@@ -245,9 +245,11 @@ public class DeviceMappingManager {
       ContainerId containerId) {
     Iterator<Map.Entry<Device, ContainerId>> iter =
         allUsedDevices.get(resourceName).entrySet().iterator();
+    Map.Entry<Device, ContainerId> entry;
     while (iter.hasNext()) {
-      if (iter.next().getValue().equals(containerId)) {
-        LOG.debug("Recycle devices: " + iter.next().getKey()
+      entry = iter.next();
+      if (entry.getValue().equals(containerId)) {
+        LOG.debug("Recycle devices: " + entry.getKey()
             + ", type: " + resourceName + " from " + containerId);
         iter.remove();
       }
