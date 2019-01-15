@@ -184,7 +184,7 @@ void reload_devices_configuration() {
 /*
  * Format of devices request commandline:
  * The excluded_devices is comma separated device cgroups values with device type.
- * The "-" will be replaced with " " to match the cgrooups parameter
+ * The "-" will be replaced with " " to match the cgroups parameter
  * c-e --module-devices \
  * --excluded_devices b-8:16-rwm,c-244:0-rwm,c-244:1-rwm \
  * --allowed_devices 8:32,8:48,243:2 \
