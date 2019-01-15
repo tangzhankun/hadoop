@@ -247,6 +247,8 @@ public class DeviceMappingManager {
         allUsedDevices.get(resourceName).entrySet().iterator();
     while (iter.hasNext()) {
       if (iter.next().getValue().equals(containerId)) {
+        LOG.debug("Recycle devices: " + iter.next().getKey()
+            + ", type: " + resourceName + " from " + containerId);
         iter.remove();
       }
     }
