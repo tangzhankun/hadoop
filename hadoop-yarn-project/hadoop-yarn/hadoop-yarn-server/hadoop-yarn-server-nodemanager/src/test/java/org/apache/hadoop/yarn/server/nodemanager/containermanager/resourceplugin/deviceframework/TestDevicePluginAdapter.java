@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.ServiceOperations;
 
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -130,6 +131,7 @@ public class TestDevicePluginAdapter {
     NodeManager.NMContext context = mock(NodeManager.NMContext.class);
     NMStateStoreService storeService = mock(NMStateStoreService.class);
     when(context.getNMStateStore()).thenReturn(storeService);
+    when(context.getConf()).thenReturn(this.conf);
     doNothing().when(storeService).storeAssignedResources(isA(Container.class),
         isA(String.class),
         isA(ArrayList.class));
@@ -251,6 +253,7 @@ public class TestDevicePluginAdapter {
     NMStateStoreService realStoreService = new NMMemoryStateStoreService();
     NMStateStoreService storeService = spy(realStoreService);
     when(context.getNMStateStore()).thenReturn(storeService);
+    when(context.getConf()).thenReturn(this.conf);
     doNothing().when(storeService).storeAssignedResources(isA(Container.class),
         isA(String.class),
         isA(ArrayList.class));
@@ -395,6 +398,7 @@ public class TestDevicePluginAdapter {
     NodeManager.NMContext context = mock(NodeManager.NMContext.class);
     NMStateStoreService realStoreService = new NMMemoryStateStoreService();
     NMStateStoreService storeService = spy(realStoreService);
+    when(context.getConf()).thenReturn(this.conf);
     when(context.getNMStateStore()).thenReturn(storeService);
     doThrow(new IOException("Exception ...")).when(storeService)
         .storeAssignedResources(isA(Container.class),
@@ -448,6 +452,7 @@ public class TestDevicePluginAdapter {
     NodeManager.NMContext context = mock(NodeManager.NMContext.class);
     NMStateStoreService storeService = mock(NMStateStoreService.class);
     when(context.getNMStateStore()).thenReturn(storeService);
+    when(context.getConf()).thenReturn(this.conf);
     doNothing().when(storeService).storeAssignedResources(isA(Container.class),
         isA(String.class),
         isA(ArrayList.class));
@@ -526,6 +531,7 @@ public class TestDevicePluginAdapter {
     NodeManager.NMContext context = mock(NodeManager.NMContext.class);
     NMStateStoreService storeService = mock(NMStateStoreService.class);
     when(context.getNMStateStore()).thenReturn(storeService);
+    when(context.getConf()).thenReturn(this.conf);
     doNothing().when(storeService).storeAssignedResources(isA(Container.class),
         isA(String.class),
         isA(ArrayList.class));

@@ -143,6 +143,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
         PrivilegedOperation privilegedOperation = new PrivilegedOperation(
             PrivilegedOperation.OperationType.DEVICE,
             Arrays.asList(CONTAINER_ID_CLI_OPTION, containerIdStr));
+        boolean needNativeDeviceOperation = false;
         if (!allocation.getDenied().isEmpty()) {
           String devType;
           int majorNumber;
@@ -162,6 +163,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
             privilegedOperation.appendArgs(
                 Arrays.asList(EXCLUDED_DEVICES_CLI_OPTION,
                     StringUtils.join(",", devNumbers)));
+            needNativeDeviceOperation = true;
           }
         }
 
@@ -172,14 +174,21 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
           for (Device deniedDevice : allocation.getDenied()) {
             majorNumber = deniedDevice.getMajorNumber();
             minorNumber = deniedDevice.getMinorNumber();
-            devNumbers.add(majorNumber + ":" + minorNumber);
+            if (majorNumber != -1) {
+              devNumbers.add(majorNumber + ":" + minorNumber);
+            }
           }
-          privilegedOperation.appendArgs(
-              Arrays.asList(ALLOWED_DEVICES_CLI_OPTION,
-                  StringUtils.join(",", devNumbers)));
+          if (devNumbers.size() > 0) {
+            privilegedOperation.appendArgs(
+                Arrays.asList(ALLOWED_DEVICES_CLI_OPTION,
+                    StringUtils.join(",", devNumbers)));
+            needNativeDeviceOperation = true;
+          }
         }
-        privilegedOperationExecutor.executePrivilegedOperation(
-            privilegedOperation, true);
+        if (needNativeDeviceOperation) {
+          privilegedOperationExecutor.executePrivilegedOperation(
+              privilegedOperation, true);
+        }
       } catch (PrivilegedOperationException e) {
         cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
             containerIdStr);
@@ -242,7 +251,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
       LOG.warn("Empty device path provided, cannot decide type");
       return null;
     }
-    String output = "c";
+    String output;
     // output "major:minor" in hex
     Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(
         new String[]{"stat", "-c", "%F", devName});
@@ -254,11 +263,11 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
       output = output.startsWith("c") ? "c" : "b";
     } catch (IOException e) {
       String msg =
-          "Failed to get device type from stat /dev/" + devName;
+          "Failed to get device type from stat " + devName;
       LOG.warn(msg);
       LOG.debug("Command output:" + shexec.getOutput() + ", exit code:" +
           shexec.getExitCode());
-      return null;
+      output = null;
     }
     return output;
   }
