@@ -256,6 +256,8 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   public synchronized List<PrivilegedOperation> postComplete(
       ContainerId containerId) throws ResourceHandlerException {
     deviceMappingManager.cleanupAssignedDevices(resourceName, containerId);
+    cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
+        containerId.toString());
     return null;
   }
 

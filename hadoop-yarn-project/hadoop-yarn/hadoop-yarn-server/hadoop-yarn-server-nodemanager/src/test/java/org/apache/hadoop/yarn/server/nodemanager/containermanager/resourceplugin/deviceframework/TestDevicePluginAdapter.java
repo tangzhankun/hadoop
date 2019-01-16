@@ -75,6 +75,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
@@ -170,7 +171,7 @@ public class TestDevicePluginAdapter {
     int size = dmm.getAvailableDevices(resourceName);
     Assert.assertEquals(3, size);
 
-    // A container c1 requests 1 device
+    // Case 1. A container c1 requests 1 device
     Container c1 = mockContainerWithDeviceRequest(0,
         resourceName,
         1, false);
@@ -184,11 +185,12 @@ public class TestDevicePluginAdapter {
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
 
-    // check device cgroup operation
     verify(mockShellWrapper, times(2)).getDeviceFileType(anyString());
+    // check device cgroup create operation
     verify(mockCGroupsHandler).createCGroup(
         CGroupsHandler.CGroupController.DEVICES,
         c1.getContainerId().toString());
+    // check device cgroup update operation
     ArgumentCaptor<PrivilegedOperation> args =
         ArgumentCaptor.forClass(PrivilegedOperation.class);
     verify(mockPrivilegedExecutor, times(1))
@@ -213,10 +215,20 @@ public class TestDevicePluginAdapter {
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
 
-    // A container c2 requests 3 device
+    // check cgroup delete operation
+    verify(mockCGroupsHandler).deleteCGroup(
+        CGroupsHandler.CGroupController.DEVICES,
+        c1.getContainerId().toString());
+
+    // Case 2. A container c2 requests 3 device
     Container c2 = mockContainerWithDeviceRequest(1,
         resourceName,
         3, false);
+    reset(mockShellWrapper);
+    reset(mockCGroupsHandler);
+    reset(mockPrivilegedExecutor);
+    when(mockShellWrapper.existFile(anyString())).thenReturn(true);
+    when(mockShellWrapper.getDeviceFileType(anyString())).thenReturn("c");
     // preStart
     adapter.getDeviceResourceHandler().preStart(c2);
     // check book keeping
@@ -226,6 +238,26 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
+
+    verify(mockShellWrapper, times(0)).getDeviceFileType(anyString());
+    // check device cgroup create operation
+    verify(mockCGroupsHandler).createCGroup(
+        CGroupsHandler.CGroupController.DEVICES,
+        c2.getContainerId().toString());
+    // check device cgroup update operation
+    args = ArgumentCaptor.forClass(PrivilegedOperation.class);
+    verify(mockPrivilegedExecutor, times(1))
+        .executePrivilegedOperation(args.capture(), eq(true));
+    Assert.assertEquals(PrivilegedOperation.OperationType.DEVICE,
+        args.getValue().getOperationType());
+    expectedArgs = Arrays.asList(
+        DeviceResourceHandlerImpl.CONTAINER_ID_CLI_OPTION,
+        c2.getContainerId().toString(),
+        DeviceResourceHandlerImpl.ALLOWED_DEVICES_CLI_OPTION,
+        "256:0,256:1,256:2");
+    Assert.assertArrayEquals(expectedArgs.toArray(),
+        args.getValue().getArguments().toArray());
+
     // postComplete
     adapter.getDeviceResourceHandler().postComplete(getContainerId(1));
     Assert.assertEquals(3,
@@ -235,10 +267,20 @@ public class TestDevicePluginAdapter {
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
 
-    // A container c3 request 0 device
+    // check cgroup delete operation
+    verify(mockCGroupsHandler).deleteCGroup(
+        CGroupsHandler.CGroupController.DEVICES,
+        c2.getContainerId().toString());
+
+    // Case 3. A container c3 request 0 device
     Container c3 = mockContainerWithDeviceRequest(1,
         resourceName,
         0, false);
+    reset(mockShellWrapper);
+    reset(mockCGroupsHandler);
+    reset(mockPrivilegedExecutor);
+    when(mockShellWrapper.existFile(anyString())).thenReturn(true);
+    when(mockShellWrapper.getDeviceFileType(anyString())).thenReturn("c");
     // preStart
     adapter.getDeviceResourceHandler().preStart(c3);
     // check book keeping
@@ -248,6 +290,24 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
+    verify(mockShellWrapper, times(3)).getDeviceFileType(anyString());
+    // check device cgroup create operation
+    verify(mockCGroupsHandler).createCGroup(
+        CGroupsHandler.CGroupController.DEVICES,
+        c3.getContainerId().toString());
+    // check device cgroup update operation
+    args = ArgumentCaptor.forClass(PrivilegedOperation.class);
+    verify(mockPrivilegedExecutor, times(1))
+        .executePrivilegedOperation(args.capture(), eq(true));
+    Assert.assertEquals(PrivilegedOperation.OperationType.DEVICE,
+        args.getValue().getOperationType());
+    expectedArgs = Arrays.asList(
+        DeviceResourceHandlerImpl.CONTAINER_ID_CLI_OPTION,
+        c3.getContainerId().toString(),
+        DeviceResourceHandlerImpl.EXCLUDED_DEVICES_CLI_OPTION,
+        "c-256:0-rwm,c-256:1-rwm,c-256:2-rwm");
+    Assert.assertArrayEquals(expectedArgs.toArray(),
+        args.getValue().getArguments().toArray());
     // postComplete
     adapter.getDeviceResourceHandler().postComplete(getContainerId(1));
     Assert.assertEquals(3,
@@ -256,6 +316,10 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
+    // check cgroup delete operation
+    verify(mockCGroupsHandler).deleteCGroup(
+        CGroupsHandler.CGroupController.DEVICES,
+        c3.getContainerId().toString());
   }
 
   @Test
