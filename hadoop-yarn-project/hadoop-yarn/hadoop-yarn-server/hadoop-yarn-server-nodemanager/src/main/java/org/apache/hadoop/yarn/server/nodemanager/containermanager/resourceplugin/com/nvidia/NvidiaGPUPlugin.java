@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.nvidia.com;
+package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.hadoop.util.Shell;
@@ -42,6 +42,8 @@ import java.util.TreeSet;
 public class NvidiaGPUPlugin implements DevicePlugin {
   public static final Logger LOG = LoggerFactory.getLogger(
       NvidiaGPUPlugin.class);
+
+  private MyShellExecutor shellExecutor = new MyShellExecutor();
 
   private Map<String, String> environment = new HashMap<>();
 
@@ -104,11 +106,8 @@ public class NvidiaGPUPlugin implements DevicePlugin {
     TreeSet<Device> r = new TreeSet<>();
     String output;
     try {
-      output = Shell.execCommand(environment,
-          new String[]{pathOfGpuBinary, "--query-gpu=index,pci.bus_id",
-              "--format=csv,noheader"}, MAX_EXEC_TIMEOUT_MS);
-
-      String[] lines = output.split("\n");
+      output = shellExecutor.getDeviceInfo();
+      String[] lines = output.trim().split("\n");
       int id = 0;
       for (String oneLine : lines) {
         String[] tokensEachLine = oneLine.split(",");
@@ -145,14 +144,15 @@ public class NvidiaGPUPlugin implements DevicePlugin {
     if (yarnRuntime == YarnRuntimeType.RUNTIME_DOCKER) {
       String nvidiaRuntime = "nvidia";
       String nvidiaVisibleDevices = "NVIDIA_VISIBLE_DEVICES";
-      String gpuMinorNumbers = "";
+      StringBuffer gpuMinorNumbersSB = new StringBuffer();
       for (Device device : allocatedDevices) {
-        gpuMinorNumbers = gpuMinorNumbers + device.getMinorNumber() + ",";
+        gpuMinorNumbersSB.append(device.getMinorNumber() + ",");
       }
-      LOG.info("Nvidia Docker v2 assigned GPU: " + gpuMinorNumbers);
+      String minorNumbers = gpuMinorNumbersSB.toString();
+      LOG.info("Nvidia Docker v2 assigned GPU: " + minorNumbers);
       return DeviceRuntimeSpec.Builder.newInstance()
           .addEnv(nvidiaVisibleDevices,
-              gpuMinorNumbers.substring(0, gpuMinorNumbers.length() - 1))
+              minorNumbers.substring(0, minorNumbers.length() - 1))
           .setContainerRuntime(nvidiaRuntime)
           .build();
     }
@@ -168,42 +168,38 @@ public class NvidiaGPUPlugin implements DevicePlugin {
   public String getMajorNumber(String devName) {
     String output = null;
     // output "major:minor" in hex
-    Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(
-        new String[]{"stat", "-c", "%t:%T", "/dev/" + devName});
     try {
       LOG.debug("Get major numbers from /dev/" + devName);
-      shexec.execute();
-      String[] strs = shexec.getOutput().trim().split(":");
-      LOG.debug("stat output:" + shexec.getOutput());
+      output = shellExecutor.getMajorMinorInfo(devName);
+      String[] strs = output.trim().split(":");
+      LOG.debug("stat output:" + output);
       output = Integer.toString(Integer.parseInt(strs[0], 16));
     } catch (IOException e) {
       String msg =
           "Failed to get major number from reading /dev/" + devName;
       LOG.warn(msg);
-      LOG.debug("Command output:" + shexec.getOutput() + ", exit code:" +
-          shexec.getExitCode());
     }
     return output;
   }
 
-  public class ShellExecutor {
-    public String getDevNumber(String devName) {
+  /**
+   * A shell wrapper class easy for test
+   * */
+  public class MyShellExecutor {
+
+    public String getDeviceInfo() throws IOException {
+      return Shell.execCommand(environment,
+          new String[]{pathOfGpuBinary, "--query-gpu=index,pci.bus_id",
+              "--format=csv,noheader"}, MAX_EXEC_TIMEOUT_MS);
+    }
+
+    public String getMajorMinorInfo(String devName) throws IOException {
       String output = null;
       // output "major:minor" in hex
       Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(
           new String[]{"stat", "-c", "%t:%T", "/dev/" + devName});
-      try {
-        LOG.debug("Get major numbers from /dev/" + devName);
-        shexec.execute();
-        output = shexec.getOutput().trim();
-      } catch (IOException e) {
-        String msg =
-            "Failed to get major number from reading /dev/" + devName;
-        LOG.warn(msg);
-        LOG.debug("Command output:" + shexec.getOutput() + ", exit code:" +
-            shexec.getExitCode());
-      }
-      return output;
+      shexec.execute();
+      return shexec.getOutput();
     }
   }
 }

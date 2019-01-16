@@ -21,7 +21,13 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.*;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.MountDeviceSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.MountVolumeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.VolumeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.docker.DockerRunCommand;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.docker.DockerVolumeCommand;
@@ -33,6 +39,11 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Bridge DevicePlugin and the hooks related to lunch Docker container.
+ * When launching Docker container, DockerLinuxContainerRuntime will invoke
+ * this class's methods which get needed info back from DevicePlugin.
+ * */
 public class DeviceResourceDockerRuntimePluginImpl
     implements DockerCommandPlugin {
 
@@ -144,9 +155,9 @@ public class DeviceResourceDockerRuntimePluginImpl
     return null;
   }
 
-  protected boolean requestsDevice(String resourceName, Container container) {
+  protected boolean requestsDevice(String resName, Container container) {
     return DeviceMappingManager.
-        getRequestedDeviceCount(resourceName, container.getResource()) > 0;
+        getRequestedDeviceCount(resName, container.getResource()) > 0;
   }
 
   private Set<Device> getAllocatedDevices(Container container) {

@@ -38,7 +38,6 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -155,7 +154,8 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
             // Add device type
             devType = getDeviceType(deniedDevice.getDevPath());
             if (devType != null) {
-              devNumbers.add(devType + "-" + majorNumber + ":" + minorNumber + "-rwm");
+              devNumbers.add(devType + "-" + majorNumber + ":"
+                  + minorNumber + "-rwm");
             }
           }
           if (devNumbers.size() != 0) {

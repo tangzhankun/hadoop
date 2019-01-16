@@ -256,11 +256,11 @@ public class DeviceMappingManager {
     }
   }
 
-  public static int getRequestedDeviceCount(String resourceName,
+  public static int getRequestedDeviceCount(String resName,
       Resource requestedResource) {
     try {
       return Long.valueOf(requestedResource.getResourceValue(
-          resourceName)).intValue();
+          resName)).intValue();
     } catch (ResourceNotFoundException e) {
       return 0;
     }

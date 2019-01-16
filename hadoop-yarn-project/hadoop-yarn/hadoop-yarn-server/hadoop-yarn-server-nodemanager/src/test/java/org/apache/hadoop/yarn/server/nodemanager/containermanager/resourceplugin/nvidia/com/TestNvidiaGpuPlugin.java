@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.nvidia.com;
 
+/**
+ * Test case for Nvidia GPU device plugin.
+ * */
 public class TestNvidiaGpuPlugin {
 
 }
