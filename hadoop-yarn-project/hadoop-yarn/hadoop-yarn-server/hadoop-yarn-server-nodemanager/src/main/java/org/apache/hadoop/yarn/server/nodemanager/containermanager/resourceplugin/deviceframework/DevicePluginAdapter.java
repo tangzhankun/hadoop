@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -51,9 +52,17 @@ public class DevicePluginAdapter implements ResourcePlugin {
   private final String resourceName;
   private final DevicePlugin devicePlugin;
   private DeviceMappingManager deviceMappingManager;
+
   private DeviceResourceHandlerImpl deviceResourceHandler;
   private DeviceResourceUpdaterImpl deviceResourceUpdater;
   private DeviceResourceDockerRuntimePluginImpl deviceDockerCommandPlugin;
+
+
+  @VisibleForTesting
+  public void setDeviceResourceHandler(
+      DeviceResourceHandlerImpl deviceResourceHandler) {
+    this.deviceResourceHandler = deviceResourceHandler;
+  }
 
   public DevicePluginAdapter(String name, DevicePlugin dp,
       DeviceMappingManager dmm) {

@@ -183,7 +183,7 @@ public class NvidiaGPUPlugin implements DevicePlugin {
   }
 
   /**
-   * A shell wrapper class easy for test
+   * A shell wrapper class easy for test.
    * */
   public class MyShellExecutor {
 

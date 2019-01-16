@@ -18,9 +18,9 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.ServiceOperations;
 
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -38,6 +38,7 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeS
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.ResourceMappings;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperation;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
@@ -52,6 +53,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +63,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -68,6 +71,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -152,8 +157,15 @@ public class TestDevicePluginAdapter {
         spyPlugin, dmm);
     // Bootstrap, adding device
     adapter.initialize(context);
-    adapter.createResourceHandler(context,
-        mockCGroupsHandler, mockPrivilegedExecutor);
+    // Use mock shell when create resourceHandler
+    ShellWrapper mockShellWrapper = mock(ShellWrapper.class);
+    when(mockShellWrapper.existFile(anyString())).thenReturn(true);
+    when(mockShellWrapper.getDeviceFileType(anyString())).thenReturn("c");
+    DeviceResourceHandlerImpl drhl = new DeviceResourceHandlerImpl(resourceName,
+        spyPlugin, adapter, dmm,
+        mockCGroupsHandler, mockPrivilegedExecutor, context, mockShellWrapper);
+    adapter.setDeviceResourceHandler(drhl);
+
     adapter.getDeviceResourceHandler().bootstrap(conf);
     int size = dmm.getAvailableDevices(resourceName);
     Assert.assertEquals(3, size);
@@ -171,6 +183,27 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
+
+    // check device cgroup operation
+    verify(mockShellWrapper, times(2)).getDeviceFileType(anyString());
+    verify(mockCGroupsHandler).createCGroup(
+        CGroupsHandler.CGroupController.DEVICES,
+        c1.getContainerId().toString());
+    ArgumentCaptor<PrivilegedOperation> args =
+        ArgumentCaptor.forClass(PrivilegedOperation.class);
+    verify(mockPrivilegedExecutor, times(1))
+        .executePrivilegedOperation(args.capture(), eq(true));
+    Assert.assertEquals(PrivilegedOperation.OperationType.DEVICE,
+        args.getValue().getOperationType());
+    List<String> expectedArgs = Arrays.asList(
+        DeviceResourceHandlerImpl.CONTAINER_ID_CLI_OPTION,
+        c1.getContainerId().toString(),
+        DeviceResourceHandlerImpl.EXCLUDED_DEVICES_CLI_OPTION,
+        "c-256:1-rwm,c-256:2-rwm",
+        DeviceResourceHandlerImpl.ALLOWED_DEVICES_CLI_OPTION,
+        "256:0");
+    Assert.assertArrayEquals(expectedArgs.toArray(),
+        args.getValue().getArguments().toArray());
     // postComplete
     adapter.getDeviceResourceHandler().postComplete(getContainerId(0));
     Assert.assertEquals(3,
@@ -619,7 +652,7 @@ public class TestDevicePluginAdapter {
           .setId(1)
           .setDevPath("/dev/hdwA1")
           .setMajorNumber(256)
-          .setMinorNumber(0)
+          .setMinorNumber(1)
           .setBusID("0000:80:01.0")
           .setHealthy(true)
           .build());
@@ -627,7 +660,7 @@ public class TestDevicePluginAdapter {
           .setId(2)
           .setDevPath("/dev/hdwA2")
           .setMajorNumber(256)
-          .setMinorNumber(0)
+          .setMinorNumber(2)
           .setBusID("0000:80:02.0")
           .setHealthy(true)
           .build());
