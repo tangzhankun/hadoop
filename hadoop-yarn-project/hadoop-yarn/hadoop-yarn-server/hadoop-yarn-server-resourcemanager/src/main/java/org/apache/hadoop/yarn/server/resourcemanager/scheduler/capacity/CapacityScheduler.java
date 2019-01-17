@@ -2572,6 +2572,7 @@ public class CapacityScheduler extends
 
   @Override
   public Resource getMaximumResourceCapability(String queueName) {
+    LOG.debug("zhanku0:" + getMaximumResourceCapability());
     if(queueName == null || queueName.isEmpty()) {
       return getMaximumResourceCapability();
     }
@@ -2592,9 +2593,12 @@ public class CapacityScheduler extends
     Resource queueMaxAllocation = ((LeafQueue)queue).getMaximumAllocation();
     Resource clusterMaxAllocationConsiderNodeMax =
         getMaximumResourceCapability();
-
-    return Resources.componentwiseMin(queueMaxAllocation,
+    LOG.debug("zhanku1:" + queueMaxAllocation);
+    LOG.debug("zhankun2:" + clusterMaxAllocationConsiderNodeMax);
+    Resource r = Resources.componentwiseMin(queueMaxAllocation,
         clusterMaxAllocationConsiderNodeMax);
+    LOG.debug("zhankun3:" + r);
+    return r;
   }
 
   private String handleMoveToPlanQueue(String targetQueueName) {
