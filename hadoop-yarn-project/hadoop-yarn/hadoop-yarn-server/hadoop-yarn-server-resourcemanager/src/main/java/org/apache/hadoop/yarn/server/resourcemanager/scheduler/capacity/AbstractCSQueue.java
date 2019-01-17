@@ -365,7 +365,8 @@ public abstract class AbstractCSQueue implements CSQueue {
           configuration.getMaximumAllocationPerQueue(
               getQueuePath());
       LOG.debug("Zhankun: init max queue:" + maximumAllocation
-          + ", " + getQueuePath() + ", name: " + getQueueName());
+          + ", " + getQueuePath() + ", name: " + getQueueName() + ", " +
+          "clusterResource: " + clusterResource);
       // initialized the queue state based on previous state, configured state
       // and its parent state.
       QueueState previous = getState();
