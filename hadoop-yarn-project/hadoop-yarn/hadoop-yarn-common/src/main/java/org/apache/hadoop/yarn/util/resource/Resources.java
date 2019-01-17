@@ -524,7 +524,7 @@ public class Resources {
         ResourceInformation outInfo = lhsValue.getValue() < rhsValue.getValue()
             ? lhsValue
             : rhsValue;
-        LOG.debug("zhankun: set this:" + rhsValue);
+        LOG.debug("zhankun: set this:" + outInfo);
         ret.setResourceInformation(i, outInfo);
       } catch (ResourceNotFoundException ye) {
         LOG.warn("Resource is missing:" + ye.getMessage());
