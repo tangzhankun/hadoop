@@ -341,7 +341,11 @@ public class CapacityScheduler extends
       }
       this.csConfProvider.init(configuration);
       this.conf = this.csConfProvider.loadConfiguration(configuration);
-      LOG.debug("Zhankun: config class:" + configuration.getClass());
+      LOG.debug("zhankun: yarn configrutaion:" + configuration.getClass() +
+          "resource names:"
+          + configuration.getStrings(YarnConfiguration.RESOURCE_TYPES));
+      LOG.debug("zhankun: CA configrutaion:" + this.conf.getClass() +
+          this.conf.getStrings(YarnConfiguration.RESOURCE_TYPES));
       this.yarnConf = configuration;
       validateConf(this.conf);
       this.minimumAllocation = super.getMinimumAllocation();
