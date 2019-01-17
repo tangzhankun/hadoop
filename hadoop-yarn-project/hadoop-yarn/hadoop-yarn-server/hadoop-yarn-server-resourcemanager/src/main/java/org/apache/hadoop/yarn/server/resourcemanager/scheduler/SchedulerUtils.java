@@ -372,6 +372,8 @@ public class SchedulerUtils {
   @VisibleForTesting
   static void checkResourceRequestAgainstAvailableResource(Resource reqResource,
       Resource availableResource) throws InvalidResourceRequestException {
+    LOG.debug("zhankun: req:" + reqResource);
+    LOG.debug("zhankun: available:" + availableResource);
     for (int i = 0; i < ResourceUtils.getNumberOfCountableResourceTypes(); i++) {
       final ResourceInformation requestedRI =
           reqResource.getResourceInformation(i);
@@ -381,7 +383,6 @@ public class SchedulerUtils {
         throwInvalidResourceException(reqResource, availableResource,
             reqResourceName, InvalidResourceType.LESS_THAN_ZERO);
       }
-
       boolean valid = checkResource(requestedRI, availableResource);
       if (!valid) {
         throwInvalidResourceException(reqResource, availableResource,

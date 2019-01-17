@@ -27,7 +27,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_RM_SCHEDULER_MAXIMUM_ALLOCATION_MB;
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_RM_SCHEDULER_MAXIMUM_ALLOCATION_VCORES;
 import static org.apache.hadoop.yarn.util.resource.Resources.componentwiseMin;
 import static org.apache.hadoop.yarn.util.resource.Resources.componentwiseMax;
 import static org.apache.hadoop.yarn.util.resource.Resources.add;
@@ -163,7 +167,10 @@ public class TestResources {
         componentwiseMin(createResource(2, 2, 2), createResource(1, 1)));
     assertEquals(createResource(1, 1, 2),
         componentwiseMin(createResource(1, 2, 2), createResource(2, 1, 3)));
+    Resource a = componentwiseMin(createResource(2, 2, 2),
+        createResource(1, 1));
   }
+
 
   @Test
   public void testComponentwiseMax() {

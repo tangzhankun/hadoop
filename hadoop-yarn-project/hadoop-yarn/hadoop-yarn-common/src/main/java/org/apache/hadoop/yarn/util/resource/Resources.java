@@ -514,13 +514,17 @@ public class Resources {
   public static Resource componentwiseMin(Resource lhs, Resource rhs) {
     Resource ret = createResource(0);
     int maxLength = ResourceUtils.getNumberOfCountableResourceTypes();
+    LOG.debug("zhankun: type count:" + maxLength);
     for (int i = 0; i < maxLength; i++) {
       try {
         ResourceInformation rhsValue = rhs.getResourceInformation(i);
         ResourceInformation lhsValue = lhs.getResourceInformation(i);
+        LOG.debug("zhankun: left:" + lhsValue);
+        LOG.debug("zhankun: right:" + rhsValue);
         ResourceInformation outInfo = lhsValue.getValue() < rhsValue.getValue()
             ? lhsValue
             : rhsValue;
+        LOG.debug("zhankun: set this:" + rhsValue);
         ret.setResourceInformation(i, outInfo);
       } catch (ResourceNotFoundException ye) {
         LOG.warn("Resource is missing:" + ye.getMessage());
