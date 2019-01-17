@@ -878,7 +878,8 @@ public class CapacitySchedulerConfiguration extends ReservationSchedulerConfigur
    *          name of the queue
    * @return setting specified per queue else falls back to the cluster setting
    */
-  public Resource getMaximumAllocationPerQueue(String queue) {
+  public Resource getMaximumAllocationPerQueue(String queue,
+      Configuration yarnConf) {
     // Only support to specify memory and vcores maximum allocation per queue
     // for now.
     String queuePrefix = getQueuePrefix(queue);
@@ -892,7 +893,7 @@ public class CapacitySchedulerConfiguration extends ReservationSchedulerConfigur
       LOG.debug("max alloc vcores per queue for " + queue + " is "
           + maxAllocationVcoresPerQueue);
     }
-    Resource clusterMax = ResourceUtils.fetchMaximumAllocationFromConfig(this);
+    Resource clusterMax = ResourceUtils.fetchMaximumAllocationFromConfig(yarnConf);
     if (maxAllocationMbPerQueue == (int)UNDEFINED) {
       LOG.info("max alloc mb per queue for " + queue + " is undefined");
       maxAllocationMbPerQueue = clusterMax.getMemorySize();

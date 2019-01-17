@@ -2956,7 +2956,7 @@ public class TestCapacityScheduler extends CapacitySchedulerTestBase {
         cs.getMaximumResourceCapability().getMemorySize());
     assertEquals("max allocation for A1",
         YarnConfiguration.DEFAULT_RM_SCHEDULER_MAXIMUM_ALLOCATION_MB,
-        conf.getMaximumAllocationPerQueue(A1).getMemorySize());
+        conf.getMaximumAllocationPerQueue(A1, cs.getConf()).getMemorySize());
     assertEquals("max allocation",
         YarnConfiguration.DEFAULT_RM_SCHEDULER_MAXIMUM_ALLOCATION_MB,
         ResourceUtils.fetchMaximumAllocationFromConfig(conf).getMemorySize());
@@ -3054,10 +3054,10 @@ public class TestCapacityScheduler extends CapacitySchedulerTestBase {
         cs.getMaximumResourceCapability().getVirtualCores());
     assertEquals("max allocation MB A1",
         4096,
-        conf.getMaximumAllocationPerQueue(A1).getMemorySize());
+        conf.getMaximumAllocationPerQueue(A1, cs.getConf()).getMemorySize());
     assertEquals("max allocation vcores A1",
         2,
-        conf.getMaximumAllocationPerQueue(A1).getVirtualCores());
+        conf.getMaximumAllocationPerQueue(A1, cs.getConf()).getVirtualCores());
     assertEquals("cluster max allocation MB",
         YarnConfiguration.DEFAULT_RM_SCHEDULER_MAXIMUM_ALLOCATION_MB,
         ResourceUtils.fetchMaximumAllocationFromConfig(conf).getMemorySize());
@@ -3077,9 +3077,9 @@ public class TestCapacityScheduler extends CapacitySchedulerTestBase {
     // conf will have changed but we shouldn't be able to change max allocation
     // for the actual queue
     assertEquals("max allocation MB A1", 6144,
-        conf.getMaximumAllocationPerQueue(A1).getMemorySize());
+        conf.getMaximumAllocationPerQueue(A1, cs.getConf()).getMemorySize());
     assertEquals("max allocation vcores A1", 3,
-        conf.getMaximumAllocationPerQueue(A1).getVirtualCores());
+        conf.getMaximumAllocationPerQueue(A1, cs.getConf()).getVirtualCores());
     assertEquals("max allocation MB cluster",
         YarnConfiguration.DEFAULT_RM_SCHEDULER_MAXIMUM_ALLOCATION_MB,
         ResourceUtils.fetchMaximumAllocationFromConfig(conf).getMemorySize());
