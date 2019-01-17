@@ -341,6 +341,7 @@ public class CapacityScheduler extends
       }
       this.csConfProvider.init(configuration);
       this.conf = this.csConfProvider.loadConfiguration(configuration);
+      this.yarnConf = configuration;
       validateConf(this.conf);
       this.minimumAllocation = super.getMinimumAllocation();
       initMaximumResourceCapability(super.getMaximumAllocation());
