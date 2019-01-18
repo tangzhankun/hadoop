@@ -330,6 +330,7 @@ public abstract class AbstractCSQueue implements CSQueue {
 
     try {
       writeLock.lock();
+      LOG.debug("Zhankun: clusterResource in setupQueueConfigs: " + clusterResource);
       // get labels
       this.accessibleLabels =
           configuration.getAccessibleNodeLabels(getQueuePath());

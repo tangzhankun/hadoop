@@ -347,7 +347,7 @@ public class CapacityScheduler extends
       LOG.debug("zhankun: CA configrutaion:" + this.conf.getClass()
           + ", resource names: " +
           this.conf.getStrings(YarnConfiguration.RESOURCE_TYPES));
-      this.yarnConf = configuration;
+      this.yarnConf = conf;
       validateConf(this.conf);
       this.minimumAllocation = super.getMinimumAllocation();
       initMaximumResourceCapability(super.getMaximumAllocation());
