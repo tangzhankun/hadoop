@@ -446,7 +446,7 @@ public class CapacityScheduler extends
   public void serviceInit(Configuration conf) throws Exception {
     Configuration configuration = new Configuration(conf);
     LOG.debug("zhankun: serviceInit:" + "resource names:"
-        + this.conf.getStrings(YarnConfiguration.RESOURCE_TYPES));
+        + configuration.getStrings(YarnConfiguration.RESOURCE_TYPES));
     super.serviceInit(conf);
     initScheduler(configuration);
     // Initialize SchedulingMonitorManager
