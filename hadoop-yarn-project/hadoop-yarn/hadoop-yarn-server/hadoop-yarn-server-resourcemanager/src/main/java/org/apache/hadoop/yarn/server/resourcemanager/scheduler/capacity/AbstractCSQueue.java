@@ -364,7 +364,7 @@ public abstract class AbstractCSQueue implements CSQueue {
 
       this.maximumAllocation =
           configuration.getMaximumAllocationPerQueue(
-              getQueuePath(), csContext.getConf());
+              getQueuePath());
       LOG.debug("Zhankun: init max queue:" + maximumAllocation
           + ", " + getQueuePath() + ", name: " + getQueueName() + ", " +
           "clusterResource: " + clusterResource);

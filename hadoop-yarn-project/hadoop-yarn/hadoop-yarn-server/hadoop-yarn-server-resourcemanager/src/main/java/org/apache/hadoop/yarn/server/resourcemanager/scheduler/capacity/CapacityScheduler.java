@@ -19,6 +19,7 @@
 package org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -347,7 +348,20 @@ public class CapacityScheduler extends
       LOG.debug("zhankun: CA configrutaion:" + this.conf.getClass()
           + ", resource names: " +
           this.conf.getStrings(YarnConfiguration.RESOURCE_TYPES));
+
+      try {
+        InputStream typeInputStream =
+            this.rmContext.getConfigurationProvider()
+                .getConfigurationInputStream(conf,
+                    YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE);
+        if (typeInputStream != null) {
+          conf.addResource(typeInputStream);
+        }
+      }  catch (Exception e) {
+        throw new IOException(e);
+      }
       this.yarnConf = conf;
+
       validateConf(this.conf);
       this.minimumAllocation = super.getMinimumAllocation();
       initMaximumResourceCapability(super.getMaximumAllocation());
