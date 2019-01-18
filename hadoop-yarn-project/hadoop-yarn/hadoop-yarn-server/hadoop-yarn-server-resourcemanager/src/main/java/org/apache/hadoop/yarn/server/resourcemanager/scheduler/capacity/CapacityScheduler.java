@@ -342,9 +342,10 @@ public class CapacityScheduler extends
       this.csConfProvider.init(configuration);
       this.conf = this.csConfProvider.loadConfiguration(configuration);
       LOG.debug("zhankun: yarn configrutaion:" + configuration.getClass() +
-          "resource names:"
+          "resource names: "
           + configuration.getStrings(YarnConfiguration.RESOURCE_TYPES));
-      LOG.debug("zhankun: CA configrutaion:" + this.conf.getClass() +
+      LOG.debug("zhankun: CA configrutaion:" + this.conf.getClass()
+          + ", resource names: " +
           this.conf.getStrings(YarnConfiguration.RESOURCE_TYPES));
       this.yarnConf = configuration;
       validateConf(this.conf);
@@ -444,6 +445,8 @@ public class CapacityScheduler extends
   @Override
   public void serviceInit(Configuration conf) throws Exception {
     Configuration configuration = new Configuration(conf);
+    LOG.debug("zhankun: serviceInit:" + "resource names:"
+        + this.conf.getStrings(YarnConfiguration.RESOURCE_TYPES));
     super.serviceInit(conf);
     initScheduler(configuration);
     // Initialize SchedulingMonitorManager
