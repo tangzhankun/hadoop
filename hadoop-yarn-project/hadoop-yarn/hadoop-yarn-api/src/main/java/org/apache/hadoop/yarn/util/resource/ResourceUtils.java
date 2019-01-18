@@ -229,12 +229,7 @@ public class ResourceUtils {
     String[] resourceNames = conf.getStrings(YarnConfiguration.RESOURCE_TYPES);
     LOG.debug("Zhankun: conf:" + conf.getClass().getCanonicalName());
     LOG.debug("Zhankun: resourceNames:" + resourceNames);
-    if (resourceNames != null) {
-      throw new YarnRuntimeException("zhankun, not null resource names");
-    }
-    if (resourceNames == null) {
-      throw new YarnRuntimeException("zhankun, null resource names");
-    }
+
     if (resourceNames != null && resourceNames.length != 0) {
       for (String resourceName : resourceNames) {
         String resourceUnits = conf.get(
