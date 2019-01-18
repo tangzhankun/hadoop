@@ -231,8 +231,9 @@ final class DefaultAMSProcessor implements ApplicationMasterServiceProcessor {
       }
     }
 
-    Resource maximumCapacity =
-        getScheduler().getMaximumResourceCapability(app.getQueue());
+//    Resource maximumCapacity =
+//        getScheduler().getMaximumResourceCapability(app.getQueue());
+    Resource maximumCapacity = getScheduler().getMaximumResourceCapability();
     LOG.debug("Zhankun: compare this with request: this should have custom " +
         "resource" + maximumCapacity);
     // sanity check
