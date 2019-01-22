@@ -50,6 +50,7 @@ public class DevicePluginAdapter implements ResourcePlugin {
   private final static Log LOG = LogFactory.getLog(DevicePluginAdapter.class);
 
   private final String resourceName;
+
   private final DevicePlugin devicePlugin;
   private DeviceMappingManager deviceMappingManager;
 
@@ -75,6 +76,11 @@ public class DevicePluginAdapter implements ResourcePlugin {
     return deviceMappingManager;
   }
 
+
+  public DevicePlugin getDevicePlugin() {
+    return devicePlugin;
+  }
+
   @Override
   public void initialize(Context context) throws YarnException {
     deviceDockerCommandPlugin = new DeviceResourceDockerRuntimePluginImpl(
@@ -91,7 +97,7 @@ public class DevicePluginAdapter implements ResourcePlugin {
       CGroupsHandler cGroupsHandler,
       PrivilegedOperationExecutor privilegedOperationExecutor) {
     this.deviceResourceHandler = new DeviceResourceHandlerImpl(resourceName,
-        devicePlugin, this, deviceMappingManager,
+        this, deviceMappingManager,
         cGroupsHandler, privilegedOperationExecutor, nmContext);
     return deviceResourceHandler;
   }

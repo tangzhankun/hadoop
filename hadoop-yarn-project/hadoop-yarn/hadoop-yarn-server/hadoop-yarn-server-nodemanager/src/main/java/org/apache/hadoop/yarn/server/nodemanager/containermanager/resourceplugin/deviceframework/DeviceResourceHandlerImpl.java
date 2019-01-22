@@ -22,7 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
@@ -39,7 +38,6 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resource
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,7 +70,6 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   public static final String CONTAINER_ID_CLI_OPTION = "--container_id";
 
   public DeviceResourceHandlerImpl(String reseName,
-      DevicePlugin devPlugin,
       DevicePluginAdapter devPluginAdapter,
       DeviceMappingManager devMappingManager,
       CGroupsHandler cgHandler,
@@ -80,7 +77,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
       Context ctx) {
     this.devicePluginAdapter = devPluginAdapter;
     this.resourceName = reseName;
-    this.devicePlugin = devPlugin;
+    this.devicePlugin = devPluginAdapter.getDevicePlugin();
     this.cGroupsHandler = cgHandler;
     this.privilegedOperationExecutor = operation;
     this.deviceMappingManager = devMappingManager;
