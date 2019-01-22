@@ -1204,8 +1204,7 @@ public class TestContainerAllocation {
    * Test containers request custom resource.
    * */
   @Test
-  public void testCapacitySchedulerJobWhenConfigureCustomResourceType()
-      throws Exception {
+  public void testCapacitySchedulerJobWhenConfigureCustomResourceType() {
     File dest = null;
     try {
       // reset resource types
@@ -1273,8 +1272,7 @@ public class TestContainerAllocation {
    * Test CS initialized with custom resource types loaded.
    * */
   @Test
-  public void testCapacitySchedulerInitWithCustomResourceType()
-      throws IOException {
+  public void testCapacitySchedulerInitWithCustomResourceType() {
     File dest = null;
     try {
       // reset resource types
@@ -1307,9 +1305,6 @@ public class TestContainerAllocation {
 
       spyCS.init(csConf);
 
-      // Ensure invoke method to load the resource-types.xml
-      verify(spyCS).loadResourceTypesConfiguration(
-          any(CapacitySchedulerConfiguration.class));
       // Ensure the method can get custom resource type from
       // CapacitySchedulerConfiguration
       Assert.assertNotEquals(0,
