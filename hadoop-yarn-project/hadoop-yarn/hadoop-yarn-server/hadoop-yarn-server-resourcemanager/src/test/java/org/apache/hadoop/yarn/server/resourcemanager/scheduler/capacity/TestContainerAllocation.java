@@ -80,8 +80,10 @@ import org.junit.Test;
 
 import static org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacitySchedulerConfiguration.MAXIMUM_ALLOCATION_MB;
 import static org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacitySchedulerConfiguration.MAX_ASSIGN_PER_HEARTBEAT;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestContainerAllocation {
@@ -1200,6 +1202,9 @@ public class TestContainerAllocation {
     rm1.close();
   }
 
+  /**
+   * Test containers request custom resource.
+   * */
   @Test
   public void testCapacitySchedulerJobWhenConfigureCustomResourceType()
       throws Exception {
@@ -1255,6 +1260,9 @@ public class TestContainerAllocation {
     dest.delete();
   }
 
+  /**
+   * Test CS initialized with custom resource types loaded.
+   * */
   @Test
   public void testCapacitySchedulerInitWithCustomResourceType()
       throws IOException {
@@ -1268,12 +1276,13 @@ public class TestContainerAllocation {
     FileUtils.copyFile(source, dest);
 
     CapacityScheduler cs = new CapacityScheduler();
+    CapacityScheduler spyCS = spy(cs);
     CapacitySchedulerConfiguration csConf =
         (CapacitySchedulerConfiguration) TestUtils
             .getConfigurationWithMultipleQueues(conf);;
     csConf.setClass(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
         DominantResourceCalculator.class, ResourceCalculator.class);
-    cs.setConf(csConf);
+    spyCS.setConf(csConf);
 
     RMNodeLabelsManager nodeLabelsManager = new NullRMNodeLabelsManager();
     nodeLabelsManager.init(csConf);
@@ -1284,15 +1293,21 @@ public class TestContainerAllocation {
     mockContext.setNodeLabelManager(nodeLabelsManager);
     when(mockContext.getNodeLabelManager()).thenReturn(nodeLabelsManager);
     when(mockContext.getQueuePlacementManager()).thenReturn(pm);
-    cs.setRMContext(mockContext);
+    spyCS.setRMContext(mockContext);
 
-    cs.init(csConf);
-    CapacityScheduler spyCS = spy(cs);
+    spyCS.init(csConf);
+
+    // Ensure invoke method to load the resource-types.xml
+    verify(spyCS).loadResourceTypesConfiguration(
+        any(CapacitySchedulerConfiguration.class));
+    // Ensure the method can get custom resource type from
+    // CapacitySchedulerConfiguration
     Assert.assertNotEquals(0,
-        ResourceUtils.fetchMaximumAllocationFromConfig(cs.getConfiguration())
+        ResourceUtils.fetchMaximumAllocationFromConfig(spyCS.getConfiguration())
             .getResourceValue("yarn.io/gpu"));
+    // Ensure custom resource type exists in queue's maximumAllocation
     Assert.assertNotEquals(0,
-        cs.getMaximumResourceCapability("a")
+        spyCS.getMaximumResourceCapability("a")
             .getResourceValue("yarn.io/gpu"));
     // cleanup resource-types.xml
     dest.delete();

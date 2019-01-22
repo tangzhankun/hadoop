@@ -424,7 +424,7 @@ public class CapacityScheduler extends
    * Which will cause application fail to submit with custom resource.
    * see details in YARN-9205.
    * */
-  private void loadResourceTypesConfiguration(Configuration conf) throws IOException {
+  protected void loadResourceTypesConfiguration(Configuration conf) throws IOException {
     try {
       InputStream typeInputStream =
           this.rmContext.getConfigurationProvider()
