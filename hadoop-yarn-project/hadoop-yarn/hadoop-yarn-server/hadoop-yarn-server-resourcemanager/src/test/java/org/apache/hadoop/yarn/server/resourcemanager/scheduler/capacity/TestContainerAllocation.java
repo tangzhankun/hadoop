@@ -18,15 +18,20 @@
 
 package org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetworkTopology;
 import org.apache.hadoop.security.SecurityUtilTestHelper;
+import org.apache.hadoop.yarn.FileSystemBasedConfigurationProvider;
+import org.apache.hadoop.yarn.LocalConfigurationProvider;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -44,10 +49,12 @@ import org.apache.hadoop.yarn.server.api.ContainerType;
 import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
+import org.apache.hadoop.yarn.server.resourcemanager.RMContext;
 import org.apache.hadoop.yarn.server.resourcemanager.RMContextImpl;
 import org.apache.hadoop.yarn.server.resourcemanager.RMSecretManagerService;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.NullRMNodeLabelsManager;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.RMNodeLabelsManager;
+import org.apache.hadoop.yarn.server.resourcemanager.placement.PlacementManager;
 import org.apache.hadoop.yarn.server.resourcemanager.resource.TestResourceProfiles;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttempt;
@@ -64,13 +71,18 @@ import org.apache.hadoop.yarn.server.utils.BuilderUtils;
 import org.apache.hadoop.yarn.util.resource.CustomResourceTypesConfigurationProvider;
 import org.apache.hadoop.yarn.util.resource.DominantResourceCalculator;
 import org.apache.hadoop.yarn.util.resource.ResourceCalculator;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.Resources;
+import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacitySchedulerConfiguration.MAXIMUM_ALLOCATION_MB;
 import static org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacitySchedulerConfiguration.MAX_ASSIGN_PER_HEARTBEAT;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class TestContainerAllocation {
 
@@ -1187,4 +1199,103 @@ public class TestContainerAllocation {
 
     rm1.close();
   }
+
+  @Test
+  public void testCapacitySchedulerJobWhenConfigureCustomResourceType()
+      throws Exception {
+    // reset resource types
+    ResourceUtils.resetResourceTypes();
+    String resourceTypesFile = "resource-types-test.xml";
+    File source = new File(
+        conf.getClassLoader().getResource(resourceTypesFile).getFile());
+    File dest = new File(source.getParent(), "resource-types.xml");
+    FileUtils.copyFile(source, dest);
+
+    CapacitySchedulerConfiguration newConf =
+        (CapacitySchedulerConfiguration) TestUtils
+            .getConfigurationWithMultipleQueues(conf);
+    newConf.setClass(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
+        DominantResourceCalculator.class, ResourceCalculator.class);
+    newConf.set(CapacitySchedulerConfiguration.getQueuePrefix("root.a")
+        + MAXIMUM_ALLOCATION_MB, "4096");
+    //start RM
+    MockRM rm = new MockRM(newConf);
+    rm.start();
+
+    //register node with custom resource
+    String customResourceType = "yarn.io/gpu";
+    Resource nodeResource = Resources.createResource(4 * GB, 4);
+    nodeResource.setResourceValue(customResourceType, 10);
+    MockNM nm1 = rm.registerNode("h1:1234", nodeResource);
+
+    // submit app
+    Resource amResource = Resources.createResource(1 * GB, 1);
+    amResource.setResourceValue(customResourceType, 1);
+    RMApp app1 = rm.submitApp(amResource, "app", "user", null, "a");
+    MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
+
+    // am request containers
+    Resource cResource = Resources.createResource(1 * GB, 1);
+    amResource.setResourceValue(customResourceType, 1);
+    am1.allocate("*", cResource, 2,
+        new ArrayList<ContainerId>(), null);
+
+    CapacityScheduler cs = (CapacityScheduler) rm.getResourceScheduler();
+    RMNode rmNode1 = rm.getRMContext().getRMNodes().get(nm1.getNodeId());
+    FiCaSchedulerApp schedulerApp1 =
+        cs.getApplicationAttempt(am1.getApplicationAttemptId());
+
+    // Do nm heartbeats 1 times, will allocate a container on nm1
+    cs.handle(new NodeUpdateSchedulerEvent(rmNode1));
+    rm.drainEvents();
+    Assert.assertEquals(2, schedulerApp1.getLiveContainers().size());
+    rm.close();
+
+    // cleanup resource-types.xml
+    dest.delete();
+  }
+
+  @Test
+  public void testCapacitySchedulerInitWithCustomResourceType()
+      throws IOException {
+    Configuration conf = new YarnConfiguration();
+    // reset resource types
+    ResourceUtils.resetResourceTypes();
+    String resourceTypesFile = "resource-types-test.xml";
+    File source = new File(
+        conf.getClassLoader().getResource(resourceTypesFile).getFile());
+    File dest = new File(source.getParent(), "resource-types.xml");
+    FileUtils.copyFile(source, dest);
+
+    CapacityScheduler cs = new CapacityScheduler();
+    CapacitySchedulerConfiguration csConf =
+        (CapacitySchedulerConfiguration) TestUtils
+            .getConfigurationWithMultipleQueues(conf);;
+    csConf.setClass(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
+        DominantResourceCalculator.class, ResourceCalculator.class);
+    cs.setConf(csConf);
+
+    RMNodeLabelsManager nodeLabelsManager = new NullRMNodeLabelsManager();
+    nodeLabelsManager.init(csConf);
+    PlacementManager pm = new PlacementManager();
+    RMContext mockContext = mock(RMContext.class);
+    when(mockContext.getConfigurationProvider()).thenReturn(
+        new LocalConfigurationProvider());
+    mockContext.setNodeLabelManager(nodeLabelsManager);
+    when(mockContext.getNodeLabelManager()).thenReturn(nodeLabelsManager);
+    when(mockContext.getQueuePlacementManager()).thenReturn(pm);
+    cs.setRMContext(mockContext);
+
+    cs.init(csConf);
+    CapacityScheduler spyCS = spy(cs);
+    Assert.assertNotEquals(0,
+        ResourceUtils.fetchMaximumAllocationFromConfig(cs.getConfiguration())
+            .getResourceValue("yarn.io/gpu"));
+    Assert.assertNotEquals(0,
+        cs.getMaximumResourceCapability("a")
+            .getResourceValue("yarn.io/gpu"));
+    // cleanup resource-types.xml
+    dest.delete();
+  }
+
 }
