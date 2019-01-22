@@ -208,13 +208,13 @@ public class MockAM {
 
   public AllocateResponse allocate(
       String host, Resource cap, int numContainers,
-      List<ContainerId> releases, String labelExpression) throws Exception {
+      List<ContainerId> rels, String labelExpression) throws Exception {
     List<ResourceRequest> reqs = new ArrayList<>();
     ResourceRequest oneReq =
         createResourceReq(host, cap, numContainers,
             labelExpression);
     reqs.add(oneReq);
-    return allocate(reqs, releases);
+    return allocate(reqs, rels);
   }
   
   public List<ResourceRequest> createReq(String[] hosts, int memory,

@@ -424,14 +424,15 @@ public class CapacityScheduler extends
    * Which will cause application fail to submit with custom resource.
    * see details in YARN-9205.
    * */
-  protected void loadResourceTypesConfiguration(Configuration conf) throws IOException {
+  protected void loadResourceTypesConfiguration(Configuration config)
+      throws IOException {
     try {
       InputStream typeInputStream =
           this.rmContext.getConfigurationProvider()
-              .getConfigurationInputStream(conf,
+              .getConfigurationInputStream(config,
                   YarnConfiguration.RESOURCE_TYPES_CONFIGURATION_FILE);
       if (typeInputStream != null) {
-        conf.addResource(typeInputStream);
+        config.addResource(typeInputStream);
       }
     }  catch (Exception e) {
       throw new IOException(e);

@@ -30,7 +30,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetworkTopology;
 import org.apache.hadoop.security.SecurityUtilTestHelper;
-import org.apache.hadoop.yarn.FileSystemBasedConfigurationProvider;
 import org.apache.hadoop.yarn.LocalConfigurationProvider;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -73,7 +72,6 @@ import org.apache.hadoop.yarn.util.resource.DominantResourceCalculator;
 import org.apache.hadoop.yarn.util.resource.ResourceCalculator;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.apache.hadoop.yarn.util.resource.Resources;
-import org.apache.hadoop.yarn.util.resource.TestResourceUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -1279,7 +1277,6 @@ public class TestContainerAllocation {
       throws IOException {
     File dest = null;
     try {
-      Configuration conf = new YarnConfiguration();
       // reset resource types
       ResourceUtils.resetResourceTypes();
       String resourceTypesFile = "resource-types-test.xml";
@@ -1293,7 +1290,6 @@ public class TestContainerAllocation {
       CapacitySchedulerConfiguration csConf =
           (CapacitySchedulerConfiguration) TestUtils
               .getConfigurationWithMultipleQueues(conf);
-      ;
       csConf.setClass(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
           DominantResourceCalculator.class, ResourceCalculator.class);
       spyCS.setConf(csConf);
