@@ -1208,56 +1208,67 @@ public class TestContainerAllocation {
   @Test
   public void testCapacitySchedulerJobWhenConfigureCustomResourceType()
       throws Exception {
-    // reset resource types
-    ResourceUtils.resetResourceTypes();
-    String resourceTypesFile = "resource-types-test.xml";
-    File source = new File(
-        conf.getClassLoader().getResource(resourceTypesFile).getFile());
-    File dest = new File(source.getParent(), "resource-types.xml");
-    FileUtils.copyFile(source, dest);
+    File dest = null;
+    try {
+      // reset resource types
+      ResourceUtils.resetResourceTypes();
+      String resourceTypesFile = "resource-types-test.xml";
+      File source = new File(
+          conf.getClassLoader().getResource(resourceTypesFile).getFile());
+      dest = new File(source.getParent(), "resource-types.xml");
+      FileUtils.copyFile(source, dest);
 
-    CapacitySchedulerConfiguration newConf =
-        (CapacitySchedulerConfiguration) TestUtils
-            .getConfigurationWithMultipleQueues(conf);
-    newConf.setClass(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
-        DominantResourceCalculator.class, ResourceCalculator.class);
-    newConf.set(CapacitySchedulerConfiguration.getQueuePrefix("root.a")
-        + MAXIMUM_ALLOCATION_MB, "4096");
-    //start RM
-    MockRM rm = new MockRM(newConf);
-    rm.start();
+      CapacitySchedulerConfiguration newConf =
+          (CapacitySchedulerConfiguration) TestUtils
+              .getConfigurationWithMultipleQueues(conf);
+      newConf.setClass(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
+          DominantResourceCalculator.class, ResourceCalculator.class);
+      newConf.set(CapacitySchedulerConfiguration.getQueuePrefix("root.a")
+          + MAXIMUM_ALLOCATION_MB, "4096");
+      // We must set this to false to avoid MockRM init configuration with
+      // resource-types.xml by ResourceUtils.resetResourceTypes(conf);
+      newConf.setBoolean(TestResourceProfiles.TEST_CONF_RESET_RESOURCE_TYPES,
+          false);
+      //start RM
+      MockRM rm = new MockRM(newConf);
+      rm.start();
 
-    //register node with custom resource
-    String customResourceType = "yarn.io/gpu";
-    Resource nodeResource = Resources.createResource(4 * GB, 4);
-    nodeResource.setResourceValue(customResourceType, 10);
-    MockNM nm1 = rm.registerNode("h1:1234", nodeResource);
+      //register node with custom resource
+      String customResourceType = "yarn.io/gpu";
+      Resource nodeResource = Resources.createResource(4 * GB, 4);
+      nodeResource.setResourceValue(customResourceType, 10);
+      MockNM nm1 = rm.registerNode("h1:1234", nodeResource);
 
-    // submit app
-    Resource amResource = Resources.createResource(1 * GB, 1);
-    amResource.setResourceValue(customResourceType, 1);
-    RMApp app1 = rm.submitApp(amResource, "app", "user", null, "a");
-    MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
+      // submit app
+      Resource amResource = Resources.createResource(1 * GB, 1);
+      amResource.setResourceValue(customResourceType, 1);
+      RMApp app1 = rm.submitApp(amResource, "app", "user", null, "a");
+      MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
 
-    // am request containers
-    Resource cResource = Resources.createResource(1 * GB, 1);
-    amResource.setResourceValue(customResourceType, 1);
-    am1.allocate("*", cResource, 2,
-        new ArrayList<ContainerId>(), null);
+      // am request containers
+      Resource cResource = Resources.createResource(1 * GB, 1);
+      amResource.setResourceValue(customResourceType, 1);
+      am1.allocate("*", cResource, 2,
+          new ArrayList<ContainerId>(), null);
 
-    CapacityScheduler cs = (CapacityScheduler) rm.getResourceScheduler();
-    RMNode rmNode1 = rm.getRMContext().getRMNodes().get(nm1.getNodeId());
-    FiCaSchedulerApp schedulerApp1 =
-        cs.getApplicationAttempt(am1.getApplicationAttemptId());
+      CapacityScheduler cs = (CapacityScheduler) rm.getResourceScheduler();
+      RMNode rmNode1 = rm.getRMContext().getRMNodes().get(nm1.getNodeId());
+      FiCaSchedulerApp schedulerApp1 =
+          cs.getApplicationAttempt(am1.getApplicationAttemptId());
 
-    // Do nm heartbeats 1 times, will allocate a container on nm1
-    cs.handle(new NodeUpdateSchedulerEvent(rmNode1));
-    rm.drainEvents();
-    Assert.assertEquals(2, schedulerApp1.getLiveContainers().size());
-    rm.close();
-
-    // cleanup resource-types.xml
-    dest.delete();
+      // Do nm heartbeats 1 times, will allocate a container on nm1
+      cs.handle(new NodeUpdateSchedulerEvent(rmNode1));
+      rm.drainEvents();
+      Assert.assertEquals(2, schedulerApp1.getLiveContainers().size());
+      rm.close();
+    } catch (Exception e) {
+      Assert.assertTrue(false);
+    } finally {
+      // cleanup resource-types.xml
+      if (dest != null) {
+        dest.delete();
+      }
+    }
   }
 
   /**
@@ -1266,51 +1277,60 @@ public class TestContainerAllocation {
   @Test
   public void testCapacitySchedulerInitWithCustomResourceType()
       throws IOException {
-    Configuration conf = new YarnConfiguration();
-    // reset resource types
-    ResourceUtils.resetResourceTypes();
-    String resourceTypesFile = "resource-types-test.xml";
-    File source = new File(
-        conf.getClassLoader().getResource(resourceTypesFile).getFile());
-    File dest = new File(source.getParent(), "resource-types.xml");
-    FileUtils.copyFile(source, dest);
+    File dest = null;
+    try {
+      Configuration conf = new YarnConfiguration();
+      // reset resource types
+      ResourceUtils.resetResourceTypes();
+      String resourceTypesFile = "resource-types-test.xml";
+      File source = new File(
+          conf.getClassLoader().getResource(resourceTypesFile).getFile());
+      dest = new File(source.getParent(), "resource-types.xml");
+      FileUtils.copyFile(source, dest);
 
-    CapacityScheduler cs = new CapacityScheduler();
-    CapacityScheduler spyCS = spy(cs);
-    CapacitySchedulerConfiguration csConf =
-        (CapacitySchedulerConfiguration) TestUtils
-            .getConfigurationWithMultipleQueues(conf);;
-    csConf.setClass(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
-        DominantResourceCalculator.class, ResourceCalculator.class);
-    spyCS.setConf(csConf);
+      CapacityScheduler cs = new CapacityScheduler();
+      CapacityScheduler spyCS = spy(cs);
+      CapacitySchedulerConfiguration csConf =
+          (CapacitySchedulerConfiguration) TestUtils
+              .getConfigurationWithMultipleQueues(conf);
+      ;
+      csConf.setClass(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
+          DominantResourceCalculator.class, ResourceCalculator.class);
+      spyCS.setConf(csConf);
 
-    RMNodeLabelsManager nodeLabelsManager = new NullRMNodeLabelsManager();
-    nodeLabelsManager.init(csConf);
-    PlacementManager pm = new PlacementManager();
-    RMContext mockContext = mock(RMContext.class);
-    when(mockContext.getConfigurationProvider()).thenReturn(
-        new LocalConfigurationProvider());
-    mockContext.setNodeLabelManager(nodeLabelsManager);
-    when(mockContext.getNodeLabelManager()).thenReturn(nodeLabelsManager);
-    when(mockContext.getQueuePlacementManager()).thenReturn(pm);
-    spyCS.setRMContext(mockContext);
+      RMNodeLabelsManager nodeLabelsManager = new NullRMNodeLabelsManager();
+      nodeLabelsManager.init(csConf);
+      PlacementManager pm = new PlacementManager();
+      RMContext mockContext = mock(RMContext.class);
+      when(mockContext.getConfigurationProvider()).thenReturn(
+          new LocalConfigurationProvider());
+      mockContext.setNodeLabelManager(nodeLabelsManager);
+      when(mockContext.getNodeLabelManager()).thenReturn(nodeLabelsManager);
+      when(mockContext.getQueuePlacementManager()).thenReturn(pm);
+      spyCS.setRMContext(mockContext);
 
-    spyCS.init(csConf);
+      spyCS.init(csConf);
 
-    // Ensure invoke method to load the resource-types.xml
-    verify(spyCS).loadResourceTypesConfiguration(
-        any(CapacitySchedulerConfiguration.class));
-    // Ensure the method can get custom resource type from
-    // CapacitySchedulerConfiguration
-    Assert.assertNotEquals(0,
-        ResourceUtils.fetchMaximumAllocationFromConfig(spyCS.getConfiguration())
-            .getResourceValue("yarn.io/gpu"));
-    // Ensure custom resource type exists in queue's maximumAllocation
-    Assert.assertNotEquals(0,
-        spyCS.getMaximumResourceCapability("a")
-            .getResourceValue("yarn.io/gpu"));
-    // cleanup resource-types.xml
-    dest.delete();
+      // Ensure invoke method to load the resource-types.xml
+      verify(spyCS).loadResourceTypesConfiguration(
+          any(CapacitySchedulerConfiguration.class));
+      // Ensure the method can get custom resource type from
+      // CapacitySchedulerConfiguration
+      Assert.assertNotEquals(0,
+          ResourceUtils.fetchMaximumAllocationFromConfig(spyCS.getConfiguration())
+              .getResourceValue("yarn.io/gpu"));
+      // Ensure custom resource type exists in queue's maximumAllocation
+      Assert.assertNotEquals(0,
+          spyCS.getMaximumResourceCapability("a")
+              .getResourceValue("yarn.io/gpu"));
+    } catch (Exception e) {
+      Assert.assertTrue(false);
+    } finally {
+      // cleanup resource-types.xml
+      if (dest != null) {
+        dest.delete();
+      }
+    }
   }
 
 }
