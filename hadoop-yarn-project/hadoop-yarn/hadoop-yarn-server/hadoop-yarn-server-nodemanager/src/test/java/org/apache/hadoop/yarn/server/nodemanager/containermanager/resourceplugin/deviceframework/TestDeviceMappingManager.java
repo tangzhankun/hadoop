@@ -169,10 +169,11 @@ public class TestDeviceMappingManager {
           resourceName,
           num, false);
       containerSet.get(resourceName).put(c, num);
-
+      DevicePlugin myPlugin = new MyTestPlugin();
+      DevicePluginAdapter dpa = new DevicePluginAdapter(resourceName,
+          myPlugin, dmm);
       DeviceResourceHandlerImpl dri = new DeviceResourceHandlerImpl(
-          resourceName,
-          new MyTestPlugin(), null,
+          resourceName, dpa,
           dmmSpy, mockCGroupsHandler, mockPrivilegedExecutor, mockCtx);
       Future<Integer> f = containerLauncher.submit(new MyContainerLaunch(
           dri, c, i, false));
@@ -184,7 +185,7 @@ public class TestDeviceMappingManager {
     }
 
     Long endTime = System.currentTimeMillis();
-    LOG.info("Each container allocation spends roughly: {} ms",
+    LOG.info("Each container preStart spends roughly: {} ms",
         (endTime - startTime)/totalContainerCount);
     // Ensure invocation times
     verify(dmmSpy, times(totalContainerCount)).assignDevices(
@@ -258,10 +259,11 @@ public class TestDeviceMappingManager {
           resourceName,
           num, false);
       containerSet.get(resourceName).put(c, num);
-
+      DevicePlugin myPlugin = new MyTestPlugin();
+      DevicePluginAdapter dpa = new DevicePluginAdapter(resourceName,
+          myPlugin, dmm);
       DeviceResourceHandlerImpl dri = new DeviceResourceHandlerImpl(
-          resourceName,
-          new MyTestPlugin(), null,
+          resourceName, dpa,
           dmmSpy, mockCGroupsHandler, mockPrivilegedExecutor, mockCtx);
       Future<Integer> f = containerLauncher.submit(new MyContainerLaunch(
           dri, c, i, true));

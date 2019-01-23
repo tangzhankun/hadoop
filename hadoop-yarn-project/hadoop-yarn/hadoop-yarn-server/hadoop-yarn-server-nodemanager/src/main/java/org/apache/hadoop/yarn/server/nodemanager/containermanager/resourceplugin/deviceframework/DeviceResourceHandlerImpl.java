@@ -69,14 +69,14 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   public static final String ALLOWED_DEVICES_CLI_OPTION = "--allowed_devices";
   public static final String CONTAINER_ID_CLI_OPTION = "--container_id";
 
-  public DeviceResourceHandlerImpl(String reseName,
+  public DeviceResourceHandlerImpl(String resName,
       DevicePluginAdapter devPluginAdapter,
       DeviceMappingManager devMappingManager,
       CGroupsHandler cgHandler,
       PrivilegedOperationExecutor operation,
       Context ctx) {
     this.devicePluginAdapter = devPluginAdapter;
-    this.resourceName = reseName;
+    this.resourceName = resName;
     this.devicePlugin = devPluginAdapter.getDevicePlugin();
     this.cGroupsHandler = cgHandler;
     this.privilegedOperationExecutor = operation;
@@ -86,16 +86,15 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
   }
 
   @VisibleForTesting
-  public DeviceResourceHandlerImpl(String reseName,
-      DevicePlugin devPlugin,
+  public DeviceResourceHandlerImpl(String resName,
       DevicePluginAdapter devPluginAdapter,
       DeviceMappingManager devMappingManager,
       CGroupsHandler cgHandler,
       PrivilegedOperationExecutor operation,
       Context ctx, ShellWrapper shell) {
     this.devicePluginAdapter = devPluginAdapter;
-    this.resourceName = reseName;
-    this.devicePlugin = devPlugin;
+    this.resourceName = resName;
+    this.devicePlugin = devPluginAdapter.getDevicePlugin();
     this.cGroupsHandler = cgHandler;
     this.privilegedOperationExecutor = operation;
     this.deviceMappingManager = devMappingManager;

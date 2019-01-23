@@ -39,6 +39,7 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeTyp
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.ResourceMappings;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperation;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationException;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
@@ -141,13 +142,10 @@ public class TestDevicePluginAdapter {
     doNothing().when(storeService).storeAssignedResources(isA(Container.class),
         isA(String.class),
         isA(ArrayList.class));
-
     // Init scheduler manager
     DeviceMappingManager dmm = new DeviceMappingManager(context);
-
     ResourcePluginManager rpm = mock(ResourcePluginManager.class);
     when(rpm.getDeviceMappingManager()).thenReturn(dmm);
-
     // Init an plugin
     MyPlugin plugin = new MyPlugin();
     MyPlugin spyPlugin = spy(plugin);
@@ -163,16 +161,14 @@ public class TestDevicePluginAdapter {
     when(mockShellWrapper.existFile(anyString())).thenReturn(true);
     when(mockShellWrapper.getDeviceFileType(anyString())).thenReturn("c");
     DeviceResourceHandlerImpl drhl = new DeviceResourceHandlerImpl(resourceName,
-        spyPlugin, adapter, dmm,
-        mockCGroupsHandler, mockPrivilegedExecutor, context, mockShellWrapper);
+        adapter, dmm, mockCGroupsHandler, mockPrivilegedExecutor, context,
+        mockShellWrapper);
     adapter.setDeviceResourceHandler(drhl);
-
     adapter.getDeviceResourceHandler().bootstrap(conf);
     int size = dmm.getAvailableDevices(resourceName);
     Assert.assertEquals(3, size);
-
     // Case 1. A container c1 requests 1 device
-    Container c1 = mockContainerWithDeviceRequest(0,
+    Container c1 = mockContainerWithDeviceRequest(1,
         resourceName,
         1, false);
     // preStart
@@ -184,44 +180,24 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
-
     verify(mockShellWrapper, times(2)).getDeviceFileType(anyString());
     // check device cgroup create operation
-    verify(mockCGroupsHandler).createCGroup(
-        CGroupsHandler.CGroupController.DEVICES,
-        c1.getContainerId().toString());
-    // check device cgroup update operation
-    ArgumentCaptor<PrivilegedOperation> args =
-        ArgumentCaptor.forClass(PrivilegedOperation.class);
-    verify(mockPrivilegedExecutor, times(1))
-        .executePrivilegedOperation(args.capture(), eq(true));
-    Assert.assertEquals(PrivilegedOperation.OperationType.DEVICE,
-        args.getValue().getOperationType());
-    List<String> expectedArgs = Arrays.asList(
-        DeviceResourceHandlerImpl.CONTAINER_ID_CLI_OPTION,
-        c1.getContainerId().toString(),
-        DeviceResourceHandlerImpl.EXCLUDED_DEVICES_CLI_OPTION,
-        "c-256:1-rwm,c-256:2-rwm",
-        DeviceResourceHandlerImpl.ALLOWED_DEVICES_CLI_OPTION,
-        "256:0");
-    Assert.assertArrayEquals(expectedArgs.toArray(),
-        args.getValue().getArguments().toArray());
+    checkCgroupOperation(c1.getContainerId().toString(), 1,
+        "c-256:1-rwm,c-256:2-rwm", "256:0");
     // postComplete
-    adapter.getDeviceResourceHandler().postComplete(getContainerId(0));
+    adapter.getDeviceResourceHandler().postComplete(getContainerId(1));
     Assert.assertEquals(3,
         dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(0,
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
-
     // check cgroup delete operation
     verify(mockCGroupsHandler).deleteCGroup(
         CGroupsHandler.CGroupController.DEVICES,
         c1.getContainerId().toString());
-
     // Case 2. A container c2 requests 3 device
-    Container c2 = mockContainerWithDeviceRequest(1,
+    Container c2 = mockContainerWithDeviceRequest(2,
         resourceName,
         3, false);
     reset(mockShellWrapper);
@@ -238,42 +214,28 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
-
     verify(mockShellWrapper, times(0)).getDeviceFileType(anyString());
     // check device cgroup create operation
     verify(mockCGroupsHandler).createCGroup(
         CGroupsHandler.CGroupController.DEVICES,
         c2.getContainerId().toString());
     // check device cgroup update operation
-    args = ArgumentCaptor.forClass(PrivilegedOperation.class);
-    verify(mockPrivilegedExecutor, times(1))
-        .executePrivilegedOperation(args.capture(), eq(true));
-    Assert.assertEquals(PrivilegedOperation.OperationType.DEVICE,
-        args.getValue().getOperationType());
-    expectedArgs = Arrays.asList(
-        DeviceResourceHandlerImpl.CONTAINER_ID_CLI_OPTION,
-        c2.getContainerId().toString(),
-        DeviceResourceHandlerImpl.ALLOWED_DEVICES_CLI_OPTION,
-        "256:0,256:1,256:2");
-    Assert.assertArrayEquals(expectedArgs.toArray(),
-        args.getValue().getArguments().toArray());
-
+    checkCgroupOperation(c2.getContainerId().toString(), 1,
+        null, "256:0,256:1,256:2");
     // postComplete
-    adapter.getDeviceResourceHandler().postComplete(getContainerId(1));
+    adapter.getDeviceResourceHandler().postComplete(getContainerId(2));
     Assert.assertEquals(3,
         dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(0,
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
-
     // check cgroup delete operation
     verify(mockCGroupsHandler).deleteCGroup(
         CGroupsHandler.CGroupController.DEVICES,
         c2.getContainerId().toString());
-
     // Case 3. A container c3 request 0 device
-    Container c3 = mockContainerWithDeviceRequest(1,
+    Container c3 = mockContainerWithDeviceRequest(3,
         resourceName,
         0, false);
     reset(mockShellWrapper);
@@ -296,20 +258,10 @@ public class TestDevicePluginAdapter {
         CGroupsHandler.CGroupController.DEVICES,
         c3.getContainerId().toString());
     // check device cgroup update operation
-    args = ArgumentCaptor.forClass(PrivilegedOperation.class);
-    verify(mockPrivilegedExecutor, times(1))
-        .executePrivilegedOperation(args.capture(), eq(true));
-    Assert.assertEquals(PrivilegedOperation.OperationType.DEVICE,
-        args.getValue().getOperationType());
-    expectedArgs = Arrays.asList(
-        DeviceResourceHandlerImpl.CONTAINER_ID_CLI_OPTION,
-        c3.getContainerId().toString(),
-        DeviceResourceHandlerImpl.EXCLUDED_DEVICES_CLI_OPTION,
-        "c-256:0-rwm,c-256:1-rwm,c-256:2-rwm");
-    Assert.assertArrayEquals(expectedArgs.toArray(),
-        args.getValue().getArguments().toArray());
+    checkCgroupOperation(c3.getContainerId().toString(), 1,
+        "c-256:0-rwm,c-256:1-rwm,c-256:2-rwm", null);
     // postComplete
-    adapter.getDeviceResourceHandler().postComplete(getContainerId(1));
+    adapter.getDeviceResourceHandler().postComplete(getContainerId(3));
     Assert.assertEquals(3,
         dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(0,
@@ -320,6 +272,35 @@ public class TestDevicePluginAdapter {
     verify(mockCGroupsHandler).deleteCGroup(
         CGroupsHandler.CGroupController.DEVICES,
         c3.getContainerId().toString());
+  }
+
+  private void checkCgroupOperation(String cId,
+      int invokeTimesOfPrivilegedExecutor,
+      String excludedParam, String allowedParam)
+      throws PrivilegedOperationException, ResourceHandlerException {
+    verify(mockCGroupsHandler).createCGroup(
+        CGroupsHandler.CGroupController.DEVICES,
+        cId);
+    // check device cgroup update operation
+    ArgumentCaptor<PrivilegedOperation> args =
+        ArgumentCaptor.forClass(PrivilegedOperation.class);
+    verify(mockPrivilegedExecutor, times(invokeTimesOfPrivilegedExecutor))
+        .executePrivilegedOperation(args.capture(), eq(true));
+    Assert.assertEquals(PrivilegedOperation.OperationType.DEVICE,
+        args.getValue().getOperationType());
+    List<String> expectedArgs = new ArrayList<>();
+    expectedArgs.add(DeviceResourceHandlerImpl.CONTAINER_ID_CLI_OPTION);
+    expectedArgs.add(cId);
+    if (excludedParam != null && !excludedParam.isEmpty()) {
+      expectedArgs.add(DeviceResourceHandlerImpl.EXCLUDED_DEVICES_CLI_OPTION);
+      expectedArgs.add(excludedParam);
+    }
+    if (allowedParam != null && !allowedParam.isEmpty()) {
+      expectedArgs.add(DeviceResourceHandlerImpl.ALLOWED_DEVICES_CLI_OPTION);
+      expectedArgs.add(allowedParam);
+    }
+    Assert.assertArrayEquals(expectedArgs.toArray(),
+        args.getValue().getArguments().toArray());
   }
 
   @Test
