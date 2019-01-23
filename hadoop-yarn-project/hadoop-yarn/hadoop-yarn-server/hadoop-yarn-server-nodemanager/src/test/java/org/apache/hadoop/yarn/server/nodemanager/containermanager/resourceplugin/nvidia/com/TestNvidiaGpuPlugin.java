@@ -18,9 +18,91 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.nvidia.com;
 
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia.NvidiaGPUPlugin;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.Set;
+import java.util.TreeSet;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 /**
  * Test case for Nvidia GPU device plugin.
  * */
 public class TestNvidiaGpuPlugin {
 
+  @Test
+  public void testGetNvidiaDevices() throws Exception {
+    NvidiaGPUPlugin.MyShellExecutor mockShell =
+        mock(NvidiaGPUPlugin.MyShellExecutor.class);
+    String deviceInfoShellOutput =
+        "0, 00000000:04:00.0\n" +
+        "1, 00000000:82:00.0";
+    String majorMinorNumber0 = "c3:0";
+    String majorMinorNumber1 = "c3:1";
+    when(mockShell.getDeviceInfo()).thenReturn(deviceInfoShellOutput);
+    when(mockShell.getMajorMinorInfo("nvidia0"))
+        .thenReturn(majorMinorNumber0);
+    when(mockShell.getMajorMinorInfo("nvidia1"))
+        .thenReturn(majorMinorNumber1);
+    NvidiaGPUPlugin plugin = new NvidiaGPUPlugin();
+    plugin.setShellExecutor(mockShell);
+    plugin.setPathOfGpuBinary("/fake/nvidia-smi");
+
+    Set<Device> expectedDevices = new TreeSet<>();
+    expectedDevices.add(Device.Builder.newInstance()
+        .setId(0).setHealthy(true)
+        .setBusID("00000000:04:00.0")
+        .setDevPath("/dev/nvidia0")
+        .setMajorNumber(195)
+        .setMinorNumber(0).build());
+    expectedDevices.add(Device.Builder.newInstance()
+        .setId(0).setHealthy(true)
+        .setBusID("00000000:82:00.0")
+        .setDevPath("/dev/nvidia1")
+        .setMajorNumber(195)
+        .setMinorNumber(1).build());
+    Set<Device> devices = plugin.getDevices();
+    Assert.assertEquals(expectedDevices, devices);
+  }
+
+  @Test
+  public void testOnDeviceAllocated() throws Exception {
+    NvidiaGPUPlugin plugin = new NvidiaGPUPlugin();
+    Set<Device> allocatedDevices = new TreeSet<>();
+
+    DeviceRuntimeSpec spec = plugin.onDevicesAllocated(allocatedDevices,
+        YarnRuntimeType.RUNTIME_DEFAULT);
+    Assert.assertNull(spec);
+
+    // allocate one device
+    allocatedDevices.add(Device.Builder.newInstance()
+        .setId(0).setHealthy(true)
+        .setBusID("00000000:04:00.0")
+        .setDevPath("/dev/nvidia0")
+        .setMajorNumber(195)
+        .setMinorNumber(0).build());
+    spec = plugin.onDevicesAllocated(allocatedDevices,
+        YarnRuntimeType.RUNTIME_DOCKER);
+    Assert.assertEquals("nvidia", spec.getContainerRuntime());
+    Assert.assertEquals("0", spec.getEnvs().get("NVIDIA_VISIBLE_DEVICES"));
+
+    // two device allowed
+    allocatedDevices.add(Device.Builder.newInstance()
+        .setId(0).setHealthy(true)
+        .setBusID("00000000:82:00.0")
+        .setDevPath("/dev/nvidia1")
+        .setMajorNumber(195)
+        .setMinorNumber(1).build());
+    spec = plugin.onDevicesAllocated(allocatedDevices,
+        YarnRuntimeType.RUNTIME_DOCKER);
+    Assert.assertEquals("nvidia", spec.getContainerRuntime());
+    Assert.assertEquals("0,1", spec.getEnvs().get("NVIDIA_VISIBLE_DEVICES"));
+
+  }
 }

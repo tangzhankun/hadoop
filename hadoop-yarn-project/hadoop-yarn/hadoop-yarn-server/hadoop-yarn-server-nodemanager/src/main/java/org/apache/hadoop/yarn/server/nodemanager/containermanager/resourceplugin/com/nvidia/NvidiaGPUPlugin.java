@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -65,36 +66,6 @@ public class NvidiaGPUPlugin implements DevicePlugin {
   private static final Set<String> DEFAULT_BINARY_SEARCH_DIRS = ImmutableSet.of(
       "/usr/bin", "/bin", "/usr/local/nvidia/bin");
 
-  public NvidiaGPUPlugin() throws Exception {
-    // search env for the binary
-    String envBinaryPath = System.getenv(ENV_BINARY_PATH);
-    if (null != envBinaryPath) {
-      if (new File(envBinaryPath).exists()) {
-        this.pathOfGpuBinary = envBinaryPath;
-        LOG.info("Use nvidia gpu binary: " + pathOfGpuBinary);
-        return;
-      }
-    }
-    LOG.info("Search script..");
-    // search if binary exists in default folders
-    File binaryFile;
-    boolean found = false;
-    for (String dir : DEFAULT_BINARY_SEARCH_DIRS) {
-      binaryFile = new File(dir, DEFAULT_BINARY_NAME);
-      if (binaryFile.exists()) {
-        found = true;
-        this.pathOfGpuBinary = binaryFile.getAbsolutePath();
-        LOG.info("Found script:" + this.pathOfGpuBinary);
-        break;
-      }
-    }
-    if (!found) {
-      LOG.error("No binary found in below path"
-          + DEFAULT_BINARY_SEARCH_DIRS.toString());
-      throw new Exception("No binary found for " + NvidiaGPUPlugin.class);
-    }
-  }
-
   @Override
   public DeviceRegisterRequest getRegisterRequestInfo() throws Exception {
     return DeviceRegisterRequest.Builder.newInstance()
@@ -103,6 +74,7 @@ public class NvidiaGPUPlugin implements DevicePlugin {
 
   @Override
   public Set<Device> getDevices() throws Exception {
+    shellExecutor.searchBinary();
     TreeSet<Device> r = new TreeSet<>();
     String output;
     try {
@@ -165,7 +137,7 @@ public class NvidiaGPUPlugin implements DevicePlugin {
   }
 
   // Get major number from device name.
-  public String getMajorNumber(String devName) {
+  private String getMajorNumber(String devName) {
     String output = null;
     // output "major:minor" in hex
     try {
@@ -201,5 +173,49 @@ public class NvidiaGPUPlugin implements DevicePlugin {
       shexec.execute();
       return shexec.getOutput();
     }
+
+    public void searchBinary() throws Exception {
+      if (pathOfGpuBinary != null) {
+        return;
+      }
+      // search env for the binary
+      String envBinaryPath = System.getenv(ENV_BINARY_PATH);
+      if (null != envBinaryPath) {
+        if (new File(envBinaryPath).exists()) {
+          pathOfGpuBinary = envBinaryPath;
+          LOG.info("Use nvidia gpu binary: " + pathOfGpuBinary);
+          return;
+        }
+      }
+      LOG.info("Search script..");
+      // search if binary exists in default folders
+      File binaryFile;
+      boolean found = false;
+      for (String dir : DEFAULT_BINARY_SEARCH_DIRS) {
+        binaryFile = new File(dir, DEFAULT_BINARY_NAME);
+        if (binaryFile.exists()) {
+          found = true;
+          pathOfGpuBinary = binaryFile.getAbsolutePath();
+          LOG.info("Found script:" + pathOfGpuBinary);
+          break;
+        }
+      }
+      if (!found) {
+        LOG.error("No binary found in below path"
+            + DEFAULT_BINARY_SEARCH_DIRS.toString());
+        throw new Exception("No binary found for " + NvidiaGPUPlugin.class);
+      }
+    }
+  }
+
+  @VisibleForTesting
+  public void setPathOfGpuBinary(String pathOfGpuBinary) {
+    this.pathOfGpuBinary = pathOfGpuBinary;
+  }
+
+  @VisibleForTesting
+  public void setShellExecutor(
+      MyShellExecutor shellExecutor) {
+    this.shellExecutor = shellExecutor;
   }
 }
