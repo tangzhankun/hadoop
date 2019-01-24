@@ -43,6 +43,7 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileg
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.DockerCommandPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
 import org.apache.hadoop.yarn.server.nodemanager.recovery.NMMemoryStateStoreService;
@@ -666,6 +667,11 @@ public class TestDevicePluginAdapter {
         (NMDeviceResourceInfo) adapter.getNMResourceInfo();
     Assert.assertEquals(0, response.getAssignedDevices().size());
     Assert.assertEquals(3, response.getTotalDevices().size());
+  }
+
+  @Test
+  public void testDeviceResourceDockerRuntimePlugin() {
+    DockerCommandPlugin dcp =
   }
 
   private static ContainerId getContainerId(int id) {
