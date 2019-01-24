@@ -20,7 +20,6 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 
 import org.apache.hadoop.service.ServiceOperations;
 
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -35,6 +34,9 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePlugin;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DevicePluginScheduler;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRegisterRequest;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.MountDeviceSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.MountVolumeSpec;
+import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.VolumeSpec;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.ResourceMappings;
@@ -43,6 +45,8 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileg
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandlerException;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.docker.DockerRunCommand;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.docker.DockerVolumeCommand;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.DockerCommandPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.ResourcePluginManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
@@ -72,6 +76,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -669,9 +674,204 @@ public class TestDevicePluginAdapter {
     Assert.assertEquals(3, response.getTotalDevices().size());
   }
 
+  /**
+   * Test a container run command update when using Docker runtime.
+   * And the device plugin it uses is like Nvidia Docker v1.
+   * */
   @Test
-  public void testDeviceResourceDockerRuntimePlugin() {
-    DockerCommandPlugin dcp =
+  public void testDeviceResourceDockerRuntimePlugin1() throws Exception {
+    NodeManager.NMContext context = mock(NodeManager.NMContext.class);
+    NMStateStoreService storeService = mock(NMStateStoreService.class);
+    when(context.getNMStateStore()).thenReturn(storeService);
+    when(context.getConf()).thenReturn(this.conf);
+    doNothing().when(storeService).storeAssignedResources(isA(Container.class),
+        isA(String.class),
+        isA(ArrayList.class));
+    // Init scheduler manager
+    DeviceMappingManager dmm = new DeviceMappingManager(context);
+    DeviceMappingManager spyDmm = spy(dmm);
+    ResourcePluginManager rpm = mock(ResourcePluginManager.class);
+    when(rpm.getDeviceMappingManager()).thenReturn(spyDmm);
+    // Init a plugin
+    MyPlugin plugin = new MyPlugin();
+    MyPlugin spyPlugin = spy(plugin);
+    String resourceName = MyPlugin.RESOURCE_NAME;
+    // Init an adapter for the plugin
+    DevicePluginAdapter adapter = new DevicePluginAdapter(
+        resourceName,
+        spyPlugin, spyDmm);
+    adapter.initialize(context);
+    // Bootstrap, adding device
+    adapter.initialize(context);
+    adapter.createResourceHandler(context,
+        mockCGroupsHandler, mockPrivilegedExecutor);
+    adapter.getDeviceResourceHandler().bootstrap(conf);
+    // Case 1. A container request Docker runtime and 1 device
+    Container c1 = mockContainerWithDeviceRequest(1, resourceName, 1, true);
+    // generate spec based on v1
+    spyPlugin.setDevice_DOCKER_VERSION("v1");
+    // preStart will do allocation
+    adapter.getDeviceResourceHandler().preStart(c1);
+    Set<Device> allocatedDevice = spyDmm.getAllocatedDevices(resourceName,
+        c1.getContainerId());
+    reset(spyDmm);
+    // c1 is requesting docker runtime.
+    // it will create parent cgroup but no cgroups update operation needed.
+    // check device cgroup create operation
+    verify(mockCGroupsHandler).createCGroup(
+        CGroupsHandler.CGroupController.DEVICES,
+        c1.getContainerId().toString());
+    // ensure no cgroups update operation
+    verify(mockPrivilegedExecutor, times(0))
+        .executePrivilegedOperation(
+            any(PrivilegedOperation.class), anyBoolean());
+    DockerCommandPlugin dcp = adapter.getDockerCommandPluginInstance();
+    // When DockerLinuxContainerRuntime invoke the DockerCommandPluginInstance
+    // First to create volume
+    DockerVolumeCommand dvc = dcp.getCreateDockerVolumeCommand(c1);
+    // ensure that allocation is get once from device mapping manager
+    verify(spyDmm).getAllocatedDevices(resourceName, c1.getContainerId());
+    // ensure that plugin's onDeviceAllocated is invoked
+    verify(spyPlugin).onDevicesAllocated(
+        allocatedDevice,
+        YarnRuntimeType.RUNTIME_DEFAULT);
+    verify(spyPlugin).onDevicesAllocated(
+        allocatedDevice,
+        YarnRuntimeType.RUNTIME_DOCKER);
+    Assert.assertEquals("nvidia-docker", dvc.getDriverName());
+    Assert.assertEquals("create", dvc.getSubCommand());
+    Assert.assertEquals("nvidia_driver_352.68", dvc.getVolumeName());
+
+    // then the DockerLinuxContainerRuntime will update docker run command
+    DockerRunCommand drc =
+        new DockerRunCommand(c1.getContainerId().toString(), "user",
+            "image/tensorflow");
+    // reset to avoid count times in above invocation
+    reset(spyPlugin);
+    reset(spyDmm);
+    // Second, update the run command.
+    dcp.updateDockerRunCommand(drc, c1);
+    // The spec is already generated in getCreateDockerVolumeCommand
+    // and there should be a cache hit for DeviceRuntime spec.
+    verify(spyPlugin, times(0)).onDevicesAllocated(
+        allocatedDevice,
+        YarnRuntimeType.RUNTIME_DOCKER);
+    // ensure that allocation is get from cache instead of device mapping
+    // manager
+    verify(spyDmm, times(0)).getAllocatedDevices(resourceName,
+        c1.getContainerId());
+    String runStr = drc.toString();
+    Assert.assertTrue(
+        runStr.contains("nvidia_driver_352.68:/usr/local/nvidia:ro"));
+    Assert.assertTrue(runStr.contains("/dev/hdwA0:/dev/hdwA0"));
+    // Third, cleanup in getCleanupDockerVolumesCommand
+    dcp.getCleanupDockerVolumesCommand(c1);
+    // Ensure device plugin's onDeviceReleased is invoked
+    verify(spyPlugin).onDevicesReleased(allocatedDevice);
+    // If we run the c1 again. No cache will be used for allocation and spec
+    dcp.getCreateDockerVolumeCommand(c1);
+    verify(spyDmm).getAllocatedDevices(resourceName, c1.getContainerId());
+    verify(spyPlugin).onDevicesAllocated(
+        allocatedDevice,
+        YarnRuntimeType.RUNTIME_DOCKER);
+  }
+
+  /**
+   * Test a container run command update when using Docker runtime.
+   * And the device plugin it uses is like Nvidia Docker v2.
+   * */
+  @Test
+  public void testDeviceResourceDockerRuntimePlugin2() throws Exception {
+    NodeManager.NMContext context = mock(NodeManager.NMContext.class);
+    NMStateStoreService storeService = mock(NMStateStoreService.class);
+    when(context.getNMStateStore()).thenReturn(storeService);
+    when(context.getConf()).thenReturn(this.conf);
+    doNothing().when(storeService).storeAssignedResources(isA(Container.class),
+        isA(String.class),
+        isA(ArrayList.class));
+    // Init scheduler manager
+    DeviceMappingManager dmm = new DeviceMappingManager(context);
+    DeviceMappingManager spyDmm = spy(dmm);
+    ResourcePluginManager rpm = mock(ResourcePluginManager.class);
+    when(rpm.getDeviceMappingManager()).thenReturn(spyDmm);
+    // Init a plugin
+    MyPlugin plugin = new MyPlugin();
+    MyPlugin spyPlugin = spy(plugin);
+    String resourceName = MyPlugin.RESOURCE_NAME;
+    // Init an adapter for the plugin
+    DevicePluginAdapter adapter = new DevicePluginAdapter(
+        resourceName,
+        spyPlugin, spyDmm);
+    adapter.initialize(context);
+    // Bootstrap, adding device
+    adapter.initialize(context);
+    adapter.createResourceHandler(context,
+        mockCGroupsHandler, mockPrivilegedExecutor);
+    adapter.getDeviceResourceHandler().bootstrap(conf);
+    // Case 1. A container request Docker runtime and 1 device
+    Container c1 = mockContainerWithDeviceRequest(1, resourceName, 2, true);
+    // generate spec based on v2
+    spyPlugin.setDevice_DOCKER_VERSION("v2");
+    // preStart will do allocation
+    adapter.getDeviceResourceHandler().preStart(c1);
+    Set<Device> allocatedDevice = spyDmm.getAllocatedDevices(resourceName,
+        c1.getContainerId());
+    reset(spyDmm);
+    // c1 is requesting docker runtime.
+    // it will create parent cgroup but no cgroups update operation needed.
+    // check device cgroup create operation
+    verify(mockCGroupsHandler).createCGroup(
+        CGroupsHandler.CGroupController.DEVICES,
+        c1.getContainerId().toString());
+    // ensure no cgroups update operation
+    verify(mockPrivilegedExecutor, times(0))
+        .executePrivilegedOperation(
+            any(PrivilegedOperation.class), anyBoolean());
+    DockerCommandPlugin dcp = adapter.getDockerCommandPluginInstance();
+    // When DockerLinuxContainerRuntime invoke the DockerCommandPluginInstance
+    // First to create volume
+    DockerVolumeCommand dvc = dcp.getCreateDockerVolumeCommand(c1);
+    // ensure that allocation is get once from device mapping manager
+    verify(spyDmm).getAllocatedDevices(resourceName, c1.getContainerId());
+    // ensure that plugin's onDeviceAllocated is invoked
+    verify(spyPlugin).onDevicesAllocated(
+        allocatedDevice,
+        YarnRuntimeType.RUNTIME_DEFAULT);
+    verify(spyPlugin).onDevicesAllocated(
+        allocatedDevice,
+        YarnRuntimeType.RUNTIME_DOCKER);
+    // No volume creation request
+    Assert.assertNull(dvc);
+
+    // then the DockerLinuxContainerRuntime will update docker run command
+    DockerRunCommand drc =
+        new DockerRunCommand(c1.getContainerId().toString(), "user",
+            "image/tensorflow");
+    // reset to avoid count times in above invocation
+    reset(spyPlugin);
+    reset(spyDmm);
+    // Second, update the run command.
+    dcp.updateDockerRunCommand(drc, c1);
+    // The spec is already generated in getCreateDockerVolumeCommand
+    // and there should be a cache hit for DeviceRuntime spec.
+    verify(spyPlugin, times(0)).onDevicesAllocated(
+        allocatedDevice,
+        YarnRuntimeType.RUNTIME_DOCKER);
+    // ensure that allocation is get once from device mapping manager
+    verify(spyDmm, times(0)).getAllocatedDevices(resourceName,
+        c1.getContainerId());
+    Assert.assertEquals("0,1", drc.getEnv().get("NVIDIA_VISIBLE_DEVICES"));
+    Assert.assertTrue(drc.toString().contains("runtime=nvidia"));
+    // Third, cleanup in getCleanupDockerVolumesCommand
+    dcp.getCleanupDockerVolumesCommand(c1);
+    // Ensure device plugin's onDeviceReleased is invoked
+    verify(spyPlugin).onDevicesReleased(allocatedDevice);
+    // If we run the c1 again. No cache will be used for allocation and spec
+    dcp.getCreateDockerVolumeCommand(c1);
+    verify(spyDmm).getAllocatedDevices(resourceName, c1.getContainerId());
+    verify(spyPlugin).onDevicesAllocated(
+        allocatedDevice,
+        YarnRuntimeType.RUNTIME_DOCKER);
   }
 
   private static ContainerId getContainerId(int id) {
@@ -681,6 +881,15 @@ public class TestDevicePluginAdapter {
 
   private class MyPlugin implements DevicePlugin, DevicePluginScheduler {
     private final static String RESOURCE_NAME = "cmpA.com/hdwA";
+
+    // v1 means the vendor uses the similar way of Nvidia Docker v1
+    // v2 means the vendor user the similar way of Nvidia Docker v2
+    private String DEVICE_DOCKER_VERSION = "v2";
+
+    public void setDevice_DOCKER_VERSION(String device_DOCKER_VERSION) {
+      DEVICE_DOCKER_VERSION = device_DOCKER_VERSION;
+    }
+
     @Override
     public DeviceRegisterRequest getRegisterRequestInfo() {
       return DeviceRegisterRequest.Builder.newInstance()
@@ -721,12 +930,68 @@ public class TestDevicePluginAdapter {
     @Override
     public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
         YarnRuntimeType yarnRuntime) throws Exception {
+      if (yarnRuntime == YarnRuntimeType.RUNTIME_DEFAULT) {
+        return null;
+      }
+      if (yarnRuntime == YarnRuntimeType.RUNTIME_DOCKER) {
+        return generateSpec(DEVICE_DOCKER_VERSION, allocatedDevices);
+      }
       return null;
+    }
+
+    private DeviceRuntimeSpec generateSpec(String version,
+        Set<Device> allocatedDevices) {
+      DeviceRuntimeSpec.Builder builder =
+          DeviceRuntimeSpec.Builder.newInstance();
+      if (version.equals("v1")) {
+        // Nvidia v1 examples like below. These info is get from Nvidia v1
+        // RESTful.
+        // --device=/dev/nvidiactl --device=/dev/nvidia-uvm --device=/dev/nvidia0
+        // --volume-driver=nvidia-docker
+        // --volume=nvidia_driver_352.68:/usr/local/nvidia:ro
+        String volumeDriverName = "nvidia-docker";
+        String volumeToBeCreated = "nvidia_driver_352.68";
+        String volumePathInContainer = "/usr/local/nvidia";
+        // describe volumes to be created and mounted
+        builder.addVolumeSpec(
+                VolumeSpec.Builder.newInstance()
+                    .setVolumeDriver(volumeDriverName)
+                    .setVolumeName(volumeToBeCreated)
+                    .setVolumeOperation(VolumeSpec.CREATE).build())
+            .addMountVolumeSpec(
+                MountVolumeSpec.Builder.newInstance()
+                    .setHostPath(volumeToBeCreated)
+                    .setMountPath(volumePathInContainer)
+                    .setReadOnly(true).build());
+        // describe devices to be mounted
+        for (Device device : allocatedDevices) {
+          builder.addMountDeviceSpec(
+              MountDeviceSpec.Builder.newInstance()
+                  .setDevicePathInHost(device.getDevPath())
+                  .setDevicePathInContainer(device.getDevPath())
+                  .setDevicePermission(MountDeviceSpec.RW).build());
+        }
+      }
+      if (version.equals("v2")) {
+        String nvidiaRuntime = "nvidia";
+        String nvidiaVisibleDevices = "NVIDIA_VISIBLE_DEVICES";
+        StringBuffer gpuMinorNumbersSB = new StringBuffer();
+        for (Device device : allocatedDevices) {
+          gpuMinorNumbersSB.append(device.getMinorNumber() + ",");
+        }
+        String minorNumbers = gpuMinorNumbersSB.toString();
+        // set runtime and environment variable is enough for
+        // plugin like Nvidia Docker v2
+        builder.addEnv(nvidiaVisibleDevices,
+            minorNumbers.substring(0, minorNumbers.length() - 1))
+            .setContainerRuntime(nvidiaRuntime);
+      }
+      return builder.build();
     }
 
     @Override
     public void onDevicesReleased(Set<Device> releasedDevices) {
-
+      // nothing to do
     }
 
     @Override

@@ -95,6 +95,20 @@ public class DeviceMappingManager {
     return devicePluginSchedulers;
   }
 
+  @VisibleForTesting
+  public Set<Device> getAllocatedDevices(String resourceName,
+      ContainerId cId) {
+    Set<Device> assigned = new TreeSet<>();
+    Map<Device, ContainerId> assignedMap =
+        this.getAllUsedDevices().get(resourceName);
+    for (Map.Entry<Device, ContainerId> entry : assignedMap.entrySet()) {
+      if (entry.getValue().equals(cId)) {
+        assigned.add(entry.getKey());
+      }
+    }
+    return assigned;
+  }
+
   public synchronized void addDeviceSet(String resourceName,
       Set<Device> deviceSet) {
     LOG.info("Adding new resource: " + "type:"

@@ -168,20 +168,12 @@ public class DeviceResourceDockerRuntimePluginImpl
     if (allocated != null) {
       return allocated;
     }
-    Map<Device, ContainerId> assignedDevice = devicePluginAdapter
+    allocated = devicePluginAdapter
         .getDeviceMappingManager()
-        .getAllUsedDevices().get(resourceName);
+        .getAllocatedDevices(resourceName, containerId);
     LOG.debug("Get allocation from deviceMappingManager: "
-        + assignedDevice + ", " + resourceName);
-    if (assignedDevice != null && assignedDevice.size() > 0) {
-      allocated = new TreeSet<>();
-      for (Map.Entry<Device, ContainerId> entry : assignedDevice.entrySet()) {
-        if (entry.getValue().equals(containerId)) {
-          allocated.add(entry.getKey());
-        }
-      }
-      cachedAllocation.put(containerId, allocated);
-    }
+        + allocated + ", " + resourceName);
+    cachedAllocation.put(containerId, allocated);
     return allocated;
   }
 
