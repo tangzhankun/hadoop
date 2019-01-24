@@ -209,23 +209,15 @@ public class TestDeviceMappingManager {
     for (Map.Entry<Container, Integer> entry :
         containerSet.get(resourceName1).entrySet()) {
       int containerWanted = entry.getValue();
-      int actualAllocated = 0;
-      for (ContainerId cid : used1.values()) {
-        if (cid.equals(entry.getKey().getContainerId())) {
-          actualAllocated++;
-        }
-      }
+      int actualAllocated = dmm.getAllocatedDevices(resourceName1,
+          entry.getKey().getContainerId()).size();
       Assert.assertEquals(containerWanted, actualAllocated);
     }
     for (Map.Entry<Container, Integer> entry :
         containerSet.get(resourceName2).entrySet()) {
       int containerWanted = entry.getValue();
-      int actualAllocated = 0;
-      for (ContainerId cid : used2.values()) {
-        if (cid.equals(entry.getKey().getContainerId())) {
-          actualAllocated++;
-        }
-      }
+      int actualAllocated = dmm.getAllocatedDevices(resourceName2,
+          entry.getKey().getContainerId()).size();
       Assert.assertEquals(containerWanted, actualAllocated);
     }
   }
@@ -273,7 +265,6 @@ public class TestDeviceMappingManager {
     while (!containerLauncher.awaitTermination(10, TimeUnit.SECONDS)) {
       LOG.info("Wait for the threads to finish");
     }
-
 
     // Ensure invocation times
     verify(dmmSpy, times(totalContainerCount)).assignDevices(

@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
-import org.apache.hadoop.service.ServiceOperations;
 
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -103,7 +102,6 @@ public class TestDevicePluginAdapter {
   private String tempResourceTypesFile;
   private CGroupsHandler mockCGroupsHandler;
   private PrivilegedOperationExecutor mockPrivilegedExecutor;
-  private NodeManager nm;
 
   @Before
   public void setup() throws Exception {
@@ -123,13 +121,6 @@ public class TestDevicePluginAdapter {
     File dest = new File(this.tempResourceTypesFile);
     if (dest.exists()) {
       dest.delete();
-    }
-    if (nm != null) {
-      try {
-        ServiceOperations.stop(nm);
-      } catch (Throwable t) {
-        // ignore
-      }
     }
   }
 
@@ -186,6 +177,8 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
+    Assert.assertEquals(1,
+        dmm.getAllocatedDevices(resourceName, c1.getContainerId()).size());
     verify(mockShellWrapper, times(2)).getDeviceFileType(anyString());
     // check device cgroup create operation
     checkCgroupOperation(c1.getContainerId().toString(), 1,
@@ -220,6 +213,8 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
+    Assert.assertEquals(3,
+        dmm.getAllocatedDevices(resourceName, c2.getContainerId()).size());
     verify(mockShellWrapper, times(0)).getDeviceFileType(anyString());
     // check device cgroup create operation
     verify(mockCGroupsHandler).createCGroup(
@@ -274,6 +269,8 @@ public class TestDevicePluginAdapter {
         dmm.getAllUsedDevices().get(resourceName).size());
     Assert.assertEquals(3,
         dmm.getAllAllowedDevices().get(resourceName).size());
+    Assert.assertEquals(0,
+        dmm.getAllocatedDevices(resourceName, c3.getContainerId()).size());
     // check cgroup delete operation
     verify(mockCGroupsHandler).deleteCGroup(
         CGroupsHandler.CGroupController.DEVICES,
