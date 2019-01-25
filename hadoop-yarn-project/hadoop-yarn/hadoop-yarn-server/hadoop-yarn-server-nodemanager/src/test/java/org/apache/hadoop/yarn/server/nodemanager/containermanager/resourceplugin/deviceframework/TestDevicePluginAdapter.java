@@ -883,8 +883,8 @@ public class TestDevicePluginAdapter {
     // v2 means the vendor user the similar way of Nvidia Docker v2
     private String devicePluginVersion = "v2";
 
-    public void setDevicePluginVersion(String device_DOCKER_VERSION) {
-      devicePluginVersion = device_DOCKER_VERSION;
+    public void setDevicePluginVersion(String version) {
+      devicePluginVersion = version;
     }
 
     @Override
