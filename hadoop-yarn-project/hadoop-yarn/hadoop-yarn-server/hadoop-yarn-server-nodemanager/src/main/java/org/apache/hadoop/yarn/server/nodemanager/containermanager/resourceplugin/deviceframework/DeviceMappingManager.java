@@ -19,6 +19,7 @@
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.deviceframework;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.commons.logging.Log;
@@ -190,7 +191,8 @@ public class DeviceMappingManager {
       DevicePluginScheduler dps = devicePluginSchedulers.get(resourceName);
       // Prefer DevicePluginScheduler logic
       pickAndDoSchedule(allowedDevices, usedDevices, assignedDevices,
-          containerId, requestedDeviceCount, resourceName, dps);
+          containerId, requestedDeviceCount, resourceName, dps,
+          container.getLaunchContext().getEnvironment());
 
       // Record in state store if we allocated anything
       if (!assignedDevices.isEmpty()) {
@@ -310,7 +312,8 @@ public class DeviceMappingManager {
   private void pickAndDoSchedule(Set<Device> allowed,
       Map<Device, ContainerId> used, Set<Device> assigned,
       ContainerId containerId, int count, String resourceName,
-      DevicePluginScheduler dps) throws ResourceHandlerException {
+      DevicePluginScheduler dps, Map<String, String> env)
+      throws ResourceHandlerException {
 
     if (null == dps) {
       LOG.debug("Customized device plugin scheduler is preferred "
@@ -326,7 +329,8 @@ public class DeviceMappingManager {
       // Pass in unmodifiable set
       Set<Device> dpsAllocated = dps.allocateDevices(
           Sets.difference(allowed, used.keySet()),
-          count);
+          count,
+          ImmutableMap.copyOf(env));
       if (dpsAllocated.size() != count) {
         throw new ResourceHandlerException(dps.getClass()
             + " should allocate " + count
