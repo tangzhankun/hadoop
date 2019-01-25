@@ -706,7 +706,7 @@ public class TestDevicePluginAdapter {
     // Case 1. A container request Docker runtime and 1 device
     Container c1 = mockContainerWithDeviceRequest(1, resourceName, 1, true);
     // generate spec based on v1
-    spyPlugin.setDevice_DOCKER_VERSION("v1");
+    spyPlugin.setDevicePluginVersion("v1");
     // preStart will do allocation
     adapter.getDeviceResourceHandler().preStart(c1);
     Set<Device> allocatedDevice = spyDmm.getAllocatedDevices(resourceName,
@@ -808,7 +808,7 @@ public class TestDevicePluginAdapter {
     // Case 1. A container request Docker runtime and 1 device
     Container c1 = mockContainerWithDeviceRequest(1, resourceName, 2, true);
     // generate spec based on v2
-    spyPlugin.setDevice_DOCKER_VERSION("v2");
+    spyPlugin.setDevicePluginVersion("v2");
     // preStart will do allocation
     adapter.getDeviceResourceHandler().preStart(c1);
     Set<Device> allocatedDevice = spyDmm.getAllocatedDevices(resourceName,
@@ -881,10 +881,10 @@ public class TestDevicePluginAdapter {
 
     // v1 means the vendor uses the similar way of Nvidia Docker v1
     // v2 means the vendor user the similar way of Nvidia Docker v2
-    private String DEVICE_DOCKER_VERSION = "v2";
+    private String devicePluginVersion = "v2";
 
-    public void setDevice_DOCKER_VERSION(String device_DOCKER_VERSION) {
-      DEVICE_DOCKER_VERSION = device_DOCKER_VERSION;
+    public void setDevicePluginVersion(String device_DOCKER_VERSION) {
+      devicePluginVersion = device_DOCKER_VERSION;
     }
 
     @Override
@@ -931,7 +931,7 @@ public class TestDevicePluginAdapter {
         return null;
       }
       if (yarnRuntime == YarnRuntimeType.RUNTIME_DOCKER) {
-        return generateSpec(DEVICE_DOCKER_VERSION, allocatedDevices);
+        return generateSpec(devicePluginVersion, allocatedDevices);
       }
       return null;
     }
@@ -943,7 +943,8 @@ public class TestDevicePluginAdapter {
       if (version.equals("v1")) {
         // Nvidia v1 examples like below. These info is get from Nvidia v1
         // RESTful.
-        // --device=/dev/nvidiactl --device=/dev/nvidia-uvm --device=/dev/nvidia0
+        // --device=/dev/nvidiactl --device=/dev/nvidia-uvm
+        // --device=/dev/nvidia0
         // --volume-driver=nvidia-docker
         // --volume=nvidia_driver_352.68:/usr/local/nvidia:ro
         String volumeDriverName = "nvidia-docker";

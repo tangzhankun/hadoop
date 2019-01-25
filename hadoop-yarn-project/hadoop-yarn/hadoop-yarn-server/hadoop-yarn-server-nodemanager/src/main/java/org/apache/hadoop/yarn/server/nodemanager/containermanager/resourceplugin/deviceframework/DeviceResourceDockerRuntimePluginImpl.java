@@ -36,7 +36,6 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.Contai
 
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
