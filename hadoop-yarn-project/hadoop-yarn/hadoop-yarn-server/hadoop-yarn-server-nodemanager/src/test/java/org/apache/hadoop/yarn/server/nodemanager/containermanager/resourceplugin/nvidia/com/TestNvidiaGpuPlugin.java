@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -39,6 +40,7 @@ import static org.mockito.Matchers.anySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -168,7 +170,7 @@ public class TestNvidiaGpuPlugin {
   }
 
   @Test
-  public void testTopologyScheduling() throws Exception {
+  public void testTopologySchedulingWithPackPolicy() throws Exception {
     NvidiaGPUPlugin plugin = mockFourGPUPlugin();
     NvidiaGPUPlugin spyPlugin = spy(plugin);
     // cache the total devices
@@ -190,6 +192,7 @@ public class TestNvidiaGpuPlugin {
     // Case 3. allocate 2 devices
     reset(spyPlugin);
     int count = 2;
+    Map<String, Integer> pairToWeight = spyPlugin.getDevicePairToWeight();
     allocation = spyPlugin.allocateDevices(allDevices, count, env);
     Assert.assertEquals(allocation.size(), count);
     // the costTable should be init and used topology scheduling
@@ -198,6 +201,140 @@ public class TestNvidiaGpuPlugin {
     verify(spyPlugin).topologyAwareSchedule(anySet(), anyInt(), anyMap(),
         anySet(), anyMap());
     Assert.assertEquals(allocation.size(), count);
+    Device[] allocatedDevices =
+        allocation.toArray(new Device[count]);
+    // Check weights
+    Assert.assertEquals(2, spyPlugin.computeCostOfDevices(allocatedDevices));
+    // Case 4. allocate 3 devices
+    reset(spyPlugin);
+    count = 3;
+    allocation = spyPlugin.allocateDevices(allDevices, count, env);
+    Assert.assertEquals(allocation.size(), count);
+    // the costTable should be init and used topology scheduling
+    verify(spyPlugin, times(0)).initCostTable();
+    Assert.assertTrue(spyPlugin.isTopoInitialized());
+    verify(spyPlugin).topologyAwareSchedule(anySet(), anyInt(), anyMap(),
+        anySet(), anyMap());
+    Assert.assertEquals(allocation.size(), count);
+    allocatedDevices =
+        allocation.toArray(new Device[count]);
+    // check weights
+    Assert.assertEquals(2 + 4 + 4,
+        spyPlugin.computeCostOfDevices(allocatedDevices));
+    // Case 5. allocate 2 GPUs from three available devices
+    reset(spyPlugin);
+    Iterator<Device> iterator = allDevices.iterator();
+    iterator.next();
+    // remove GPU0
+    iterator.remove();
+    count = 2;
+    allocation = spyPlugin.allocateDevices(allDevices, count, env);
+    Assert.assertEquals(allocation.size(), count);
+    // the costTable should be init and used topology scheduling
+    verify(spyPlugin, times(0)).initCostTable();
+    Assert.assertTrue(spyPlugin.isTopoInitialized());
+    verify(spyPlugin).topologyAwareSchedule(anySet(), anyInt(), anyMap(),
+        anySet(), anyMap());
+    Assert.assertEquals(allocation.size(), count);
+    allocatedDevices =
+        allocation.toArray(new Device[count]);
+    // check weights
+    Assert.assertEquals(2,
+        spyPlugin.computeCostOfDevices(allocatedDevices));
+    // it should allocate GPU 2 and 3
+    for (Device device : allocation) {
+      if (device.getMinorNumber() == 2) {
+        Assert.assertTrue(true);
+      } else if (device.getMinorNumber() == 3) {
+        Assert.assertTrue(true);
+      } else {
+        Assert.assertTrue("Should allocate GPU 2 and 3",false);
+      }
+    }
+  }
+
+  @Test
+  public void testTopologySchedulingWithSpreadPolicy() throws Exception {
+    NvidiaGPUPlugin plugin = mockFourGPUPlugin();
+    NvidiaGPUPlugin spyPlugin = spy(plugin);
+    // cache the total devices
+    Set<Device> allDevices = spyPlugin.getDevices();
+    // environment variable to use PACK policy
+    Map<String, String> env = new HashMap<>();
+    env.put(NvidiaGPUPlugin.TOPOLOGY_POLICY_ENV_KEY,
+        NvidiaGPUPlugin.TOPOLOGY_POLICY_SPREAD);
+    // Case 1. allocate 1 device
+    Set<Device> allocation = spyPlugin.allocateDevices(allDevices, 1, env);
+    // ensure no topology scheduling needed
+    Assert.assertEquals(allocation.size(), 1);
+    verify(spyPlugin).basicSchedule(anySet(), anyInt(), anySet());
+    reset(spyPlugin);
+    // Case 2. allocate all available
+    allocation = spyPlugin.allocateDevices(allDevices, allDevices.size(), env);
+    Assert.assertEquals(allocation.size(), allDevices.size());
+    verify(spyPlugin).basicSchedule(anySet(), anyInt(), anySet());
+    // Case 3. allocate 2 devices
+    reset(spyPlugin);
+    int count = 2;
+    Map<String, Integer> pairToWeight = spyPlugin.getDevicePairToWeight();
+    allocation = spyPlugin.allocateDevices(allDevices, count, env);
+    Assert.assertEquals(allocation.size(), count);
+    // the costTable should be init and used topology scheduling
+    verify(spyPlugin).initCostTable();
+    Assert.assertTrue(spyPlugin.isTopoInitialized());
+    verify(spyPlugin).topologyAwareSchedule(anySet(), anyInt(), anyMap(),
+        anySet(), anyMap());
+    Assert.assertEquals(allocation.size(), count);
+    Device[] allocatedDevices =
+        allocation.toArray(new Device[count]);
+    // Check weights
+    Assert.assertEquals(4, spyPlugin.computeCostOfDevices(allocatedDevices));
+    // Case 4. allocate 3 devices
+    reset(spyPlugin);
+    count = 3;
+    allocation = spyPlugin.allocateDevices(allDevices, count, env);
+    Assert.assertEquals(allocation.size(), count);
+    // the costTable should be init and used topology scheduling
+    verify(spyPlugin, times(0)).initCostTable();
+    Assert.assertTrue(spyPlugin.isTopoInitialized());
+    verify(spyPlugin).topologyAwareSchedule(anySet(), anyInt(), anyMap(),
+        anySet(), anyMap());
+    Assert.assertEquals(allocation.size(), count);
+    allocatedDevices =
+        allocation.toArray(new Device[count]);
+    // check weights
+    Assert.assertEquals(2 + 4 + 4,
+        spyPlugin.computeCostOfDevices(allocatedDevices));
+    // Case 5. allocate 2 GPUs from three available devices
+    reset(spyPlugin);
+    Iterator<Device> iterator = allDevices.iterator();
+    iterator.next();
+    // remove GPU0
+    iterator.remove();
+    count = 2;
+    allocation = spyPlugin.allocateDevices(allDevices, count, env);
+    Assert.assertEquals(allocation.size(), count);
+    // the costTable should be init and used topology scheduling
+    verify(spyPlugin, times(0)).initCostTable();
+    Assert.assertTrue(spyPlugin.isTopoInitialized());
+    verify(spyPlugin).topologyAwareSchedule(anySet(), anyInt(), anyMap(),
+        anySet(), anyMap());
+    Assert.assertEquals(allocation.size(), count);
+    allocatedDevices =
+        allocation.toArray(new Device[count]);
+    // check weights
+    Assert.assertEquals(4,
+        spyPlugin.computeCostOfDevices(allocatedDevices));
+    // it should allocate GPU 1 and 2
+    for (Device device : allocation) {
+      if (device.getMinorNumber() == 2) {
+        Assert.assertTrue(true);
+      } else if (device.getMinorNumber() == 1) {
+        Assert.assertTrue(true);
+      } else {
+        Assert.assertTrue("Should allocate GPU 1 and 2",false);
+      }
+    }
   }
 
   /**

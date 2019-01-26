@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -321,7 +320,8 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
    * It calculate link weight of each pair in non-duplicated combination of
    * devices.
    */
-  private int computeCostOfDevices(Device[] devices) {
+  @VisibleForTesting
+  public int computeCostOfDevices(Device[] devices) {
     int cost = 0;
     String gpuIndex0;
     String gpuIndex1;
