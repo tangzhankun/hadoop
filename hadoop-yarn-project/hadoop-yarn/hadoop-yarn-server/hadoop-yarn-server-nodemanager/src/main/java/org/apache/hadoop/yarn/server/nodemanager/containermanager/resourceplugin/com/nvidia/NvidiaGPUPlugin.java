@@ -33,12 +33,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -88,41 +89,28 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
   private Map<Integer, Map<Set<Device>, Integer>> costTable = new HashMap<>();
 
   /**
-   * The key is P2P link type. The value is an edge sorted from fast
-   * connection to slow connection.
-   * It helps to search GPUs by link type.
+   * The key is a pair of minors. For instance, "0-1" indicates 0 to 1
+   * The value is weight between the two devices.
    * */
-  private Map<DeviceLinkType, Set<DeviceLink>> typeToDevices = new HashMap<>();
-
-  /**
-   * The key is device minor number. The value is its neighbors sorted from
-   * fast connection to slow connection.
-   * It helps to search neighbors of one GPU.
-   * */
-  private Map<Integer, Set<DeviceLink>> deviceToNeighbors = new HashMap<>();
-
-  /**
-   * The key is a pair of minors. The value is weight between the two devices.
-   * */
-  private Map<int[], Integer> deviceLinkToWeight = new HashMap<>();
+  private Map<String, Integer> devicePairToWeight = new HashMap<>();
 
   /**
    * The container set this environment variable to tell the scheduler what's
    * the policy to use when do scheduling
    * */
-  private static final String TOPOLOGY_POLICY_ENV_KEY = "NVIDIA_TOPO_POLICY";
+  public static final String TOPOLOGY_POLICY_ENV_KEY = "NVIDIA_TOPO_POLICY";
 
   /**
    * Schedule policy that prefer the faster GPU-GPU communication.
    * Suitable for heavy GPU computation workload generally.
    * */
-  private static final String TOPOLOGY_POLICY_PACK = "PACK";
+  public static final String TOPOLOGY_POLICY_PACK = "PACK";
 
   /**
    * Schedule policy that prefer the faster CPU-GPU communication.
    * Suitable for heavy CPU-GPU IO operations generally.
    * */
-  private static final String TOPOLOGY_POLICY_SPREAD = "SPREAD";
+  public static final String TOPOLOGY_POLICY_SPREAD = "SPREAD";
 
   @Override
   public DeviceRegisterRequest getRegisterRequestInfo() throws Exception {
@@ -154,9 +142,10 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
               .setDevPath("/dev/" + DEV_NAME_PREFIX + minorNumber)
               .setHealthy(true)
               .build());
+          id++;
         }
       }
-      // cache it which is help to topology scheduling
+      // cache it which help to topology scheduling
       lastTimeFoundDevices = r;
       return r;
     } catch (IOException e) {
@@ -218,6 +207,11 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
   public Set<Device> allocateDevices(Set<Device> availableDevices, int count,
       Map<String, String> envs) {
     Set<Device> allocation = new TreeSet<>();
+    // corner cases
+    if (count == 1 || count == availableDevices.size()) {
+      basicSchedule(allocation, count, availableDevices);
+      return allocation;
+    }
     try {
       if (!topoInitialized) {
         initCostTable();
@@ -225,6 +219,11 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
       // topology aware scheduling
       topologyAwareSchedule(allocation, count,
           envs, availableDevices, this.costTable);
+      if (allocation.size() != count) {
+        LOG.error("Failed to do topology scheduling. Skip to use basic " +
+            "scheduling");
+      }
+      return allocation;
     } catch (IOException e) {
       LOG.error("Error in getting GPU topology info. " +
           "Skip topology aware scheduling");
@@ -239,8 +238,16 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
     // get topology
     String topo = shellExecutor.getTopologyInfo();
     // build the graph
-    parseTopo(topo, typeToDevices, deviceToNeighbors, deviceLinkToWeight);
+    parseTopo(topo, devicePairToWeight);
     // build the cost table of different device combinations
+    if (lastTimeFoundDevices == null) {
+      try {
+        getDevices();
+      } catch (Exception e) {
+        LOG.error("Failed to get devices!");
+        return;
+      }
+    }
     buildCostTable(costTable, lastTimeFoundDevices);
     this.topoInitialized = true;
   }
@@ -264,8 +271,8 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
   private void generateAllDeviceCombination(
       Map<Integer, Map<Set<Device>, Integer>> costTable,
       Device[] allDevices, int n) {
-    // allocated devices count range from 1 to n
-    for (int i = 1; i <= n; i++) {
+    // allocated devices count range from 1 to n-1
+    for (int i = 2; i < n; i++) {
       Map<Set<Device>, Integer> combinationToCost =
           new HashMap<>();
       buildCombination(combinationToCost, allDevices, n, i);
@@ -297,8 +304,8 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
       int start, int end, int index, int r) {
     // sub device list's length is ready to compute the cost
     if (index == r) {
-      Set<Device> oneSet = new TreeSet<>();
-      int cost = computeCostOfDevices(oneSet);
+      Set<Device> oneSet = new TreeSet<>(Arrays.asList(subDeviceList));
+      int cost = computeCostOfDevices(subDeviceList);
       cTc.put(oneSet, cost);
       return;
     }
@@ -314,16 +321,15 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
    * It calculate link weight of each pair in non-duplicated combination of
    * devices.
    */
-  private int computeCostOfDevices(Set<Device> oneSet) {
-    Device[] devices = new Device[oneSet.size()];
-    oneSet.toArray(devices);
+  private int computeCostOfDevices(Device[] devices) {
     int cost = 0;
-    int[] pair = new int[] {0, 0};
+    String gpuIndex0;
+    String gpuIndex1;
     for (int i = 0; i < devices.length; i++) {
-      pair[0] = devices[i].getMinorNumber();
+      gpuIndex0 = String.valueOf(devices[i].getMinorNumber());
       for (int j = i + 1; j < devices.length; j++) {
-        pair[1] = devices[j].getMinorNumber();
-        cost += this.deviceLinkToWeight.get(pair);
+        gpuIndex1 = String.valueOf(devices[j].getMinorNumber());
+        cost += this.devicePairToWeight.get(gpuIndex0 + "-" + gpuIndex1);
       }
     }
     return cost;
@@ -338,7 +344,8 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
    * It can potentially be extend to take GPU attribute like GPU chip memory
    * into consideration.
    * */
-  private void topologyAwareSchedule(Set<Device> allocation, int count,
+  @VisibleForTesting
+  public void topologyAwareSchedule(Set<Device> allocation, int count,
       Map<String, String> envs,
       Set<Device> availableDevices,
       Map<Integer, Map<Set<Device>, Integer>> costTable) {
@@ -352,6 +359,10 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
      * Get combinations from costTable given the count of device want to
      * allocate.
      * */
+    if (costTable == null) {
+      LOG.error("No cost table initialized!");
+      return;
+    }
     Map<Set<Device>, Integer> combinationsToCost = costTable.get(count);
     List<Map.Entry<Set<Device>, Integer>> listSortedByCost =
         new LinkedList<>(combinationsToCost.entrySet());
@@ -386,9 +397,15 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
     }
   }
 
-  private void basicSchedule(Set<Device> allocation, int count,
+  @VisibleForTesting
+  public void basicSchedule(Set<Device> allocation, int count,
       Set<Device> availableDevices) {
     // Basic scheduling
+    // allocate all available
+    if (count == availableDevices.size()) {
+      allocation.addAll(availableDevices);
+      return;
+    }
     int number = 0;
     for (Device d : availableDevices) {
       allocation.add(d);
@@ -422,9 +439,7 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
    *   NV#  = Connection traversing a bonded set of # NVLinks」
    * */
   public void parseTopo(String topo,
-      Map<DeviceLinkType, Set<DeviceLink>> tToDevs,
-      Map<Integer, Set<DeviceLink>> deviceToNeighbors,
-      Map<int[], Integer> deviceLinkToWeight) {
+      Map<String, Integer> deviceLinkToWeight) {
     String[] lines = topo.split("\n");
     int rowMinor;
     int colMinor;
@@ -432,6 +447,9 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
     String tempType;
     for (String oneLine : lines) {
       oneLine = oneLine.trim();
+      if (oneLine.isEmpty()) {
+        continue;
+      }
       // To the end. No more metrics info
       if (oneLine.startsWith("Legend")) {
         break;
@@ -451,102 +469,36 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
           continue;
         }
         if (tempType.equals("SOC") || tempType.equals("SYS")) {
-          populateGraph(DeviceLinkType.P2PLinkCrossCPUSocket,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors,
-              deviceLinkToWeight);
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkCrossCPUSocket,
+              rowMinor, colMinor, deviceLinkToWeight);
         }
         if (tempType.equals("PHB") || tempType.equals("NODE")) {
-          populateGraph(DeviceLinkType.P2PLinkSameCPUSocket,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors,
-              deviceLinkToWeight);
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkSameCPUSocket,
+              rowMinor, colMinor, deviceLinkToWeight);
         }
         if (tempType.equals("PXB")) {
-          populateGraph(DeviceLinkType.P2PLinkMultiSwitch,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors,
-              deviceLinkToWeight);
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkMultiSwitch,
+              rowMinor, colMinor, deviceLinkToWeight);
         }
         if (tempType.equals("PIX")) {
-          populateGraph(DeviceLinkType.P2PLinkSingleSwitch,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors,
-              deviceLinkToWeight);
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkSingleSwitch,
+              rowMinor, colMinor, deviceLinkToWeight);
         }
         if (tempType.startsWith("NV")) {
-          populateGraph(DeviceLinkType.P2PLinkNVLink,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors,
-              deviceLinkToWeight);
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink,
+              rowMinor, colMinor, deviceLinkToWeight);
         }
       } // end one line handling
     }
   }
 
-  private void populateGraph(
+  private void populateGraphEdgeWeight(
       DeviceLinkType linkType,
       int leftVertex,
       int rightVertex,
-      Map<DeviceLinkType, Set<DeviceLink>> tToDevs,
-      Map<Integer, Set<DeviceLink>> deviceToNeighbors,
-      Map<int[], Integer> deviceLinkToWeight) {
-    tToDevs.putIfAbsent(linkType, new TreeSet<>());
-    int[] minorPair = new int[] {leftVertex, rightVertex};
-    DeviceLink p2pLink = new DeviceLink(minorPair, linkType);
-    deviceLinkToWeight.putIfAbsent(minorPair, linkType.getWeight());
-    tToDevs.get(linkType).add(p2pLink);
-    deviceToNeighbors.putIfAbsent(leftVertex, new TreeSet<>());
-    deviceToNeighbors.get(leftVertex).add(p2pLink);
-  }
-
-  /**
-   * Represent a connection to another GPU device.
-   * */
-  public class DeviceLink implements Comparable {
-
-    public int[] getMinors() {
-      return minors;
-    }
-
-    public void setMinors(int[] min) {
-      this.minors = min;
-    }
-
-    private int[] minors;
-    DeviceLinkType linkType;
-
-    public DeviceLinkType getLinkType() {
-      return linkType;
-    }
-
-    public DeviceLink(int[] minorNumbers, DeviceLinkType linType) {
-      this.minors = minorNumbers;
-      this.linkType = linType;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()){
-        return false;
-      }
-      DeviceLink other = (DeviceLink) o;
-      return Objects.equals(other.getMinors(), minors) &&
-          Objects.equals(other.getLinkType(), linkType);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(minors, linkType);
-    }
-
-    @Override
-    public int compareTo(Object o) {
-      if (o == null || (!(o instanceof DeviceLink))) {
-        return -1;
-      }
-      DeviceLink other = (DeviceLink) o;
-
-      return getLinkType().compareTo(other.getLinkType());
-    }
+      Map<String, Integer> deviceLinkToWeight) {
+    deviceLinkToWeight.putIfAbsent(leftVertex + "-" + rightVertex,
+        linkType.getWeight());
   }
 
   /**
@@ -663,12 +615,19 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
     this.shellExecutor = shellExecutor;
   }
 
+  @VisibleForTesting
   public boolean isTopoInitialized() {
     return topoInitialized;
   }
 
-  public void setTopoInitialized(boolean topoInitialized) {
-    this.topoInitialized = topoInitialized;
+  @VisibleForTesting
+  public Map<Integer, Map<Set<Device>, Integer>> getCostTable() {
+    return costTable;
+  }
+
+  @VisibleForTesting
+  public Map<String, Integer> getDevicePairToWeight() {
+    return devicePairToWeight;
   }
 
 }
