@@ -102,6 +102,11 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
   private Map<Integer, Set<DeviceLink>> deviceToNeighbors = new HashMap<>();
 
   /**
+   * The key is a pair of minors. The value is weight between the two devices.
+   * */
+  private Map<int[], Integer> deviceLinkToWeight = new HashMap<>();
+
+  /**
    * The container set this environment variable to tell the scheduler what's
    * the policy to use when do scheduling
    * */
@@ -234,7 +239,7 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
     // get topology
     String topo = shellExecutor.getTopologyInfo();
     // build the graph
-    parseTopo(topo, typeToDevices, deviceToNeighbors);
+    parseTopo(topo, typeToDevices, deviceToNeighbors, deviceLinkToWeight);
     // build the cost table of different device combinations
     buildCostTable(costTable, lastTimeFoundDevices);
     this.topoInitialized = true;
@@ -293,7 +298,7 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
     // sub device list's length is ready to compute the cost
     if (index == r) {
       Set<Device> oneSet = new TreeSet<>();
-      int cost = getCostOfDevices(oneSet);
+      int cost = computeCostOfDevices(oneSet);
       cTc.put(oneSet, cost);
       return;
     }
@@ -306,10 +311,22 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
 
   /**
    * The cost function used to calculate costs of a sub set of devices.
+   * It calculate link weight of each pair in non-duplicated combination of
+   * devices.
    */
-  private int getCostOfDevices(Set<Device> oneSet) {
-
-    return 0;
+  private int computeCostOfDevices(Set<Device> oneSet) {
+    Device[] devices = new Device[oneSet.size()];
+    oneSet.toArray(devices);
+    int cost = 0;
+    int[] pair = new int[] {0, 0};
+    for (int i = 0; i < devices.length; i++) {
+      pair[0] = devices[i].getMinorNumber();
+      for (int j = i + 1; j < devices.length; j++) {
+        pair[1] = devices[j].getMinorNumber();
+        cost += this.deviceLinkToWeight.get(pair);
+      }
+    }
+    return cost;
   }
 
   /**
@@ -406,7 +423,8 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
    * */
   public void parseTopo(String topo,
       Map<DeviceLinkType, Set<DeviceLink>> tToDevs,
-      Map<Integer, Set<DeviceLink>> deviceToNeighbors) {
+      Map<Integer, Set<DeviceLink>> deviceToNeighbors,
+      Map<int[], Integer> deviceLinkToWeight) {
     String[] lines = topo.split("\n");
     int rowMinor;
     int colMinor;
@@ -434,23 +452,28 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
         }
         if (tempType.equals("SOC") || tempType.equals("SYS")) {
           populateGraph(DeviceLinkType.P2PLinkCrossCPUSocket,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors);
+              rowMinor, colMinor, tToDevs, deviceToNeighbors,
+              deviceLinkToWeight);
         }
         if (tempType.equals("PHB") || tempType.equals("NODE")) {
           populateGraph(DeviceLinkType.P2PLinkSameCPUSocket,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors);
+              rowMinor, colMinor, tToDevs, deviceToNeighbors,
+              deviceLinkToWeight);
         }
         if (tempType.equals("PXB")) {
           populateGraph(DeviceLinkType.P2PLinkMultiSwitch,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors);
+              rowMinor, colMinor, tToDevs, deviceToNeighbors,
+              deviceLinkToWeight);
         }
         if (tempType.equals("PIX")) {
           populateGraph(DeviceLinkType.P2PLinkSingleSwitch,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors);
+              rowMinor, colMinor, tToDevs, deviceToNeighbors,
+              deviceLinkToWeight);
         }
         if (tempType.startsWith("NV")) {
           populateGraph(DeviceLinkType.P2PLinkNVLink,
-              rowMinor, colMinor, tToDevs, deviceToNeighbors);
+              rowMinor, colMinor, tToDevs, deviceToNeighbors,
+              deviceLinkToWeight);
         }
       } // end one line handling
     }
@@ -461,16 +484,15 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
       int leftVertex,
       int rightVertex,
       Map<DeviceLinkType, Set<DeviceLink>> tToDevs,
-      Map<Integer, Set<DeviceLink>> deviceToNeighbors) {
-    tToDevs.putIfAbsent(
-        linkType,
-        new TreeSet<>());
-    DeviceLink p2pLink = new DeviceLink(
-        new int[] {leftVertex, rightVertex},
-        DeviceLinkType.P2PLinkCrossCPUSocket);
-    tToDevs.get(DeviceLinkType.P2PLinkCrossCPUSocket).add(p2pLink);
+      Map<Integer, Set<DeviceLink>> deviceToNeighbors,
+      Map<int[], Integer> deviceLinkToWeight) {
+    tToDevs.putIfAbsent(linkType, new TreeSet<>());
+    int[] minorPair = new int[] {leftVertex, rightVertex};
+    DeviceLink p2pLink = new DeviceLink(minorPair, linkType);
+    deviceLinkToWeight.putIfAbsent(minorPair, linkType.getWeight());
+    tToDevs.get(linkType).add(p2pLink);
     deviceToNeighbors.putIfAbsent(leftVertex, new TreeSet<>());
-    deviceToNeighbors.get(rightVertex).add(p2pLink);
+    deviceToNeighbors.get(leftVertex).add(p2pLink);
   }
 
   /**
@@ -557,15 +579,15 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
      * */
     P2PLinkMultiSwitch(32);
 
-    // A higher link level means faster communication
-    private int linkLevel;
+    // A higher link level means slower communication
+    private int weight;
 
-    public int getLinkLevel() {
-      return linkLevel;
+    public int getWeight() {
+      return weight;
     }
 
-    DeviceLinkType(int linkLevel) {
-      this.linkLevel = linkLevel;
+    DeviceLinkType(int w) {
+      this.weight = w;
     }
   }
 
