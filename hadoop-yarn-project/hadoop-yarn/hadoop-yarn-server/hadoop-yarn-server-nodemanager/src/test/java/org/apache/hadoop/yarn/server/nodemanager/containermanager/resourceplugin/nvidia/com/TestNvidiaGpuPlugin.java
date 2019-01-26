@@ -24,6 +24,8 @@ import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeTyp
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia.NvidiaGPUPlugin;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.TreeSet;
@@ -35,6 +37,9 @@ import static org.mockito.Mockito.when;
  * Test case for Nvidia GPU device plugin.
  * */
 public class TestNvidiaGpuPlugin {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(TestNvidiaGpuPlugin.class);
 
   @Test
   public void testGetNvidiaDevices() throws Exception {
@@ -103,6 +108,15 @@ public class TestNvidiaGpuPlugin {
         YarnRuntimeType.RUNTIME_DOCKER);
     Assert.assertEquals("nvidia", spec.getContainerRuntime());
     Assert.assertEquals("0,1", spec.getEnvs().get("NVIDIA_VISIBLE_DEVICES"));
-
   }
+
+  @Test
+  public void testTopologyScheduling() {
+    NvidiaGPUPlugin plugin = new NvidiaGPUPlugin();
+    for (NvidiaGPUPlugin.DeviceLinkType linkType :
+        NvidiaGPUPlugin.DeviceLinkType.values()) {
+      LOG.info(linkType.toString());
+    }
+  }
+
 }

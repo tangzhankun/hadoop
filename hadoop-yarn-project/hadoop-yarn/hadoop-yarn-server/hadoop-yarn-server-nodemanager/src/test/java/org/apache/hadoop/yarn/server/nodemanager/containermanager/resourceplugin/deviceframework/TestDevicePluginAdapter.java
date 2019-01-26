@@ -77,6 +77,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
@@ -570,7 +571,7 @@ public class TestDevicePluginAdapter {
     adapter.getDeviceResourceHandler().preStart(c1);
     // Use customized scheduler
     verify(spyPlugin, times(1)).allocateDevices(
-        any(TreeSet.class), anyInt());
+        any(TreeSet.class), anyInt(), anyMap());
     Assert.assertEquals(2,
         dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(1,
@@ -994,7 +995,7 @@ public class TestDevicePluginAdapter {
 
     @Override
     public Set<Device> allocateDevices(Set<Device> availableDevices,
-        int count) {
+        int count, Map<String, String> env) {
       Set<Device> allocated = new TreeSet<>();
       int number = 0;
       for (Device d : availableDevices) {
