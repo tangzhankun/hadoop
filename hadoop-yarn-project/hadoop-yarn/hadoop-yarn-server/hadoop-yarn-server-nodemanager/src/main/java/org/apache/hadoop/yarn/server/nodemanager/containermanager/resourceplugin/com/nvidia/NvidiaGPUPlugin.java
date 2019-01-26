@@ -96,6 +96,7 @@ public class NvidiaGPUPlugin implements DevicePlugin {
               .setDevPath("/dev/" + DEV_NAME_PREFIX + minorNumber)
               .setHealthy(true)
               .build());
+          id++;
         }
       }
       return r;

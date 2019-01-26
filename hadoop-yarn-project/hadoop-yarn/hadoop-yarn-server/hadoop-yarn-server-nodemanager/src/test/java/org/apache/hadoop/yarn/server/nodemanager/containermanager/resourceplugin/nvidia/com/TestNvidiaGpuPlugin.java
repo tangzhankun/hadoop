@@ -62,7 +62,7 @@ public class TestNvidiaGpuPlugin {
         .setMajorNumber(195)
         .setMinorNumber(0).build());
     expectedDevices.add(Device.Builder.newInstance()
-        .setId(0).setHealthy(true)
+        .setId(1).setHealthy(true)
         .setBusID("00000000:82:00.0")
         .setDevPath("/dev/nvidia1")
         .setMajorNumber(195)
