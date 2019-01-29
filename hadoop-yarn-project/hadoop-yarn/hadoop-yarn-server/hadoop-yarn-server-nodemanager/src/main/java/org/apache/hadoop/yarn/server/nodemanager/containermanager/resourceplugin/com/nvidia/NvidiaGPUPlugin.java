@@ -375,32 +375,24 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
 
     // the container needs PACK policy
     if (policy.equalsIgnoreCase(TOPOLOGY_POLICY_PACK)) {
+      // sort from low cost to high cost for combinations of count devices
       Collections.sort(listSortedByCost,
           (o1, o2) -> (o1.getValue()).compareTo(o2.getValue()));
-      // search from low cost to high cost for combinations of count devices
-      for (Map.Entry<Set<Device>, Integer> entry : listSortedByCost) {
-        if (availableDevices.containsAll(entry.getKey())) {
-          allocation.addAll(entry.getKey());
-          LOG.info("Topology scheduler allocated: " + allocation);
-          return;
-        }
-      }
-      LOG.error("Unknown error happened in topology scheduler");
     }
     // the container needs spread policy
     if (policy.equalsIgnoreCase(TOPOLOGY_POLICY_SPREAD)) {
+      // sort from high cost to low cost
       Collections.sort(listSortedByCost,
           (o1, o2) -> (o2.getValue()).compareTo(o1.getValue()));
-      // search from high cost to low cost
-      for (Map.Entry<Set<Device>, Integer> entry : listSortedByCost) {
-        if (availableDevices.containsAll(entry.getKey())) {
-          allocation.addAll(entry.getKey());
-          LOG.info("Topology scheduler allocated: " + allocation);
-          return;
-        }
-      }
-      LOG.error("Unknown error happened in topology scheduler");
     }
+    for (Map.Entry<Set<Device>, Integer> entry : listSortedByCost) {
+      if (availableDevices.containsAll(entry.getKey())) {
+        allocation.addAll(entry.getKey());
+        LOG.info("Topology scheduler allocated: " + allocation);
+        return;
+      }
+    }
+    LOG.error("Unknown error happened in topology scheduler");
   }
 
   @VisibleForTesting
@@ -503,7 +495,7 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
       int leftVertex,
       int rightVertex,
       Map<String, Integer> deviceLinkToWeight) {
-    deviceLinkToWeight.putIfAbsent(leftVertex + "-" + rightVertex,
+    deviceLinkToWeight.put(leftVertex + "-" + rightVertex,
         linkType.getWeight());
   }
 
