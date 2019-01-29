@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -179,8 +180,23 @@ public class TestNvidiaGpuPlugin {
     Map<String, String> env = new HashMap<>();
     env.put(NvidiaGPUPlugin.TOPOLOGY_POLICY_ENV_KEY,
         NvidiaGPUPlugin.TOPOLOGY_POLICY_PACK);
+    // Case 0. if available devices is less than 3, no topo scheduling needed
+    Set<Device> copyAvailableDevices = new TreeSet<>(allDevices);
+    Iterator<Device> iterator0 = copyAvailableDevices.iterator();
+    iterator0.next();
+    iterator0.remove();
+    iterator0.next();
+    iterator0.remove();
+    // Case 0. allocate 1 device
+    reset(spyPlugin);
+    Set<Device> allocation = spyPlugin.allocateDevices(copyAvailableDevices, 1, env);
+    Assert.assertEquals(allocation.size(), 1);
+    verify(spyPlugin).basicSchedule(anySet(), anyInt(), anySet());
+    Assert.assertFalse(spyPlugin.isTopoInitialized());
+
     // Case 1. allocate 1 device
-    Set<Device> allocation = spyPlugin.allocateDevices(allDevices, 1, env);
+    reset(spyPlugin);
+    allocation = spyPlugin.allocateDevices(allDevices, 1, env);
     // ensure no topology scheduling needed
     Assert.assertEquals(allocation.size(), 1);
     verify(spyPlugin).basicSchedule(anySet(), anyInt(), anySet());

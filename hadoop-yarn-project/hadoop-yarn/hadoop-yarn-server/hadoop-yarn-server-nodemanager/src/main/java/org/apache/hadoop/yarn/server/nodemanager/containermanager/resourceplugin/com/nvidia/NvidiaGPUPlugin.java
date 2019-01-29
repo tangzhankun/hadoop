@@ -211,6 +211,12 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
       basicSchedule(allocation, count, availableDevices);
       return allocation;
     }
+    // if total available devices is less than 3, no topo scheduling needed.
+    if (availableDevices.size() < 3) {
+      // basic scheduling
+      basicSchedule(allocation, count, availableDevices);
+      return allocation;
+    }
     try {
       if (!topoInitialized) {
         initCostTable();
