@@ -334,6 +334,7 @@ public class KeyManagerImpl implements KeyManager {
         // For this upload part we don't need to check in KeyTable. As this
         // is not an actual key, it is a part of the key.
         keyInfo = createKeyInfo(args, locations, factor, type, size);
+        //TODO args.getMetadata
         openVersion = 0;
       } else {
         keyInfo = metadataManager.getKeyTable().get(objectKey);
@@ -1016,7 +1017,7 @@ public class KeyManagerImpl implements KeyManager {
       LOG.error("Abort Multipart Upload Failed: volume: " + volumeName +
           "bucket: " + bucketName + "key: " + keyName, ex);
       throw new OMException(ex.getMessage(), ResultCodes
-          .COMPLETE_MULTIPART_UPLOAD_FAILED);
+          .ABORT_MULTIPART_UPLOAD_FAILED);
     } finally {
       metadataManager.getLock().releaseBucketLock(volumeName, bucketName);
     }

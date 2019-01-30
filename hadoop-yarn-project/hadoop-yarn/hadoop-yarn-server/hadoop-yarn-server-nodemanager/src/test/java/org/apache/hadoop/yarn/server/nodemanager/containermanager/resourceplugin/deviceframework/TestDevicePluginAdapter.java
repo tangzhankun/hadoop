@@ -570,7 +570,7 @@ public class TestDevicePluginAdapter {
     adapter.getDeviceResourceHandler().preStart(c1);
     // Use customized scheduler
     verify(spyPlugin, times(1)).allocateDevices(
-        any(TreeSet.class), anyInt());
+        any(Set.class), anyInt());
     Assert.assertEquals(2,
         dmm.getAvailableDevices(resourceName));
     Assert.assertEquals(1,

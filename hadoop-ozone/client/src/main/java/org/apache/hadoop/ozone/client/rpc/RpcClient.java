@@ -80,7 +80,6 @@ import org.apache.ratis.protocol.ClientId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.HEAD;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
@@ -206,8 +205,8 @@ public class RpcClient implements ClientProtocol {
     ServiceInfo scmInfo = services.stream().filter(
         a -> a.getNodeType().equals(HddsProtos.NodeType.SCM))
         .collect(Collectors.toList()).get(0);
-    return NetUtils.createSocketAddr(scmInfo.getHostname()+ ":" +
-        scmInfo.getPort(ServicePort.Type.RPC));
+    return NetUtils.createSocketAddr(
+        scmInfo.getServiceAddress(ServicePort.Type.RPC));
   }
 
   @Override
@@ -247,6 +246,7 @@ public class RpcClient implements ClientProtocol {
     builder.setAdminName(admin);
     builder.setOwnerName(owner);
     builder.setQuotaInBytes(quota);
+    builder.addAllMetadata(volArgs.getMetadata());
 
     //Remove duplicates and add ACLs
     for (OzoneAcl ozoneAcl :
@@ -290,7 +290,8 @@ public class RpcClient implements ClientProtocol {
         volume.getQuotaInBytes(),
         volume.getCreationTime(),
         volume.getAclMap().ozoneAclGetProtobuf().stream().
-            map(OMPBHelper::convertOzoneAcl).collect(Collectors.toList()));
+            map(OMPBHelper::convertOzoneAcl).collect(Collectors.toList()),
+        volume.getMetadata());
   }
 
   @Override
@@ -341,7 +342,8 @@ public class RpcClient implements ClientProtocol {
         volume.getQuotaInBytes(),
         volume.getCreationTime(),
         volume.getAclMap().ozoneAclGetProtobuf().stream().
-            map(OMPBHelper::convertOzoneAcl).collect(Collectors.toList())))
+            map(OMPBHelper::convertOzoneAcl).collect(Collectors.toList()),
+        volume.getMetadata()))
         .collect(Collectors.toList());
   }
 
@@ -380,6 +382,7 @@ public class RpcClient implements ClientProtocol {
     builder.setVolumeName(volumeName)
         .setBucketName(bucketName)
         .setIsVersionEnabled(isVersionEnabled)
+        .addAllMetadata(bucketArgs.getMetadata())
         .setStorageType(storageType)
         .setAcls(listOfAcls.stream().distinct().collect(Collectors.toList()));
 
@@ -510,17 +513,18 @@ public class RpcClient implements ClientProtocol {
   public OzoneBucket getBucketDetails(
       String volumeName, String bucketName) throws IOException {
     HddsClientUtils.verifyResourceName(volumeName, bucketName);
-    OmBucketInfo bucketArgs =
+    OmBucketInfo bucketInfo =
         ozoneManagerClient.getBucketInfo(volumeName, bucketName);
     return new OzoneBucket(
         conf,
         this,
-        bucketArgs.getVolumeName(),
-        bucketArgs.getBucketName(),
-        bucketArgs.getAcls(),
-        bucketArgs.getStorageType(),
-        bucketArgs.getIsVersionEnabled(),
-        bucketArgs.getCreationTime());
+        bucketInfo.getVolumeName(),
+        bucketInfo.getBucketName(),
+        bucketInfo.getAcls(),
+        bucketInfo.getStorageType(),
+        bucketInfo.getIsVersionEnabled(),
+        bucketInfo.getCreationTime(),
+        bucketInfo.getMetadata());
   }
 
   @Override
@@ -538,14 +542,16 @@ public class RpcClient implements ClientProtocol {
         bucket.getAcls(),
         bucket.getStorageType(),
         bucket.getIsVersionEnabled(),
-        bucket.getCreationTime()))
+        bucket.getCreationTime(),
+        bucket.getMetadata()))
         .collect(Collectors.toList());
   }
 
   @Override
   public OzoneOutputStream createKey(
       String volumeName, String bucketName, String keyName, long size,
-      ReplicationType type, ReplicationFactor factor)
+      ReplicationType type, ReplicationFactor factor,
+      Map<String, String> metadata)
       throws IOException {
     HddsClientUtils.verifyResourceName(volumeName, bucketName);
     HddsClientUtils.checkNotNull(keyName, type, factor);
@@ -557,6 +563,7 @@ public class RpcClient implements ClientProtocol {
         .setDataSize(size)
         .setType(HddsProtos.ReplicationType.valueOf(type.toString()))
         .setFactor(HddsProtos.ReplicationFactor.valueOf(factor.getValue()))
+        .addAllMetadata(metadata)
         .build();
 
     OpenKeySession openKey = ozoneManagerClient.openKey(keyArgs);
@@ -669,7 +676,7 @@ public class RpcClient implements ClientProtocol {
     return new OzoneKeyDetails(keyInfo.getVolumeName(), keyInfo.getBucketName(),
         keyInfo.getKeyName(), keyInfo.getDataSize(), keyInfo.getCreationTime(),
         keyInfo.getModificationTime(), ozoneKeyLocations, ReplicationType
-        .valueOf(keyInfo.getType().toString()));
+        .valueOf(keyInfo.getType().toString()), keyInfo.getMetadata());
   }
 
   @Override
@@ -728,7 +735,8 @@ public class RpcClient implements ClientProtocol {
         bucket.getAcls(),
         bucket.getStorageType(),
         bucket.getIsVersionEnabled(),
-        bucket.getCreationTime()))
+        bucket.getCreationTime(),
+        bucket.getMetadata()))
         .collect(Collectors.toList());
   }
 
