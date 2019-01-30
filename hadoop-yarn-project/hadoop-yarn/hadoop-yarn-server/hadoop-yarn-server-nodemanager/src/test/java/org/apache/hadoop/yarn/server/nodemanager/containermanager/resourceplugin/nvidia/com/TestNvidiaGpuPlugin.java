@@ -21,7 +21,7 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia.NvidiaGPUPlugin;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia.NvidiaGPUPluginForRuntimeV2;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -38,8 +38,8 @@ public class TestNvidiaGpuPlugin {
 
   @Test
   public void testGetNvidiaDevices() throws Exception {
-    NvidiaGPUPlugin.MyShellExecutor mockShell =
-        mock(NvidiaGPUPlugin.MyShellExecutor.class);
+    NvidiaGPUPluginForRuntimeV2.NvidiaCommandExecutor mockShell =
+        mock(NvidiaGPUPluginForRuntimeV2.NvidiaCommandExecutor.class);
     String deviceInfoShellOutput =
         "0, 00000000:04:00.0\n" +
         "1, 00000000:82:00.0";
@@ -50,7 +50,7 @@ public class TestNvidiaGpuPlugin {
         .thenReturn(majorMinorNumber0);
     when(mockShell.getMajorMinorInfo("nvidia1"))
         .thenReturn(majorMinorNumber1);
-    NvidiaGPUPlugin plugin = new NvidiaGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 plugin = new NvidiaGPUPluginForRuntimeV2();
     plugin.setShellExecutor(mockShell);
     plugin.setPathOfGpuBinary("/fake/nvidia-smi");
 
@@ -73,7 +73,7 @@ public class TestNvidiaGpuPlugin {
 
   @Test
   public void testOnDeviceAllocated() throws Exception {
-    NvidiaGPUPlugin plugin = new NvidiaGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 plugin = new NvidiaGPUPluginForRuntimeV2();
     Set<Device> allocatedDevices = new TreeSet<>();
 
     DeviceRuntimeSpec spec = plugin.onDevicesAllocated(allocatedDevices,

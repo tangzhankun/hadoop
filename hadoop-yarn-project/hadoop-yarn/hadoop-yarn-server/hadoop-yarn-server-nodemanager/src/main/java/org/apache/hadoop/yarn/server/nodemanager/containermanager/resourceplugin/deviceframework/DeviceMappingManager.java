@@ -162,8 +162,10 @@ public class DeviceMappingManager {
     ContainerId containerId = container.getContainerId();
     int requestedDeviceCount = getRequestedDeviceCount(resourceName,
         requestedResource);
-    LOG.debug("Try allocating " + requestedDeviceCount
-        + " " + resourceName);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Try allocating " + requestedDeviceCount
+          + " " + resourceName);
+    }
     // Assign devices to container if requested some.
     if (requestedDeviceCount > 0) {
       if (requestedDeviceCount > getAvailableDevices(resourceName)) {
@@ -263,8 +265,10 @@ public class DeviceMappingManager {
     while (iter.hasNext()) {
       entry = iter.next();
       if (entry.getValue().equals(containerId)) {
-        LOG.debug("Recycle devices: " + entry.getKey()
-            + ", type: " + resourceName + " from " + containerId);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Recycle devices: " + entry.getKey()
+              + ", type: " + resourceName + " from " + containerId);
+        }
         iter.remove();
       }
     }
@@ -313,16 +317,20 @@ public class DeviceMappingManager {
       DevicePluginScheduler dps) throws ResourceHandlerException {
 
     if (null == dps) {
-      LOG.debug("Customized device plugin scheduler is preferred "
-          + "but not implemented, use default logic");
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Customized device plugin scheduler is preferred "
+            + "but not implemented, use default logic");
+      }
       defaultScheduleAction(allowed, used,
           assigned, containerId, count);
     } else {
-      LOG.debug("Customized device plugin implemented,"
-          + "use customized logic");
-      // Use customized device scheduler
-      LOG.debug("Try to schedule " + count
-          + "(" + resourceName + ") using " + dps.getClass());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Customized device plugin implemented,"
+            + "use customized logic");
+        // Use customized device scheduler
+        LOG.debug("Try to schedule " + count
+            + "(" + resourceName + ") using " + dps.getClass());
+      }
       // Pass in unmodifiable set
       Set<Device> dpsAllocated = dps.allocateDevices(
           Sets.difference(allowed, used.keySet()),
