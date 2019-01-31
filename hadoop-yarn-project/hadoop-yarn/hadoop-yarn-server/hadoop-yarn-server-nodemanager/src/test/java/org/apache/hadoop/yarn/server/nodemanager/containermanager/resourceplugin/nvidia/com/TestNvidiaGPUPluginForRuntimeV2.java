@@ -21,14 +21,13 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugi
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia.NvidiaGPUPlugin;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia.NvidiaGPUPluginForRuntimeV2;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -46,17 +45,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Test case for Nvidia GPU device plugin.
+ * Test case for NvidiaGPUPluginForRuntimeV2 device plugin.
  * */
-public class TestNvidiaGpuPlugin {
+public class TestNvidiaGPUPluginForRuntimeV2 {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(TestNvidiaGpuPlugin.class);
+      LoggerFactory.getLogger(TestNvidiaGPUPluginForRuntimeV2.class);
 
   @Test
   public void testGetNvidiaDevices() throws Exception {
-    NvidiaGPUPlugin.MyShellExecutor mockShell =
-        mock(NvidiaGPUPlugin.MyShellExecutor.class);
+    NvidiaGPUPluginForRuntimeV2.NvidiaCommandExecutor mockShell =
+        mock(NvidiaGPUPluginForRuntimeV2.NvidiaCommandExecutor.class);
     String deviceInfoShellOutput =
         "0, 00000000:04:00.0\n" +
         "1, 00000000:82:00.0";
@@ -67,7 +66,7 @@ public class TestNvidiaGpuPlugin {
         .thenReturn(majorMinorNumber0);
     when(mockShell.getMajorMinorInfo("nvidia1"))
         .thenReturn(majorMinorNumber1);
-    NvidiaGPUPlugin plugin = new NvidiaGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 plugin = new NvidiaGPUPluginForRuntimeV2();
     plugin.setShellExecutor(mockShell);
     plugin.setPathOfGpuBinary("/fake/nvidia-smi");
 
@@ -90,7 +89,7 @@ public class TestNvidiaGpuPlugin {
 
   @Test
   public void testOnDeviceAllocated() throws Exception {
-    NvidiaGPUPlugin plugin = new NvidiaGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 plugin = new NvidiaGPUPluginForRuntimeV2();
     Set<Device> allocatedDevices = new TreeSet<>();
 
     DeviceRuntimeSpec spec = plugin.onDevicesAllocated(allocatedDevices,
@@ -122,7 +121,7 @@ public class TestNvidiaGpuPlugin {
     Assert.assertEquals("0,1", spec.getEnvs().get("NVIDIA_VISIBLE_DEVICES"));
   }
 
-  private NvidiaGPUPlugin mockFourGPUPlugin() throws IOException {
+  private NvidiaGPUPluginForRuntimeV2 mockFourGPUPlugin() throws IOException {
     String topoInfo = "\tGPU0\tGPU1\tGPU2\tGPU3\tCPU Affinity\n"
         + "GPU0\t X \tPHB\tSOC\tSOC\t0-31\n"
         + "GPU1\tPHB\t X \tSOC\tSOC\t0-31\n"
@@ -150,8 +149,8 @@ public class TestNvidiaGpuPlugin {
     String majorMinorNumber1 = "c3:1";
     String majorMinorNumber2 = "c3:2";
     String majorMinorNumber3 = "c3:3";
-    NvidiaGPUPlugin.MyShellExecutor mockShell =
-        mock(NvidiaGPUPlugin.MyShellExecutor.class);
+    NvidiaGPUPluginForRuntimeV2.NvidiaCommandExecutor mockShell =
+        mock(NvidiaGPUPluginForRuntimeV2.NvidiaCommandExecutor.class);
     when(mockShell.getDeviceInfo()).thenReturn(deviceInfoShellOutput);
     when(mockShell.getMajorMinorInfo("nvidia0"))
         .thenReturn(majorMinorNumber0);
@@ -164,7 +163,7 @@ public class TestNvidiaGpuPlugin {
     when(mockShell.getTopologyInfo()).thenReturn(topoInfo);
     when(mockShell.getDeviceInfo()).thenReturn(deviceInfoShellOutput);
 
-    NvidiaGPUPlugin plugin = new NvidiaGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 plugin = new NvidiaGPUPluginForRuntimeV2();
     plugin.setShellExecutor(mockShell);
     plugin.setPathOfGpuBinary("/fake/nvidia-smi");
     return plugin;
@@ -172,14 +171,14 @@ public class TestNvidiaGpuPlugin {
 
   @Test
   public void testTopologySchedulingWithPackPolicy() throws Exception {
-    NvidiaGPUPlugin plugin = mockFourGPUPlugin();
-    NvidiaGPUPlugin spyPlugin = spy(plugin);
+    NvidiaGPUPluginForRuntimeV2 plugin = mockFourGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 spyPlugin = spy(plugin);
     // cache the total devices
     Set<Device> allDevices = spyPlugin.getDevices();
     // environment variable to use PACK policy
     Map<String, String> env = new HashMap<>();
-    env.put(NvidiaGPUPlugin.TOPOLOGY_POLICY_ENV_KEY,
-        NvidiaGPUPlugin.TOPOLOGY_POLICY_PACK);
+    env.put(NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_ENV_KEY,
+        NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_PACK);
     // Case 0. if available devices is less than 3, no topo scheduling needed
     Set<Device> copyAvailableDevices = new TreeSet<>(allDevices);
     Iterator<Device> iterator0 = copyAvailableDevices.iterator();
@@ -271,14 +270,14 @@ public class TestNvidiaGpuPlugin {
 
   @Test
   public void testTopologySchedulingWithSpreadPolicy() throws Exception {
-    NvidiaGPUPlugin plugin = mockFourGPUPlugin();
-    NvidiaGPUPlugin spyPlugin = spy(plugin);
+    NvidiaGPUPluginForRuntimeV2 plugin = mockFourGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 spyPlugin = spy(plugin);
     // cache the total devices
     Set<Device> allDevices = spyPlugin.getDevices();
     // environment variable to use PACK policy
     Map<String, String> env = new HashMap<>();
-    env.put(NvidiaGPUPlugin.TOPOLOGY_POLICY_ENV_KEY,
-        NvidiaGPUPlugin.TOPOLOGY_POLICY_SPREAD);
+    env.put(NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_ENV_KEY,
+        NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_SPREAD);
     // Case 1. allocate 1 device
     Set<Device> allocation = spyPlugin.allocateDevices(allDevices, 1, env);
     // ensure no topology scheduling needed
@@ -358,17 +357,17 @@ public class TestNvidiaGpuPlugin {
    * */
   @Test
   public void testCostTable() throws IOException {
-    NvidiaGPUPlugin plugin = mockFourGPUPlugin();
-    NvidiaGPUPlugin spyPlugin = spy(plugin);
+    NvidiaGPUPluginForRuntimeV2 plugin = mockFourGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 spyPlugin = spy(plugin);
     // verify the device pair to weight map
     spyPlugin.initCostTable();
     Map<String, Integer> devicePairToWeight = spyPlugin.getDevicePairToWeight();
     // 12 combinations when choose 2 GPUs from 4 respect the order
     Assert.assertEquals(12, devicePairToWeight.size());
     int sameCPUWeight =
-        NvidiaGPUPlugin.DeviceLinkType.P2PLinkSameCPUSocket.getWeight();
+        NvidiaGPUPluginForRuntimeV2.DeviceLinkType.P2PLinkSameCPUSocket.getWeight();
     int crossCPUWeight =
-        NvidiaGPUPlugin.DeviceLinkType.P2PLinkCrossCPUSocket.getWeight();
+        NvidiaGPUPluginForRuntimeV2.DeviceLinkType.P2PLinkCrossCPUSocket.getWeight();
     // GPU 0 to 1, weight is 2
     Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("0-1"));
     Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("1-0"));

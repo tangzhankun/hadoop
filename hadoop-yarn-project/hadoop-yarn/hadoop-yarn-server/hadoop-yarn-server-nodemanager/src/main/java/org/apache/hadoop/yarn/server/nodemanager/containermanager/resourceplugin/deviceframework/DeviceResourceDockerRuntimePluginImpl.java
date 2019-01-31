@@ -69,7 +69,9 @@ public class DeviceResourceDockerRuntimePluginImpl
   @Override
   public void updateDockerRunCommand(DockerRunCommand dockerRunCommand,
       Container container) throws ContainerExecutionException {
-    LOG.debug("Try to update docker run command.");
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Try to update docker run command.");
+    }
     if(!requestsDevice(resourceName, container)) {
       return;
     }
@@ -80,11 +82,15 @@ public class DeviceResourceDockerRuntimePluginImpl
     }
     // handle runtime
     dockerRunCommand.addRuntime(deviceRuntimeSpec.getContainerRuntime());
-    LOG.debug("Handle docker container runtime type: "
-        + deviceRuntimeSpec.getContainerRuntime());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Handle docker container runtime type: "
+          + deviceRuntimeSpec.getContainerRuntime());
+    }
     // handle device mounts
     Set<MountDeviceSpec> deviceMounts = deviceRuntimeSpec.getDeviceMounts();
-    LOG.debug("Handle device mounts: " + deviceMounts);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Handle device mounts: " + deviceMounts);
+    }
     for (MountDeviceSpec mountDeviceSpec : deviceMounts) {
       dockerRunCommand.addDevice(
           mountDeviceSpec.getDevicePathInHost(),
@@ -92,7 +98,9 @@ public class DeviceResourceDockerRuntimePluginImpl
     }
     // handle volume mounts
     Set<MountVolumeSpec> mountVolumeSpecs = deviceRuntimeSpec.getVolumeMounts();
-    LOG.debug("Handle volume mounts: " + mountVolumeSpecs);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Handle volume mounts: " + mountVolumeSpecs);
+    }
     for (MountVolumeSpec mountVolumeSpec : mountVolumeSpecs) {
       if (mountVolumeSpec.getReadOnly()) {
         dockerRunCommand.addReadOnlyMountLocation(
@@ -106,7 +114,9 @@ public class DeviceResourceDockerRuntimePluginImpl
     }
     // handle envs
     dockerRunCommand.addEnv(deviceRuntimeSpec.getEnvs());
-    LOG.debug("Handle envs: " + deviceRuntimeSpec.getEnvs());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Handle envs: " + deviceRuntimeSpec.getEnvs());
+    }
   }
 
   @Override
@@ -126,7 +136,9 @@ public class DeviceResourceDockerRuntimePluginImpl
             DockerVolumeCommand.VOLUME_CREATE_SUB_COMMAND);
         command.setDriverName(volumeSec.getVolumeDriver());
         command.setVolumeName(volumeSec.getVolumeName());
-        LOG.debug("Get volume create request from plugin:" + volumeClaims);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Get volume create request from plugin:" + volumeClaims);
+        }
         return command;
       }
     }
@@ -145,7 +157,7 @@ public class DeviceResourceDockerRuntimePluginImpl
       devicePlugin.onDevicesReleased(allocated);
     } catch (Exception e) {
       LOG.warn("Exception thrown onDeviceReleased of " + devicePlugin.getClass()
-          + e.getMessage());
+          , e);
     }
     // remove cache
     ContainerId containerId = container.getContainerId();
@@ -170,8 +182,10 @@ public class DeviceResourceDockerRuntimePluginImpl
     allocated = devicePluginAdapter
         .getDeviceMappingManager()
         .getAllocatedDevices(resourceName, containerId);
-    LOG.debug("Get allocation from deviceMappingManager: "
-        + allocated + ", " + resourceName);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Get allocation from deviceMappingManager: "
+          + allocated + ", " + resourceName);
+    }
     cachedAllocation.put(containerId, allocated);
     return allocated;
   }

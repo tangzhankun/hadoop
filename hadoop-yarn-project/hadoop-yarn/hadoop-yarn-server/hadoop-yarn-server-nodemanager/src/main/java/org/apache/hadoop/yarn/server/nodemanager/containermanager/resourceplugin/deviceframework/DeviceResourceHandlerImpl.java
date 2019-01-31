@@ -133,9 +133,10 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     String containerIdStr = container.getContainerId().toString();
     DeviceMappingManager.DeviceAllocation allocation =
         deviceMappingManager.assignDevices(resourceName, container);
-    LOG.debug("Allocated to "
-        + containerIdStr + ": " + allocation);
-
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Allocated to "
+          + containerIdStr + ": " + allocation);
+    }
     DeviceRuntimeSpec spec;
     try {
       spec = devicePlugin.onDevicesAllocated(
@@ -288,9 +289,13 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
     }
     String output;
     try {
-      LOG.debug("Get device type from " + devName);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Get device type from " + devName);
+      }
       output = shellWrapper.getDeviceFileType(devName);
-      LOG.debug("stat output:" + output);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("stat output:" + output);
+      }
       output = output.startsWith("c") ? "c" : "b";
     } catch (IOException e) {
       String msg =

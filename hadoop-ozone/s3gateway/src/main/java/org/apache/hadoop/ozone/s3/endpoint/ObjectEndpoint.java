@@ -41,6 +41,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -163,7 +164,7 @@ public class ObjectEndpoint extends EndpointBase {
       OzoneBucket bucket = getBucket(bucketName);
 
       output = bucket.createKey(keyPath, length, replicationType,
-          replicationFactor);
+          replicationFactor, new HashMap<>());
 
       if ("STREAMING-AWS4-HMAC-SHA256-PAYLOAD"
           .equals(headers.getHeaderString("x-amz-content-sha256"))) {
@@ -332,17 +333,50 @@ public class ObjectEndpoint extends EndpointBase {
   }
 
   /**
-   * Delete a specific object from a bucket.
+   * Abort multipart upload request.
+   * @param bucket
+   * @param key
+   * @param uploadId
+   * @return Response
+   * @throws IOException
+   * @throws OS3Exception
+   */
+  private Response abortMultipartUpload(String bucket, String key, String
+      uploadId) throws IOException, OS3Exception {
+    try {
+      OzoneBucket ozoneBucket = getBucket(bucket);
+      ozoneBucket.abortMultipartUpload(key, uploadId);
+    } catch (IOException ex) {
+      if (ex.getMessage().contains("NO_SUCH_MULTIPART_UPLOAD")) {
+        throw S3ErrorTable.newError(S3ErrorTable.NO_SUCH_UPLOAD, uploadId);
+      }
+      throw ex;
+    }
+    return Response
+        .status(Status.NO_CONTENT)
+        .build();
+  }
+
+
+  /**
+   * Delete a specific object from a bucket, if query param uploadId is
+   * specified, this request is for abort multipart upload.
    * <p>
    * See: https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectDELETE.html
+   * https://docs.aws.amazon.com/AmazonS3/latest/API/mpUploadAbort.html
    * for more details.
    */
   @DELETE
   public Response delete(
       @PathParam("bucket") String bucketName,
-      @PathParam("path") String keyPath) throws IOException, OS3Exception {
+      @PathParam("path") String keyPath,
+      @QueryParam("uploadId") @DefaultValue("") String uploadId) throws
+      IOException, OS3Exception {
 
     try {
+      if (uploadId != null && !uploadId.equals("")) {
+        return abortMultipartUpload(bucketName, keyPath, uploadId);
+      }
       OzoneBucket bucket = getBucket(bucketName);
       bucket.getKey(keyPath);
       bucket.deleteKey(keyPath);
@@ -586,7 +620,7 @@ public class ObjectEndpoint extends EndpointBase {
       sourceInputStream = sourceOzoneBucket.readKey(sourceKey);
 
       destOutputStream = destOzoneBucket.createKey(destkey, sourceKeyLen,
-          replicationType, replicationFactor);
+          replicationType, replicationFactor, new HashMap<>());
 
       IOUtils.copy(sourceInputStream, destOutputStream);
 

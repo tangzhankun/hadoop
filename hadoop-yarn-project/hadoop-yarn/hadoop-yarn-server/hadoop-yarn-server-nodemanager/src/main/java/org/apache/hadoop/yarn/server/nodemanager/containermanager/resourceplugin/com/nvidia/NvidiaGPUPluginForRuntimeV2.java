@@ -43,14 +43,15 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Nvidia GPU plugin supporting both Nvidia Docker v2 and non-Docker container.
+ * Nvidia GPU plugin supporting both Nvidia container runtime v2 for Docker and
+ * non-Docker container.
  * It has topology aware as well as simple scheduling ability.
  * */
-public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
+public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginScheduler {
   public static final Logger LOG = LoggerFactory.getLogger(
-      NvidiaGPUPlugin.class);
+      NvidiaGPUPluginForRuntimeV2.class);
 
-  private MyShellExecutor shellExecutor = new MyShellExecutor();
+  private NvidiaCommandExecutor shellExecutor = new NvidiaCommandExecutor();
 
   private Map<String, String> environment = new HashMap<>();
 
@@ -128,6 +129,10 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
       int id = 0;
       for (String oneLine : lines) {
         String[] tokensEachLine = oneLine.split(",");
+        if (tokensEachLine.length != 2) {
+          throw new Exception("Cannot parse the output to get device info. "
+              + "Unexpected format in it:" + oneLine);
+        }
         String minorNumber = tokensEachLine[0].trim();
         String busId = tokensEachLine[1].trim();
         String majorNumber = getMajorNumber(DEV_NAME_PREFIX
@@ -148,7 +153,9 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
       lastTimeFoundDevices = r;
       return r;
     } catch (IOException e) {
-      LOG.debug("Failed to get output from " + pathOfGpuBinary);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Failed to get output from " + pathOfGpuBinary);
+      }
       throw new YarnException(e);
     }
   }
@@ -156,10 +163,9 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
   @Override
   public DeviceRuntimeSpec onDevicesAllocated(Set<Device> allocatedDevices,
       YarnRuntimeType yarnRuntime) throws Exception {
-    LOG.debug("Generating runtime spec for allocated devices: "
-        + allocatedDevices + ", " + yarnRuntime.getName());
-    if (yarnRuntime == YarnRuntimeType.RUNTIME_DEFAULT) {
-      return null;
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Generating runtime spec for allocated devices: "
+          + allocatedDevices + ", " + yarnRuntime.getName());
     }
     if (yarnRuntime == YarnRuntimeType.RUNTIME_DOCKER) {
       String nvidiaRuntime = "nvidia";
@@ -189,15 +195,22 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
     String output = null;
     // output "major:minor" in hex
     try {
-      LOG.debug("Get major numbers from /dev/" + devName);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Get major numbers from /dev/" + devName);
+      }
       output = shellExecutor.getMajorMinorInfo(devName);
       String[] strs = output.trim().split(":");
-      LOG.debug("stat output:" + output);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("stat output:" + output);
+      }
       output = Integer.toString(Integer.parseInt(strs[0], 16));
     } catch (IOException e) {
       String msg =
           "Failed to get major number from reading /dev/" + devName;
       LOG.warn(msg);
+    } catch (NumberFormatException e) {
+      LOG.error("Failed to parse device major number from stat output");
+      output = null;
     }
     return output;
   }
@@ -544,7 +557,7 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
   /**
    * A shell wrapper class easy for test.
    * */
-  public class MyShellExecutor {
+  public class NvidiaCommandExecutor {
 
     public String getDeviceInfo() throws IOException {
       return Shell.execCommand(environment,
@@ -553,7 +566,6 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
     }
 
     public String getMajorMinorInfo(String devName) throws IOException {
-      String output = null;
       // output "major:minor" in hex
       Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(
           new String[]{"stat", "-c", "%t:%T", "/dev/" + devName});
@@ -570,6 +582,8 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
 
     public void searchBinary() throws Exception {
       if (pathOfGpuBinary != null) {
+        LOG.info("Skip searching, the nvidia gpu binary is already set: "
+            + pathOfGpuBinary);
         return;
       }
       // search env for the binary
@@ -581,7 +595,7 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
           return;
         }
       }
-      LOG.info("Search script..");
+      LOG.info("Search binary..");
       // search if binary exists in default folders
       File binaryFile;
       boolean found = false;
@@ -590,14 +604,15 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
         if (binaryFile.exists()) {
           found = true;
           pathOfGpuBinary = binaryFile.getAbsolutePath();
-          LOG.info("Found script:" + pathOfGpuBinary);
+          LOG.info("Found binary:" + pathOfGpuBinary);
           break;
         }
       }
       if (!found) {
-        LOG.error("No binary found in below path"
+        LOG.error("No binary found from env variable: "
+            + ENV_BINARY_PATH + " or path "
             + DEFAULT_BINARY_SEARCH_DIRS.toString());
-        throw new Exception("No binary found for " + NvidiaGPUPlugin.class);
+        throw new Exception("No binary found for " + NvidiaGPUPluginForRuntimeV2.class);
       }
     }
   }
@@ -609,7 +624,7 @@ public class NvidiaGPUPlugin implements DevicePlugin, DevicePluginScheduler {
 
   @VisibleForTesting
   public void setShellExecutor(
-      MyShellExecutor shellExecutor) {
+      NvidiaCommandExecutor shellExecutor) {
     this.shellExecutor = shellExecutor;
   }
 
