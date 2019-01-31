@@ -495,15 +495,41 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkSingleSwitch,
               rowMinor, colMinor, deviceLinkToWeight);
         }
-        if (tempType.startsWith("NV")) {
-          int countOfLink =
-              Integer.parseInt(
-                  tempType.substring(tempType.lastIndexOf('V')) + 1);
-          DeviceLinkType link = DeviceLinkType.P2PLinkNVLink;
-          link.setWeight(DeviceLinkType.P2PLinkNVLink.getWeight()
-              / countOfLink);
-          populateGraphEdgeWeight(
-              link, rowMinor, colMinor, deviceLinkToWeight);
+        if (tempType.equals("NV1")) {
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink1,
+              rowMinor, colMinor, deviceLinkToWeight);
+        }
+        if (tempType.equals("NV2")) {
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink2,
+              rowMinor, colMinor, deviceLinkToWeight);
+        }
+        if (tempType.equals("NV3")) {
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink3,
+              rowMinor, colMinor, deviceLinkToWeight);
+        }
+        if (tempType.equals("NV4")) {
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink4,
+              rowMinor, colMinor, deviceLinkToWeight);
+        }
+        if (tempType.equals("NV5")) {
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink5,
+              rowMinor, colMinor, deviceLinkToWeight);
+        }
+        if (tempType.equals("NV6")) {
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink6,
+              rowMinor, colMinor, deviceLinkToWeight);
+        }
+        if (tempType.equals("NV7")) {
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink7,
+              rowMinor, colMinor, deviceLinkToWeight);
+        }
+        if (tempType.equals("NV8")) {
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink8,
+              rowMinor, colMinor, deviceLinkToWeight);
+        }
+        if (tempType.equals("NV9")) {
+          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink9,
+              rowMinor, colMinor, deviceLinkToWeight);
         }
       } // end one line handling
     }
@@ -525,11 +551,17 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
    * */
   public enum DeviceLinkType {
     /**
-     * For Nvdia GPU NVLink. This weight is for NV1.
-     * NV2 will be NV1's weight/2
-     * NV# will be NV1's weight/#
+     * For Nvdia GPU NVLink.
      * */
-    P2PLinkNVLink(100),
+    P2PLinkNVLink9(10),
+    P2PLinkNVLink8(20),
+    P2PLinkNVLink7(30),
+    P2PLinkNVLink6(40),
+    P2PLinkNVLink5(50),
+    P2PLinkNVLink4(60),
+    P2PLinkNVLink3(70),
+    P2PLinkNVLink2(80),
+    P2PLinkNVLink1(90),
 
     /**
      * Connected to same CPU (Same NUMA node)
@@ -551,10 +583,6 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
      * Need to traverse multiple PCIe switch to talk
      * */
     P2PLinkMultiSwitch(1200);
-
-    public void setWeight(int weight) {
-      this.weight = weight;
-    }
 
     // A higher link level means slower communication
     private int weight;

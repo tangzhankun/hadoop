@@ -257,7 +257,8 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     iterator0.remove();
     // Case 0. allocate 1 device
     reset(spyPlugin);
-    Set<Device> allocation = spyPlugin.allocateDevices(copyAvailableDevices, 1, env);
+    Set<Device> allocation = spyPlugin.allocateDevices(copyAvailableDevices,
+        1, env);
     Assert.assertEquals(allocation.size(), 1);
     verify(spyPlugin).basicSchedule(anySet(), anyInt(), anySet());
     Assert.assertFalse(spyPlugin.isTopoInitialized());
@@ -437,7 +438,8 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     }
   }
 
-  public void testCostTableWithNVlink() throws IOException {
+  @Test
+  public void testCostTableWithNVlink() throws Exception {
     NvidiaGPUPluginForRuntimeV2 plugin = mockEightGPUPlugin();
     NvidiaGPUPluginForRuntimeV2 spyPlugin = spy(plugin);
     // verify the device pair to weight map
@@ -450,22 +452,22 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
             .P2PLinkSameCPUSocket.getWeight();
     int Nv1Weight =
         NvidiaGPUPluginForRuntimeV2.DeviceLinkType
-            .P2PLinkNVLink.getWeight();
+            .P2PLinkNVLink1.getWeight();
     int Nv2Weight =
         NvidiaGPUPluginForRuntimeV2.DeviceLinkType
-            .P2PLinkNVLink.getWeight() / 2;
+            .P2PLinkNVLink2.getWeight();
 
     Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("0-1"));
     Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("1-0"));
 
-    Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("0-4"));
-    Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("4-0"));
+    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("0-4"));
+    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("4-0"));
 
     Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("0-3"));
     Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("3-0"));
 
-    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("6-3"));
-    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("3-6"));
+    Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("6-3"));
+    Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("3-6"));
 
     Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("6-7"));
     Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("7-6"));
@@ -482,6 +484,13 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     // C8:4 = 8!/4!/4! = 70
     Assert.assertEquals(70, costTable.get(4).size());
     Assert.assertNull(costTable.get(8));
+
+    Set<Device> allDevices = spyPlugin.getDevices();
+    Map<String, String> env = new HashMap<>();
+    env.put(NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_ENV_KEY,
+        NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_SPREAD);
+    spyPlugin.allocateDevices(allDevices,
+        4, env);
   }
 
   /**
