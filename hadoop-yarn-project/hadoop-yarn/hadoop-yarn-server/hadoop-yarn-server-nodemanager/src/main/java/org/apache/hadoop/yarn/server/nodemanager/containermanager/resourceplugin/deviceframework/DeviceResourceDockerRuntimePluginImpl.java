@@ -33,10 +33,11 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.docker.DockerVolumeCommand;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.DockerCommandPlugin;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerExecutionException;
+import org.apache.hadoop.yarn.util.LRUCacheHashMap;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Bridge DevicePlugin and the hooks related to lunch Docker container.
@@ -53,11 +54,13 @@ public class DeviceResourceDockerRuntimePluginImpl
   private DevicePlugin devicePlugin;
   private DevicePluginAdapter devicePluginAdapter;
 
+  private int MAX_CACHE_SIZE = 100;
+  // LRU to avoid memory leak if getCleanupDockerVolumesCommand not invoked.
   private Map<ContainerId, Set<Device>> cachedAllocation =
-      new ConcurrentHashMap();
+      Collections.synchronizedMap(new LRUCacheHashMap(MAX_CACHE_SIZE, true));
 
   private Map<ContainerId, DeviceRuntimeSpec> cachedSpec =
-      new ConcurrentHashMap<>();
+      Collections.synchronizedMap(new LRUCacheHashMap<>(MAX_CACHE_SIZE, true));
 
   public DeviceResourceDockerRuntimePluginImpl(String resourceName,
       DevicePlugin devicePlugin, DevicePluginAdapter devicePluginAdapter) {
@@ -69,27 +72,33 @@ public class DeviceResourceDockerRuntimePluginImpl
   @Override
   public void updateDockerRunCommand(DockerRunCommand dockerRunCommand,
       Container container) throws ContainerExecutionException {
+    String containerId = container.getContainerId().toString();
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Try to update docker run command.");
+      LOG.debug("Try to update docker run command for: " + containerId);
     }
-    if(!requestsDevice(resourceName, container)) {
+    if(!requestedDevice(resourceName, container)) {
       return;
     }
     DeviceRuntimeSpec deviceRuntimeSpec = getRuntimeSpec(container);
     if (deviceRuntimeSpec == null) {
-      LOG.warn("The container return null for device runtime spec");
+      LOG.warn("The device plugin: "
+          + devicePlugin.getClass().getCanonicalName()
+          + " returns null device runtime spec value for container: "
+          + containerId);
       return;
     }
     // handle runtime
     dockerRunCommand.addRuntime(deviceRuntimeSpec.getContainerRuntime());
     if (LOG.isDebugEnabled()) {
       LOG.debug("Handle docker container runtime type: "
-          + deviceRuntimeSpec.getContainerRuntime());
+          + deviceRuntimeSpec.getContainerRuntime() + " for container: "
+          + containerId);
     }
     // handle device mounts
     Set<MountDeviceSpec> deviceMounts = deviceRuntimeSpec.getDeviceMounts();
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Handle device mounts: " + deviceMounts);
+      LOG.debug("Handle device mounts: " + deviceMounts + " for container: "
+          + containerId);
     }
     for (MountDeviceSpec mountDeviceSpec : deviceMounts) {
       dockerRunCommand.addDevice(
@@ -99,7 +108,8 @@ public class DeviceResourceDockerRuntimePluginImpl
     // handle volume mounts
     Set<MountVolumeSpec> mountVolumeSpecs = deviceRuntimeSpec.getVolumeMounts();
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Handle volume mounts: " + mountVolumeSpecs);
+      LOG.debug("Handle volume mounts: " + mountVolumeSpecs + " for container: "
+          + containerId);
     }
     for (MountVolumeSpec mountVolumeSpec : mountVolumeSpecs) {
       if (mountVolumeSpec.getReadOnly()) {
@@ -115,14 +125,15 @@ public class DeviceResourceDockerRuntimePluginImpl
     // handle envs
     dockerRunCommand.addEnv(deviceRuntimeSpec.getEnvs());
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Handle envs: " + deviceRuntimeSpec.getEnvs());
+      LOG.debug("Handle envs: " + deviceRuntimeSpec.getEnvs()
+          + " for container: " + containerId);
     }
   }
 
   @Override
   public DockerVolumeCommand getCreateDockerVolumeCommand(Container container)
       throws ContainerExecutionException {
-    if(!requestsDevice(resourceName, container)) {
+    if(!requestedDevice(resourceName, container)) {
       return null;
     }
     DeviceRuntimeSpec deviceRuntimeSpec = getRuntimeSpec(container);
@@ -137,7 +148,8 @@ public class DeviceResourceDockerRuntimePluginImpl
         command.setDriverName(volumeSec.getVolumeDriver());
         command.setVolumeName(volumeSec.getVolumeName());
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Get volume create request from plugin:" + volumeClaims);
+          LOG.debug("Get volume create request from plugin:" + volumeClaims
+              + " for container: " + container.getContainerId().toString());
         }
         return command;
       }
@@ -149,15 +161,16 @@ public class DeviceResourceDockerRuntimePluginImpl
   public DockerVolumeCommand getCleanupDockerVolumesCommand(Container container)
       throws ContainerExecutionException {
 
-    if(!requestsDevice(resourceName, container)) {
+    if(!requestedDevice(resourceName, container)) {
       return null;
     }
     Set<Device> allocated = getAllocatedDevices(container);
     try {
       devicePlugin.onDevicesReleased(allocated);
     } catch (Exception e) {
-      LOG.warn("Exception thrown onDeviceReleased of "
-              + devicePlugin.getClass(), e);
+      LOG.warn("Exception thrown in onDeviceReleased of "
+          + devicePlugin.getClass() + "for container: "
+          + container.getContainerId().toString(), e);
     }
     // remove cache
     ContainerId containerId = container.getContainerId();
@@ -166,7 +179,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     return null;
   }
 
-  protected boolean requestsDevice(String resName, Container container) {
+  protected boolean requestedDevice(String resName, Container container) {
     return DeviceMappingManager.
         getRequestedDeviceCount(resName, container.getResource()) > 0;
   }
@@ -184,7 +197,7 @@ public class DeviceResourceDockerRuntimePluginImpl
         .getAllocatedDevices(resourceName, containerId);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Get allocation from deviceMappingManager: "
-          + allocated + ", " + resourceName);
+          + allocated + ", " + resourceName + " for container: " + containerId);
     }
     cachedAllocation.put(containerId, allocated);
     return allocated;
@@ -196,7 +209,7 @@ public class DeviceResourceDockerRuntimePluginImpl
     if (deviceRuntimeSpec == null) {
       Set<Device> allocated = getAllocatedDevices(container);
       if (allocated == null || allocated.size() == 0) {
-        LOG.error("Cannot get allocation of container:" + containerId);
+        LOG.error("Cannot get allocation for container:" + containerId);
         return null;
       }
       try {
@@ -204,11 +217,12 @@ public class DeviceResourceDockerRuntimePluginImpl
             YarnRuntimeType.RUNTIME_DOCKER);
       } catch (Exception e) {
         LOG.error("Exception thrown in onDeviceAllocated of "
-            + devicePlugin.getClass() + e.getMessage());
+            + devicePlugin.getClass() + " for container: " + containerId, e);
       }
       if (deviceRuntimeSpec == null) {
-        LOG.error("Null DeviceRuntimeSpec value got," +
-            " please check plugin logic");
+        LOG.error("Null DeviceRuntimeSpec value got from "
+            + devicePlugin.getClass() + " for container: "
+            + containerId + ", please check plugin logic");
         return null;
       }
       cachedSpec.put(containerId, deviceRuntimeSpec);
