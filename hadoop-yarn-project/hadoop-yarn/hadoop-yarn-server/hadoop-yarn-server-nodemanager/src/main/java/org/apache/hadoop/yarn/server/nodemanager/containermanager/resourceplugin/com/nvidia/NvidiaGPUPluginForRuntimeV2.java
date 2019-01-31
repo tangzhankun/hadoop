@@ -496,8 +496,14 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
               rowMinor, colMinor, deviceLinkToWeight);
         }
         if (tempType.startsWith("NV")) {
-          populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink,
-              rowMinor, colMinor, deviceLinkToWeight);
+          int countOfLink =
+              Integer.parseInt(
+                  tempType.substring(tempType.lastIndexOf('V')) + 1);
+          DeviceLinkType link = DeviceLinkType.P2PLinkNVLink;
+          link.setWeight(DeviceLinkType.P2PLinkNVLink.getWeight()
+              / countOfLink);
+          populateGraphEdgeWeight(
+              link, rowMinor, colMinor, deviceLinkToWeight);
         }
       } // end one line handling
     }
@@ -513,34 +519,42 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
   }
 
   /**
-   * Different type of link
+   * Different type of link.
+   * The weight of each link is a relative value.
+   * The higher weight, the higher cost between the GPUs
    * */
   public enum DeviceLinkType {
     /**
-     * For Nvdia GPU NVLink
+     * For Nvdia GPU NVLink. This weight is for NV1.
+     * NV2 will be NV1's weight/2
+     * NV# will be NV1's weight/#
      * */
-    P2PLinkNVLink(1),
+    P2PLinkNVLink(100),
 
     /**
      * Connected to same CPU (Same NUMA node)
      * */
-    P2PLinkSameCPUSocket(2),
+    P2PLinkSameCPUSocket(200),
 
     /**
      * Cross CPU through socket-level link (e.g. QPI).
      * Usually cross NUMA node
      * */
-    P2PLinkCrossCPUSocket(4),
+    P2PLinkCrossCPUSocket(300),
 
     /**
      * Just need to traverse one PCIe switch to talk
      * */
-    P2PLinkSingleSwitch(16),
+    P2PLinkSingleSwitch(600),
 
     /**
      * Need to traverse multiple PCIe switch to talk
      * */
-    P2PLinkMultiSwitch(32);
+    P2PLinkMultiSwitch(1200);
+
+    public void setWeight(int weight) {
+      this.weight = weight;
+    }
 
     // A higher link level means slower communication
     private int weight;

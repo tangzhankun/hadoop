@@ -121,6 +121,75 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     Assert.assertEquals("0,1", spec.getEnvs().get("NVIDIA_VISIBLE_DEVICES"));
   }
 
+  private NvidiaGPUPluginForRuntimeV2 mockEightGPUPlugin() throws IOException {
+    String topoInfo = "\tGPU0\tGPU1\tGPU2\tGPU3\tGPU4\tGPU5\tGPU6\tGPU7\tCPU Affinity\n"
+        + "GPU0\t X \tNV1\tNV1\tNV2\tNV2\tPHB\tPHB\tPHB\t0-63\n"
+        + "GPU1\tNV1\t X \tNV2\tNV1\tPHB\tNV2\tPHB\tPHB\t0-63\n"
+        + "GPU2\tNV1\tNV2\t X \tNV2\tPHB\tPHB\tNV1\tPHB\t0-63\n"
+        + "GPU3\tNV2\tNV1\tNV2\t X \tPHB\tPHB\tPHB\tNV1\t0-63\n"
+        + "GPU4\tNV2\tPHB\tPHB\tPHB\t X \tNV1\tNV1\tNV2\t0-63\n"
+        + "GPU5\tPHB\tNV2\tPHB\tPHB\tNV1\t X \tNV2\tNV1\t0-63\n"
+        + "GPU6\tPHB\tPHB\tNV1\tPHB\tNV1\tNV2\t X \tNV2\t0-63\n"
+        + "GPU7\tPHB\tPHB\tPHB\tNV1\tNV2\tNV1\tNV2\t X \t0-63\n"
+        + "\n"
+        + "Legend:\n"
+        + "\n"
+        + "  X    = Self\n"
+        + "  SYS  = Connection traversing PCIe as well as the SMP interconnect"
+        + " between NUMA nodes (e.g., QPI/UPI)\n"
+        + "  NODE = Connection traversing PCIe as well as the interconnect"
+        + " between PCIe Host Bridges within a NUMA node\n"
+        + "  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge"
+        + " (typically the CPU)\n"
+        + "  PXB  = Connection traversing multiple PCIe switches"
+        + " (without traversing the PCIe Host Bridge)\n"
+        + "  PIX  = Connection traversing a single PCIe switch\n"
+        + "  NV#  = Connection traversing a bonded set of # NVLinks\n";
+
+    String deviceInfoShellOutput = "0, 00000000:04:00.0\n"
+        + "1, 00000000:82:00.0\n"
+        + "2, 00000000:83:00.0\n"
+        + "3, 00000000:84:00.0\n"
+        + "4, 00000000:85:00.0\n"
+        + "5, 00000000:86:00.0\n"
+        + "6, 00000000:87:00.0\n"
+        + "7, 00000000:88:00.0";
+    String majorMinorNumber0 = "c3:0";
+    String majorMinorNumber1 = "c3:1";
+    String majorMinorNumber2 = "c3:2";
+    String majorMinorNumber3 = "c3:3";
+    String majorMinorNumber4 = "c3:4";
+    String majorMinorNumber5 = "c3:5";
+    String majorMinorNumber6 = "c3:6";
+    String majorMinorNumber7 = "c3:7";
+    NvidiaGPUPluginForRuntimeV2.NvidiaCommandExecutor mockShell =
+        mock(NvidiaGPUPluginForRuntimeV2.NvidiaCommandExecutor.class);
+    when(mockShell.getDeviceInfo()).thenReturn(deviceInfoShellOutput);
+    when(mockShell.getMajorMinorInfo("nvidia0"))
+        .thenReturn(majorMinorNumber0);
+    when(mockShell.getMajorMinorInfo("nvidia1"))
+        .thenReturn(majorMinorNumber1);
+    when(mockShell.getMajorMinorInfo("nvidia2"))
+        .thenReturn(majorMinorNumber2);
+    when(mockShell.getMajorMinorInfo("nvidia3"))
+        .thenReturn(majorMinorNumber3);
+    when(mockShell.getMajorMinorInfo("nvidia4"))
+        .thenReturn(majorMinorNumber4);
+    when(mockShell.getMajorMinorInfo("nvidia5"))
+        .thenReturn(majorMinorNumber5);
+    when(mockShell.getMajorMinorInfo("nvidia6"))
+        .thenReturn(majorMinorNumber6);
+    when(mockShell.getMajorMinorInfo("nvidia7"))
+        .thenReturn(majorMinorNumber7);
+    when(mockShell.getTopologyInfo()).thenReturn(topoInfo);
+    when(mockShell.getDeviceInfo()).thenReturn(deviceInfoShellOutput);
+
+    NvidiaGPUPluginForRuntimeV2 plugin = new NvidiaGPUPluginForRuntimeV2();
+    plugin.setShellExecutor(mockShell);
+    plugin.setPathOfGpuBinary("/fake/nvidia-smi");
+    return plugin;
+  }
+
   private NvidiaGPUPluginForRuntimeV2 mockFourGPUPlugin() throws IOException {
     String topoInfo = "\tGPU0\tGPU1\tGPU2\tGPU3\tCPU Affinity\n"
         + "GPU0\t X \tPHB\tSOC\tSOC\t0-31\n"
@@ -219,7 +288,9 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     Device[] allocatedDevices =
         allocation.toArray(new Device[count]);
     // Check weights
-    Assert.assertEquals(2, spyPlugin.computeCostOfDevices(allocatedDevices));
+    Assert.assertEquals(NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+        .P2PLinkSameCPUSocket.getWeight(),
+        spyPlugin.computeCostOfDevices(allocatedDevices));
     // Case 4. allocate 3 devices
     reset(spyPlugin);
     count = 3;
@@ -234,7 +305,12 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     allocatedDevices =
         allocation.toArray(new Device[count]);
     // check weights
-    Assert.assertEquals(2 + 4 + 4,
+    int expectedWeight =
+        NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkSameCPUSocket.getWeight()
+            + 2 * NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkCrossCPUSocket.getWeight();
+    Assert.assertEquals(expectedWeight,
         spyPlugin.computeCostOfDevices(allocatedDevices));
     // Case 5. allocate 2 GPUs from three available devices
     reset(spyPlugin);
@@ -254,7 +330,8 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     allocatedDevices =
         allocation.toArray(new Device[count]);
     // check weights
-    Assert.assertEquals(2,
+    Assert.assertEquals(NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkSameCPUSocket.getWeight(),
         spyPlugin.computeCostOfDevices(allocatedDevices));
     // it should allocate GPU 2 and 3
     for (Device device : allocation) {
@@ -303,7 +380,9 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     Device[] allocatedDevices =
         allocation.toArray(new Device[count]);
     // Check weights
-    Assert.assertEquals(4, spyPlugin.computeCostOfDevices(allocatedDevices));
+    Assert.assertEquals(NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+        .P2PLinkCrossCPUSocket.getWeight(),
+        spyPlugin.computeCostOfDevices(allocatedDevices));
     // Case 4. allocate 3 devices
     reset(spyPlugin);
     count = 3;
@@ -318,7 +397,12 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     allocatedDevices =
         allocation.toArray(new Device[count]);
     // check weights
-    Assert.assertEquals(2 + 4 + 4,
+    int expectedWeight =
+        NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkSameCPUSocket.getWeight()
+            + 2 * NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkCrossCPUSocket.getWeight();
+    Assert.assertEquals(expectedWeight,
         spyPlugin.computeCostOfDevices(allocatedDevices));
     // Case 5. allocate 2 GPUs from three available devices
     reset(spyPlugin);
@@ -338,7 +422,8 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     allocatedDevices =
         allocation.toArray(new Device[count]);
     // check weights
-    Assert.assertEquals(4,
+    Assert.assertEquals(NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkCrossCPUSocket.getWeight(),
         spyPlugin.computeCostOfDevices(allocatedDevices));
     // it should allocate GPU 1 and 2
     for (Device device : allocation) {
@@ -352,6 +437,53 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     }
   }
 
+  public void testCostTableWithNVlink() throws IOException {
+    NvidiaGPUPluginForRuntimeV2 plugin = mockEightGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 spyPlugin = spy(plugin);
+    // verify the device pair to weight map
+    spyPlugin.initCostTable();
+    Map<String, Integer> devicePairToWeight = spyPlugin.getDevicePairToWeight();
+    // 12 combinations when choose 2 GPUs from 8 respect the order. 8!/6!
+    Assert.assertEquals(56, devicePairToWeight.size());
+    int sameCPUWeight =
+        NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkSameCPUSocket.getWeight();
+    int Nv1Weight =
+        NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkNVLink.getWeight();
+    int Nv2Weight =
+        NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkNVLink.getWeight() / 2;
+
+    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("0-1"));
+    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("1-0"));
+
+    Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("0-4"));
+    Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("4-0"));
+
+    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("0-3"));
+    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("3-0"));
+
+    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("6-3"));
+    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("3-6"));
+
+    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("6-7"));
+    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("7-6"));
+
+    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("1-3"));
+    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("3-1"));
+
+    // verify cost Table
+    Map<Integer, Map<Set<Device>, Integer>> costTable =
+        spyPlugin.getCostTable();
+    Assert.assertNull(costTable.get(1));
+    // C8:2 = 8!/2!/6! = 28
+    Assert.assertEquals(28, costTable.get(2).size());
+    // C8:4 = 8!/4!/4! = 70
+    Assert.assertEquals(70, costTable.get(4).size());
+    Assert.assertNull(costTable.get(8));
+  }
+
   /**
    * Test the key cost table used for topology scheduling
    * */
@@ -362,28 +494,29 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     // verify the device pair to weight map
     spyPlugin.initCostTable();
     Map<String, Integer> devicePairToWeight = spyPlugin.getDevicePairToWeight();
-    // 12 combinations when choose 2 GPUs from 4 respect the order
+    // 12 combinations when choose 2 GPUs from 4 respect the order. 4!/2!
     Assert.assertEquals(12, devicePairToWeight.size());
     int sameCPUWeight =
-        NvidiaGPUPluginForRuntimeV2.DeviceLinkType.P2PLinkSameCPUSocket.getWeight();
+        NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkSameCPUSocket.getWeight();
     int crossCPUWeight =
-        NvidiaGPUPluginForRuntimeV2.DeviceLinkType.P2PLinkCrossCPUSocket.getWeight();
-    // GPU 0 to 1, weight is 2
+        NvidiaGPUPluginForRuntimeV2.DeviceLinkType
+            .P2PLinkCrossCPUSocket.getWeight();
     Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("0-1"));
     Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("1-0"));
-    // GPU 0 to 2, weight is 4
+
     Assert.assertEquals(crossCPUWeight, (int)devicePairToWeight.get("0-2"));
     Assert.assertEquals(crossCPUWeight, (int)devicePairToWeight.get("2-0"));
-    // GPU 0 to 3, weight is 4
+
     Assert.assertEquals(crossCPUWeight, (int)devicePairToWeight.get("0-3"));
     Assert.assertEquals(crossCPUWeight, (int)devicePairToWeight.get("3-0"));
-    // GPU 1 to 2, weight is 4
+
     Assert.assertEquals(crossCPUWeight, (int)devicePairToWeight.get("1-2"));
     Assert.assertEquals(crossCPUWeight, (int)devicePairToWeight.get("2-1"));
-    // GPU 1 to 3, weight is 4
+
     Assert.assertEquals(crossCPUWeight, (int)devicePairToWeight.get("1-3"));
     Assert.assertEquals(crossCPUWeight, (int)devicePairToWeight.get("3-1"));
-    // GPU 2 to 3, weight is 2
+
     Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("2-3"));
     Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("3-2"));
 
