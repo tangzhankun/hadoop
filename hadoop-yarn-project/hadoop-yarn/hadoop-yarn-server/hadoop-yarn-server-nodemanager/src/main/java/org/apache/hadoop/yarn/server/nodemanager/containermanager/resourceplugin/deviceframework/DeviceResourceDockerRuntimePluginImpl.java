@@ -156,8 +156,8 @@ public class DeviceResourceDockerRuntimePluginImpl
     try {
       devicePlugin.onDevicesReleased(allocated);
     } catch (Exception e) {
-      LOG.warn("Exception thrown onDeviceReleased of " + devicePlugin.getClass()
-          , e);
+      LOG.warn("Exception thrown onDeviceReleased of "
+              + devicePlugin.getClass(), e);
     }
     // remove cache
     ContainerId containerId = container.getContainerId();

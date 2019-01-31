@@ -612,7 +612,8 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
         LOG.error("No binary found from env variable: "
             + ENV_BINARY_PATH + " or path "
             + DEFAULT_BINARY_SEARCH_DIRS.toString());
-        throw new Exception("No binary found for " + NvidiaGPUPluginForRuntimeV2.class);
+        throw new Exception("No binary found for "
+            + NvidiaGPUPluginForRuntimeV2.class);
       }
     }
   }
