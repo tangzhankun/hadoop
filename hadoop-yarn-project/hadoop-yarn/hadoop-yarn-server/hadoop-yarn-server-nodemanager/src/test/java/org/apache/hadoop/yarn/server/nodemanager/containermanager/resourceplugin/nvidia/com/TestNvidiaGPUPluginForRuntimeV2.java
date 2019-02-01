@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -488,9 +489,11 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     Set<Device> allDevices = spyPlugin.getDevices();
     Map<String, String> env = new HashMap<>();
     env.put(NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_ENV_KEY,
-        NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_SPREAD);
+        NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_PACK);
     spyPlugin.allocateDevices(allDevices,
         4, env);
+    spyPlugin.allocateDevices(allDevices, 3, env);
+    spyPlugin.allocateDevices(allDevices, 2, env);
   }
 
   /**
