@@ -57,8 +57,14 @@ static int search_in_list(char** list, char* token) {
 
 static int is_block_device(const char* value) {
   int is_block = 0;
-  char* block_path = malloc(512);
-  if (snprintf(block_path, 512, "/sys/dev/block/%s",
+  int max_path_size = 512;
+  char* block_path = malloc(max_path_size);
+  if (block_path == NULL) {
+    fprintf(ERRORFILE, "Failed to allocate memory for sys device path string.\n");
+    fflush(ERRORFILE);
+    goto cleanup;
+  }
+  if (snprintf(block_path, max_path_size, "/sys/dev/block/%s",
     value) < 0) {
     fprintf(ERRORFILE, "Failed to construct system block device path.\n");
     goto cleanup;
