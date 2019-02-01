@@ -54,13 +54,13 @@ public class DeviceResourceDockerRuntimePluginImpl
   private DevicePlugin devicePlugin;
   private DevicePluginAdapter devicePluginAdapter;
 
-  private int MAX_CACHE_SIZE = 100;
+  private int maxCacheSize = 100;
   // LRU to avoid memory leak if getCleanupDockerVolumesCommand not invoked.
   private Map<ContainerId, Set<Device>> cachedAllocation =
-      Collections.synchronizedMap(new LRUCacheHashMap(MAX_CACHE_SIZE, true));
+      Collections.synchronizedMap(new LRUCacheHashMap(maxCacheSize, true));
 
   private Map<ContainerId, DeviceRuntimeSpec> cachedSpec =
-      Collections.synchronizedMap(new LRUCacheHashMap<>(MAX_CACHE_SIZE, true));
+      Collections.synchronizedMap(new LRUCacheHashMap<>(maxCacheSize, true));
 
   public DeviceResourceDockerRuntimePluginImpl(String resourceName,
       DevicePlugin devicePlugin, DevicePluginAdapter devicePluginAdapter) {
