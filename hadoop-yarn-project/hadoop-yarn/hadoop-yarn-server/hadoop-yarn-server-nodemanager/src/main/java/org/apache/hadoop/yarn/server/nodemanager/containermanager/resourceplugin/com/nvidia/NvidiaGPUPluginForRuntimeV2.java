@@ -51,6 +51,8 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
   public static final Logger LOG = LoggerFactory.getLogger(
       NvidiaGPUPluginForRuntimeV2.class);
 
+  public static final String NV_RESOURCE_NAME = "nvidia.com/gpu";
+
   private NvidiaCommandExecutor shellExecutor = new NvidiaCommandExecutor();
 
   private Map<String, String> environment = new HashMap<>();
@@ -115,7 +117,7 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
   @Override
   public DeviceRegisterRequest getRegisterRequestInfo() throws Exception {
     return DeviceRegisterRequest.Builder.newInstance()
-        .setResourceName("nvidia.com/gpu").build();
+        .setResourceName(NV_RESOURCE_NAME).build();
   }
 
   @Override

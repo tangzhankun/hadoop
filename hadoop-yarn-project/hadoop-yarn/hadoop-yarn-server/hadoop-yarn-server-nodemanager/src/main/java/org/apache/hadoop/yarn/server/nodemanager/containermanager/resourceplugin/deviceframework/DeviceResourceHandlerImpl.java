@@ -189,14 +189,14 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
       int minorNumber;
       List<String> devNumbers = new ArrayList<>();
       if (!allocation.getDenied().isEmpty()) {
-        String devType;
+        DeviceType devType;
         for (Device deniedDevice : allocation.getDenied()) {
           majorNumber = deniedDevice.getMajorNumber();
           minorNumber = deniedDevice.getMinorNumber();
           // Add device type
           devType = getDeviceType(deniedDevice);
           if (devType != null) {
-            devNumbers.add(devType + "-" + majorNumber + ":"
+            devNumbers.add(devType.getName() + "-" + majorNumber + ":"
                 + minorNumber + "-rwm");
           }
         }
@@ -273,7 +273,7 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
         '}';
   }
 
-  public String getDeviceType(Device device) {
+  public DeviceType getDeviceType(Device device) {
     String devName = device.getDevPath();
     if (devName.isEmpty()) {
       LOG.warn("Empty device path provided, try to get device type from " +
@@ -285,25 +285,26 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
         return null;
       }
       // Get type from the device numbers
-      return getDeviceType(device.getMajorNumber(), device.getMinorNumber());
+      return getDeviceTypeFromDeviceNumber(device.getMajorNumber(),
+          device.getMinorNumber());
     }
-    String output;
+    DeviceType deviceType;
     try {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Get device type from " + devName);
+        LOG.debug("Try to get device type from device path: " + devName);
       }
-      output = shellWrapper.getDeviceFileType(devName);
+      String output = shellWrapper.getDeviceFileType(devName);
       if (LOG.isDebugEnabled()) {
         LOG.debug("stat output:" + output);
       }
-      output = output.startsWith("c") ? "c" : "b";
+      deviceType = output.startsWith("c") ? DeviceType.CHAR : DeviceType.BLOCK;
     } catch (IOException e) {
       String msg =
           "Failed to get device type from stat " + devName;
       LOG.warn(msg);
-      output = null;
+      return null;
     }
-    return output;
+    return deviceType;
   }
 
   /**
@@ -312,12 +313,32 @@ public class DeviceResourceHandlerImpl implements ResourceHandler {
    * Otherwise, it's char device. An exception is that Nvidia GPU doesn't
    * create this sys file. so assume character device by default.
    */
-  public String getDeviceType(int major, int minor) {
+  public DeviceType getDeviceTypeFromDeviceNumber(int major, int minor) {
     if (shellWrapper.existFile("/sys/dev/block/"
         + major + ":" + minor)) {
-      return "b";
+      return DeviceType.BLOCK;
     }
-    return "c";
+    return DeviceType.CHAR;
+  }
+
+  /**
+   * Enum for Linux device type. Used when updating device cgroups params.
+   * "b" represents block device
+   * "c" represents character device
+   * */
+  private enum DeviceType {
+    BLOCK("b"),
+    CHAR("c");
+
+    private final String name;
+
+    DeviceType(String n) {
+      this.name = n;
+    }
+
+    public String getName() {
+      return name;
+    }
   }
 
 }
