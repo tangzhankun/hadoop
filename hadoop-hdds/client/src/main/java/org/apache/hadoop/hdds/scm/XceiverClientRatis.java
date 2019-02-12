@@ -36,6 +36,8 @@ import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos
 import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos
     .ContainerCommandResponseProto;
 import org.apache.hadoop.hdds.protocol.proto.HddsProtos;
+import org.apache.hadoop.hdds.tracing.TracingUtil;
+
 import org.apache.ratis.RatisHelper;
 import org.apache.ratis.client.RaftClient;
 import org.apache.ratis.protocol.RaftClientReply;
@@ -189,9 +191,13 @@ public final class XceiverClientRatis extends XceiverClientSpi {
 
   private CompletableFuture<RaftClientReply> sendRequestAsync(
       ContainerCommandRequestProto request) {
-    boolean isReadOnlyRequest = HddsUtils.isReadOnly(request);
-    ByteString byteString = request.toByteString();
-    LOG.debug("sendCommandAsync {} {}", isReadOnlyRequest, request);
+    ContainerCommandRequestProto finalPayload =
+        ContainerCommandRequestProto.newBuilder(request)
+            .setTraceID(TracingUtil.exportCurrentSpan())
+            .build();
+    boolean isReadOnlyRequest = HddsUtils.isReadOnly(finalPayload);
+    ByteString byteString = finalPayload.toByteString();
+    LOG.debug("sendCommandAsync {} {}", isReadOnlyRequest, finalPayload);
     return isReadOnlyRequest ? getClient().sendReadOnlyAsync(() -> byteString) :
         getClient().sendAsync(() -> byteString);
   }
@@ -203,7 +209,6 @@ public final class XceiverClientRatis extends XceiverClientSpi {
         commitInfoMap.values().parallelStream().mapToLong(v -> v).min();
     return minIndex.isPresent() ? minIndex.getAsLong() : 0;
   }
-
 
   @Override
   public long watchForCommit(long index, long timeout)
@@ -254,7 +259,7 @@ public final class XceiverClientRatis extends XceiverClientSpi {
       commitInfoMap.remove(address);
       LOG.info(
           "Could not commit " + index + " to all the nodes. Server " + address
-              + " has failed" + "Committed by majority.");
+              + " has failed." + " Committed by majority.");
     }
     return index;
   }
@@ -266,9 +271,9 @@ public final class XceiverClientRatis extends XceiverClientSpi {
    * @return Response to the command
    */
   @Override
-  public XceiverClientAsyncReply sendCommandAsync(
+  public XceiverClientReply sendCommandAsync(
       ContainerCommandRequestProto request) {
-    XceiverClientAsyncReply asyncReply = new XceiverClientAsyncReply(null);
+    XceiverClientReply asyncReply = new XceiverClientReply(null);
     CompletableFuture<RaftClientReply> raftClientReply =
         sendRequestAsync(request);
     CompletableFuture<ContainerCommandResponseProto> containerCommandResponse =
@@ -291,6 +296,8 @@ public final class XceiverClientRatis extends XceiverClientSpi {
                 if (response.getResult() == ContainerProtos.Result.SUCCESS) {
                   updateCommitInfosMap(reply.getCommitInfos());
                   asyncReply.setLogIndex(reply.getLogIndex());
+                  asyncReply.setDatanode(
+                      RatisHelper.toDatanodeId(reply.getReplierId()));
                 }
                 return response;
               } catch (InvalidProtocolBufferException e) {
