@@ -16,19 +16,20 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.nvidia.com;
+package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia;
 
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia.NvidiaGPUPluginForRuntimeV2;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -123,7 +124,8 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
   }
 
   private NvidiaGPUPluginForRuntimeV2 mockEightGPUPlugin() throws IOException {
-    String topoInfo = "\tGPU0\tGPU1\tGPU2\tGPU3\tGPU4\tGPU5\tGPU6\tGPU7\tCPU Affinity\n"
+    String topoInfo =
+        "\tGPU0\tGPU1\tGPU2\tGPU3\tGPU4\tGPU5\tGPU6\tGPU7\tCPU Affinity\n"
         + "GPU0\t X \tNV1\tNV1\tNV2\tNV2\tPHB\tPHB\tPHB\t0-63\n"
         + "GPU1\tNV1\t X \tNV2\tNV1\tPHB\tNV2\tPHB\tPHB\t0-63\n"
         + "GPU2\tNV1\tNV2\t X \tNV2\tPHB\tPHB\tNV1\tPHB\t0-63\n"
@@ -490,8 +492,6 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     Map<String, String> env = new HashMap<>();
     env.put(NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_ENV_KEY,
         NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_PACK);
-    spyPlugin.allocateDevices(allDevices,
-        4, env);
     spyPlugin.allocateDevices(allDevices, 3, env);
     spyPlugin.allocateDevices(allDevices, 2, env);
   }
@@ -540,4 +540,254 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     Assert.assertEquals(4, costTable.get(3).size());
     Assert.assertNull(costTable.get(4));
   }
+  /**
+   * Test GPU topology allocation.
+   * And analysis the GPU allocation's performance against the actual
+   * performance data using tensorflow benchmarks.
+   * https://github.com/tensorflow/benchmarks
+   * */
+  @Test
+  public void testTopologySchedulingPerformanceWithPackPolicyWithNVLink()
+      throws Exception {
+    NvidiaGPUPluginForRuntimeV2 plugin = mockEightGPUPlugin();
+    NvidiaGPUPluginForRuntimeV2 spyPlugin = spy(plugin);
+    Set<Device> allDevices = spyPlugin.getDevices();
+    Map<String, String> env = new HashMap<>();
+    env.put(NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_ENV_KEY,
+        NvidiaGPUPluginForRuntimeV2.TOPOLOGY_POLICY_PACK);
+
+    /**
+     * Analyze performance against the real data.
+     * We want to analysis the topology scheduling algorithm's average
+     * performance boost
+     * */
+    ActualPerformanceReport report  = new ActualPerformanceReport();
+    report.readFromFile();
+    ArrayList<ActualPerformanceReport.DataRecord> dataSet =
+        report.getDataSet();
+    Assert.assertEquals(dataSet.size(), 2952);
+    String[] models = {"alexnet", "resnet50", "vgg16", "inception3"};
+    int[] batchSizes = {32, 64, 128};
+    int[] gpuCounts = {2, 3, 4, 5, 6, 7};
+    float totalBoostAgainstAverage = 0;
+    int count = 0;
+    float maxBoostAgainstAverage = 0;
+    float totalBoostAgainstMin = 0;
+    float maxBoostAgainstMin = 0;
+    for (String model : models) {
+      for (int bs : batchSizes) {
+        for (int gpuCount: gpuCounts) {
+          float bstAgainstAverage = calculatePerformanceBoostAgainstAverage(
+              report, model, bs, gpuCount, plugin, allDevices, env);
+          float fpsAgainstMinimum = calculatePerformanceBoostAgainstMinimum(
+              report, model, bs, gpuCount, plugin, allDevices, env);
+          totalBoostAgainstAverage += bstAgainstAverage;
+          totalBoostAgainstMin += fpsAgainstMinimum;
+          count++;
+          if (maxBoostAgainstAverage < bstAgainstAverage) {
+            maxBoostAgainstAverage = bstAgainstAverage;
+          }
+          if (maxBoostAgainstMin < fpsAgainstMinimum) {
+            maxBoostAgainstMin = fpsAgainstMinimum;
+          }
+        }
+      }
+    }
+    LOG.info("The best performance boost against mean value is "
+        + maxBoostAgainstAverage);
+    LOG.info("The aggregated average performance boost against mean value is "
+        + totalBoostAgainstAverage/count);
+    LOG.info("The best performance boost against min value is "
+        + maxBoostAgainstMin);
+    LOG.info("The aggregated average performance boost against min value is "
+        + totalBoostAgainstMin/count);
+  }
+
+  /**
+   * For <code>gpuCount</code> GPUs allocated by the topology algorithm, return
+   * its performance boost against the average value.
+   *
+   * */
+  private float calculatePerformanceBoostAgainstAverage(
+      ActualPerformanceReport report,
+      String model, int bs, int gpuCount,
+      NvidiaGPUPluginForRuntimeV2 plugin, Set<Device> allDevice,
+      Map<String, String> env) {
+    Set<Device> allocation = plugin.allocateDevices(allDevice, gpuCount, env);
+    String gpuAllocationString = convertAllocationToGpuString(allocation);
+    float[] metrics = report.getVariousImagePerSecond(model, bs,
+        gpuCount, gpuAllocationString);
+    float average = metrics[2];
+    float theImagePerSecond = metrics[3];
+    return theImagePerSecond/average - 1;
+  }
+
+  /**
+   * For <code>gpuCount</code> GPUs allocated by the topology algorithm, return
+   * its performance boost against the minimum value.
+   *
+   * */
+  private float calculatePerformanceBoostAgainstMinimum(
+      ActualPerformanceReport report,
+      String model, int bs, int gpuCount,
+      NvidiaGPUPluginForRuntimeV2 plugin, Set<Device> allDevice,
+      Map<String, String> env) {
+    Set<Device> allocation = plugin.allocateDevices(allDevice, gpuCount, env);
+    String gpuAllocationString = convertAllocationToGpuString(allocation);
+    float[] metrics = report.getVariousImagePerSecond(model, bs,
+        gpuCount, gpuAllocationString);
+    float min = metrics[1];
+    float theImagePerSecond = metrics[3];
+    return theImagePerSecond/min - 1;
+  }
+
+  private String convertAllocationToGpuString(Set<Device> allocation) {
+    StringBuilder sb = new StringBuilder();
+    for (Device device : allocation) {
+      sb.append(device.getMinorNumber() + "_");
+    }
+    return sb.toString().substring(0, sb.lastIndexOf("_"));
+  }
+
+  /**
+   * Representation of the performance data report.
+   * */
+  private class ActualPerformanceReport {
+
+    private ArrayList<DataRecord> dataSet = new ArrayList<>();
+
+    public ArrayList<DataRecord> getDataSet() {
+      return dataSet;
+    }
+
+    /**
+     * One line in the report.
+     * */
+    private class DataRecord {
+      DataRecord(String model, int bs, String combination, float fps,
+          int count) {
+        this.batchSize = bs;
+        this.gpuCombination = combination;
+        this.gpuCount = count;
+        this.model = model;
+        this.imagePerSecond = fps;
+      }
+
+      public String getModel() {
+        return model;
+      }
+
+      public int getBatchSize() {
+        return batchSize;
+      }
+
+      public String getGpuCombination() {
+        return gpuCombination;
+      }
+
+      public float getImagePerSecond() {
+        return imagePerSecond;
+      }
+
+      public int getGpuCount() {
+        return gpuCount;
+      }
+
+      private String model;
+      private int batchSize;
+      private String gpuCombination;
+      private float imagePerSecond;
+      private int gpuCount;
+    }
+
+    /**
+     * The file is a real performance report got from a 8 GPUs AWS instance.
+     * It contains every combination GPUs' training performance of Tensorflow
+     * benchmark.
+     * The columns are the model name, batch size, gpu ids and imagesPerSecond
+     * */
+    public void readFromFile() {
+      String csvReportFilePath = getClass().getClassLoader()
+          .getResource("tensorflow-bench-result-for-GPU.csv").getFile();
+      BufferedReader br = null;
+      String line = "";
+      try {
+        br = new BufferedReader(new FileReader(csvReportFilePath));
+        String model;
+        int batchSize;
+        String gpuCombination;
+        float imagePerSecond;
+        int gpuCount;
+        while ((line = br.readLine()) != null) {
+          String[] tokens = line.replaceAll("\"", "").split(",");
+          if (tokens.length != 4) {
+            LOG.error("unexpected performance data format!");
+            break;
+          }
+          model = tokens[0];
+          batchSize = Integer.parseInt(tokens[1].trim());
+          gpuCombination = tokens[2];
+          imagePerSecond = Float.parseFloat(tokens[3]);
+          gpuCount = getGpuCount(gpuCombination);
+          this.dataSet.add(new DataRecord(model, batchSize, gpuCombination,
+              imagePerSecond, gpuCount));
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        if (br != null) {
+          try {
+            br.close();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+      } // end finally
+    }
+
+    /**
+     * Return the maximum, minimum, average performance for model & bs &
+     * gpuCount. And the imagePerSecond for model & bs & gpuCount &
+     * gpuCombinations
+     * */
+    private float[] getVariousImagePerSecond(String model, int bs,
+        int gpuCount, String gpuCombinations) {
+      float[] result = new float[4];
+      float max = 0;
+      float min = Float.MAX_VALUE;
+      float sum = 0;
+      int count = 0;
+      float wantedImagePerSecond = 0;
+      float currentImagePerSecond;
+      for (DataRecord dr : getDataSet()) {
+        currentImagePerSecond = dr.getImagePerSecond();
+        if (dr.batchSize == bs
+            && model.equals(dr.getModel())
+            && gpuCount == dr.getGpuCount()) {
+          sum += currentImagePerSecond;
+          count++;
+          if (max < currentImagePerSecond) {
+            max = currentImagePerSecond;
+          }
+          if (min > currentImagePerSecond) {
+            min = currentImagePerSecond;
+          }
+          if (gpuCombinations.equals(dr.getGpuCombination())) {
+            wantedImagePerSecond = dr.getImagePerSecond();
+          }
+        }
+      }
+      result[0] = max;
+      result[1] = min;
+      result[2] = sum/count;
+      result[3] = wantedImagePerSecond;
+      return result;
+    }
+
+    private int getGpuCount(String gpuCombination) {
+      String[] tokens = gpuCombination.split("_");
+      return tokens.length;
+    }
+  }
+
 }

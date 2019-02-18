@@ -484,54 +484,67 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
         if (tempType.equals("SOC") || tempType.equals("SYS")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkCrossCPUSocket,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("PHB") || tempType.equals("NODE")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkSameCPUSocket,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("PXB")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkMultiSwitch,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("PIX")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkSingleSwitch,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("NV1")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink1,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("NV2")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink2,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("NV3")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink3,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("NV4")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink4,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("NV5")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink5,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("NV6")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink6,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("NV7")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink7,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("NV8")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink8,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
         if (tempType.equals("NV9")) {
           populateGraphEdgeWeight(DeviceLinkType.P2PLinkNVLink9,
               rowMinor, colMinor, deviceLinkToWeight);
+          continue;
         }
       } // end one line handling
     }
