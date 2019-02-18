@@ -115,6 +115,7 @@ public final class OzoneConsts {
   public static final String DELETED_BLOCK_DB = "deletedBlock.db";
   public static final String OM_DB_NAME = "om.db";
   public static final String OZONE_MANAGER_TOKEN_DB_NAME = "om-token.db";
+  public static final String SCM_DB_NAME = "scm.db";
 
   public static final String STORAGE_DIR_CHUNKS = "chunks";
 
@@ -267,4 +268,7 @@ public final class OzoneConsts {
       Metadata.Key.of(OZONE_BLOCK_TOKEN, ASCII_STRING_MARSHALLER);
   public static final Metadata.Key<String> USER_METADATA_KEY =
       Metadata.Key.of(OZONE_USER, ASCII_STRING_MARSHALLER);
+
+  // Default OMServiceID for OM Ratis servers to use as RaftGroupId
+  public static final String OM_SERVICE_ID_DEFAULT = "om-service-value";
 }

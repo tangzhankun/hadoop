@@ -219,7 +219,8 @@ public final class ScmConfigKeys {
       "ozone.scm.https-address";
   public static final String HDDS_SCM_KERBEROS_KEYTAB_FILE_KEY =
       "hdds.scm.kerberos.keytab.file";
-  public static final String HDDS_SCM_KERBEROS_PRINCIPAL_KEY = "hdds.scm.kerberos.principal";
+  public static final String HDDS_SCM_KERBEROS_PRINCIPAL_KEY =
+      "hdds.scm.kerberos.principal";
   public static final String OZONE_SCM_HTTP_BIND_HOST_DEFAULT = "0.0.0.0";
   public static final int OZONE_SCM_HTTP_BIND_PORT_DEFAULT = 9876;
   public static final int OZONE_SCM_HTTPS_BIND_PORT_DEFAULT = 9877;
@@ -312,9 +313,9 @@ public final class ScmConfigKeys {
   public static final String OZONE_SCM_CONTAINER_PLACEMENT_IMPL_KEY =
       "ozone.scm.container.placement.impl";
 
-  public static final String OZONE_SCM_CONTAINER_PROVISION_BATCH_SIZE =
-      "ozone.scm.container.provision_batch_size";
-  public static final int OZONE_SCM_CONTAINER_PROVISION_BATCH_SIZE_DEFAULT = 20;
+  public static final String OZONE_SCM_PIPELINE_OWNER_CONTAINER_COUNT =
+      "ozone.scm.pipeline.owner.container.count";
+  public static final int OZONE_SCM_PIPELINE_OWNER_CONTAINER_COUNT_DEFAULT = 3;
 
   public static final String
       OZONE_SCM_KEY_VALUE_CONTAINER_DELETION_CHOOSING_POLICY =
@@ -331,6 +332,11 @@ public final class ScmConfigKeys {
 
   public static final String OZONE_SCM_PIPELINE_DESTROY_TIMEOUT_DEFAULT =
       "300s";
+
+  public static final String OZONE_SCM_PIPELINE_CREATION_INTERVAL =
+      "ozone.scm.pipeline.creation.interval";
+  public static final String OZONE_SCM_PIPELINE_CREATION_INTERVAL_DEFAULT =
+      "120s";
 
   public static final String OZONE_SCM_BLOCK_DELETION_MAX_RETRY =
       "ozone.scm.block.deletion.max.retry";

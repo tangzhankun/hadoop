@@ -294,10 +294,7 @@ public class DeviceMappingManager {
   private long getReleasingDevices(String resourceName) {
     long releasingDevices = 0;
     Map<Device, ContainerId> used = allUsedDevices.get(resourceName);
-    Iterator<Map.Entry<Device, ContainerId>> iter = used.entrySet()
-        .iterator();
-    while (iter.hasNext()) {
-      ContainerId containerId = iter.next().getValue();
+    for (ContainerId containerId : ImmutableSet.copyOf(used.values())) {
       Container container = nmContext.getContainers().get(containerId);
       if (container != null) {
         if (container.isContainerInFinalStates()) {
