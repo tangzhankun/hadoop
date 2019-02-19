@@ -591,7 +591,7 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
       float totalBoostAgainstMedianCertainModel = 0;
       float maxBoostAgainstMinCertainModel = 0;
       float maxBoostAgainstMedianCertainModel = 0;
-      int count_each_model = 0;
+      int countOfEachModel = 0;
       for (int bs : batchSizes) {
         for (int gpuCount: gpuCounts) {
           float bstAgainstMedian = calculatePerformanceBoostAgainstMedian(
@@ -615,19 +615,19 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
           if (maxBoostAgainstMedianCertainModel < bstAgainstMedian) {
             maxBoostAgainstMedianCertainModel = bstAgainstMedian;
           }
-          count_each_model++;
+          countOfEachModel++;
         }
       }
       LOG.info("Model:{}, The best performance boost against median value is "
               + "{}", model, maxBoostAgainstMedianCertainModel);
       LOG.info("Model:{}, The aggregated average performance boost against "
           + "median value is {}",
-          model, totalBoostAgainstMedianCertainModel/count_each_model);
+          model, totalBoostAgainstMedianCertainModel/countOfEachModel);
       LOG.info("Model:{}, The best performance boost against min value is {}",
           model, maxBoostAgainstMinCertainModel);
       LOG.info("Model:{}, The aggregated average performance boost against "
               + "min value is {}",
-          model, totalBoostAgainstMinCertainModel/count_each_model);
+          model, totalBoostAgainstMinCertainModel/countOfEachModel);
     }
     LOG.info("For all, the best performance boost against median value is "
         + maxBoostAgainstMedian);

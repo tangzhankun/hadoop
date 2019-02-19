@@ -436,7 +436,7 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin,
    *     GPU0  GPU1  GPU2  GPU3  CPU Affinity
    * GPU0  X  PHB  SOC  SOC  0-31
    * GPU1 PHB  X   SOC  SOC  0-31
-   * GPU2 SOC SOC	  X   PHB  0-31
+   * GPU2 SOC SOC  X    PHB  0-31
    * GPU3 SOC SOC  PHB   X   0-31
    *
    *
