@@ -47,7 +47,8 @@ import java.util.TreeSet;
  * non-Docker container.
  * It has topology aware as well as simple scheduling ability.
  * */
-public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginScheduler {
+public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin,
+    DevicePluginScheduler {
   public static final Logger LOG = LoggerFactory.getLogger(
       NvidiaGPUPluginForRuntimeV2.class);
 
@@ -97,8 +98,8 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
   private Map<String, Integer> devicePairToWeight = new HashMap<>();
 
   /**
-   * The container set this environment variable to tell the scheduler what's
-   * the policy to use when do scheduling
+   * The container can set this environment variable.
+   * To tell the scheduler what's the policy to use when do scheduling
    * */
   public static final String TOPOLOGY_POLICY_ENV_KEY = "NVIDIA_TOPO_POLICY";
 
@@ -277,11 +278,11 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
    * costTable
    * */
   private void buildCostTable(
-      Map<Integer, Map<Set<Device>, Integer>> costTable,
-      Set<Device> lastTimeFoundDevices) {
-    Device[] deviceList = new Device[lastTimeFoundDevices.size()];
-    lastTimeFoundDevices.toArray(deviceList);
-    generateAllDeviceCombination(costTable, deviceList, deviceList.length);
+      Map<Integer, Map<Set<Device>, Integer>> cTable,
+      Set<Device> ltfDevices) {
+    Device[] deviceList = new Device[ltfDevices.size()];
+    ltfDevices.toArray(deviceList);
+    generateAllDeviceCombination(cTable, deviceList, deviceList.length);
   }
 
   /**
@@ -289,14 +290,14 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
    * We generate a map whose key is the combination, value is cost.
    */
   private void generateAllDeviceCombination(
-      Map<Integer, Map<Set<Device>, Integer>> costTable,
+      Map<Integer, Map<Set<Device>, Integer>> cTable,
       Device[] allDevices, int n) {
     // allocated devices count range from 1 to n-1
     for (int i = 2; i < n; i++) {
       Map<Set<Device>, Integer> combinationToCost =
           new HashMap<>();
       buildCombination(combinationToCost, allDevices, n, i);
-      costTable.put(i, combinationToCost);
+      cTable.put(i, combinationToCost);
     }
   }
 
@@ -311,12 +312,13 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
   /**
    * Populate combination to cost map recursively.
    *
-   * @param cTc           combinationToCost map. The key is device set, the value is cost
+   * @param cTc           combinationToCost map.
+   *                      The key is device set, the value is cost
    * @param allDevices    all devices used to assign value to subDevicelist
    * @param subDeviceList store a subset of devices temporary
    * @param start         start index in the allDevices
    * @param end           last index in the allDevices
-   * @param index         dynamic index in the subDeviceList need to be assigned
+   * @param index         dynamic index in subDeviceList need to be assigned
    * @param r             the length of the subDeviceList
    */
   void combinationRecursive(Map<Set<Device>, Integer> cTc,
@@ -369,7 +371,7 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
   public void topologyAwareSchedule(Set<Device> allocation, int count,
       Map<String, String> envs,
       Set<Device> availableDevices,
-      Map<Integer, Map<Set<Device>, Integer>> costTable) {
+      Map<Integer, Map<Set<Device>, Integer>> cTable) {
     int num = 0;
     String policy = envs.get(TOPOLOGY_POLICY_ENV_KEY);
     if (policy == null) {
@@ -380,11 +382,11 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
      * Get combinations from costTable given the count of device want to
      * allocate.
      * */
-    if (costTable == null) {
+    if (cTable == null) {
       LOG.error("No cost table initialized!");
       return;
     }
-    Map<Set<Device>, Integer> combinationsToCost = costTable.get(count);
+    Map<Set<Device>, Integer> combinationsToCost = cTable.get(count);
     List<Map.Entry<Set<Device>, Integer>> listSortedByCost =
         new LinkedList<>(combinationsToCost.entrySet());
 
@@ -431,12 +433,11 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
 
   /**
    * A typical sample topo output:
-   *
-   *     GPU0	GPU1	GPU2	GPU3	CPU Affinity
-   * GPU0	 X 	PHB	SOC	SOC	0-31
-   * GPU1	PHB	 X 	SOC	SOC	0-31
-   * GPU2	SOC	SOC	 X 	PHB	0-31
-   * GPU3	SOC	SOC	PHB	 X 	0-31
+   *     GPU0  GPU1  GPU2  GPU3  CPU Affinity
+   * GPU0  X  PHB  SOC  SOC  0-31
+   * GPU1 PHB  X   SOC  SOC  0-31
+   * GPU2 SOC SOC	  X   PHB  0-31
+   * GPU3 SOC SOC  PHB   X   0-31
    *
    *
    * Legend:
@@ -579,7 +580,7 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
     P2PLinkNVLink1(90),
 
     /**
-     * Connected to same CPU (Same NUMA node)
+     * Connected to same CPU (Same NUMA node).
      * */
     P2PLinkSameCPUSocket(200),
 
@@ -590,16 +591,16 @@ public class NvidiaGPUPluginForRuntimeV2 implements DevicePlugin, DevicePluginSc
     P2PLinkCrossCPUSocket(300),
 
     /**
-     * Just need to traverse one PCIe switch to talk
+     * Just need to traverse one PCIe switch to talk.
      * */
     P2PLinkSingleSwitch(600),
 
     /**
-     * Need to traverse multiple PCIe switch to talk
+     * Need to traverse multiple PCIe switch to talk.
      * */
     P2PLinkMultiSwitch(1200);
 
-    // A higher link level means slower communication
+    // A higher link level means slower communication.
     private int weight;
 
     public int getWeight() {

@@ -193,8 +193,7 @@ public class DeviceMappingManager {
       DevicePluginScheduler dps = devicePluginSchedulers.get(resourceName);
       // Prefer DevicePluginScheduler logic
       pickAndDoSchedule(allowedDevices, usedDevices, assignedDevices,
-          containerId, requestedDeviceCount, resourceName, dps,
-          container.getLaunchContext().getEnvironment());
+          container, requestedDeviceCount, resourceName, dps);
 
       // Record in state store if we allocated anything
       if (!assignedDevices.isEmpty()) {
@@ -312,10 +311,11 @@ public class DeviceMappingManager {
    * */
   private void pickAndDoSchedule(Set<Device> allowed,
       Map<Device, ContainerId> used, Set<Device> assigned,
-      ContainerId containerId, int count, String resourceName,
-      DevicePluginScheduler dps, Map<String, String> env)
+      Container c, int count, String resourceName,
+      DevicePluginScheduler dps)
       throws ResourceHandlerException {
-
+    ContainerId containerId = c.getContainerId();
+    Map<String, String> env = c.getLaunchContext().getEnvironment();
     if (null == dps) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Customized device plugin scheduler is preferred "

@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.com.nvidia;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.Device;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.DeviceRuntimeSpec;
 import org.apache.hadoop.yarn.server.nodemanager.api.deviceplugin.YarnRuntimeType;
@@ -30,15 +31,16 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.anySet;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -344,7 +346,7 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
       } else if (device.getMinorNumber() == 3) {
         Assert.assertTrue(true);
       } else {
-        Assert.assertTrue("Should allocate GPU 2 and 3",false);
+        Assert.assertTrue("Should allocate GPU 2 and 3", false);
       }
     }
   }
@@ -436,7 +438,7 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
       } else if (device.getMinorNumber() == 1) {
         Assert.assertTrue(true);
       } else {
-        Assert.assertTrue("Should allocate GPU 1 and 2",false);
+        Assert.assertTrue("Should allocate GPU 1 and 2", false);
       }
     }
   }
@@ -453,30 +455,30 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     int sameCPUWeight =
         NvidiaGPUPluginForRuntimeV2.DeviceLinkType
             .P2PLinkSameCPUSocket.getWeight();
-    int Nv1Weight =
+    int nv1Weight =
         NvidiaGPUPluginForRuntimeV2.DeviceLinkType
             .P2PLinkNVLink1.getWeight();
-    int Nv2Weight =
+    int nv2Weight =
         NvidiaGPUPluginForRuntimeV2.DeviceLinkType
             .P2PLinkNVLink2.getWeight();
 
-    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("0-1"));
-    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("1-0"));
+    Assert.assertEquals(nv1Weight, (int)devicePairToWeight.get("0-1"));
+    Assert.assertEquals(nv1Weight, (int)devicePairToWeight.get("1-0"));
 
-    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("0-4"));
-    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("4-0"));
+    Assert.assertEquals(nv2Weight, (int)devicePairToWeight.get("0-4"));
+    Assert.assertEquals(nv2Weight, (int)devicePairToWeight.get("4-0"));
 
-    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("0-3"));
-    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("3-0"));
+    Assert.assertEquals(nv2Weight, (int)devicePairToWeight.get("0-3"));
+    Assert.assertEquals(nv2Weight, (int)devicePairToWeight.get("3-0"));
 
     Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("6-3"));
     Assert.assertEquals(sameCPUWeight, (int)devicePairToWeight.get("3-6"));
 
-    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("6-7"));
-    Assert.assertEquals(Nv2Weight, (int)devicePairToWeight.get("7-6"));
+    Assert.assertEquals(nv2Weight, (int)devicePairToWeight.get("6-7"));
+    Assert.assertEquals(nv2Weight, (int)devicePairToWeight.get("7-6"));
 
-    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("1-3"));
-    Assert.assertEquals(Nv1Weight, (int)devicePairToWeight.get("3-1"));
+    Assert.assertEquals(nv1Weight, (int)devicePairToWeight.get("1-3"));
+    Assert.assertEquals(nv1Weight, (int)devicePairToWeight.get("3-1"));
 
     // verify cost Table
     Map<Integer, Map<Set<Device>, Integer>> costTable =
@@ -497,7 +499,7 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
   }
 
   /**
-   * Test the key cost table used for topology scheduling
+   * Test the key cost table used for topology scheduling.
    * */
   @Test
   public void testCostTable() throws IOException {
@@ -558,57 +560,91 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
 
     /**
      * Analyze performance against the real data.
-     * We want to analysis the topology scheduling algorithm's average
-     * performance boost
+     * Get the topology scheduling algorithm's allocation's
+     * average performance boost against median imagePerSecond and minimum
+     * imagePerSecond in certain model and batch size combinations.
+     * And then calculate the average performance boost.
+     * The average performance boost against
+     * median value means topology scheduler's allocation can stably
+     * outperforms 50% of possible allocations.
+     * The average performance boost against min value means the average boost
+     * comparing to the worst allocations in various scenarios. Which is more
+     * beautiful number for public promotion.
+     * And also the analysis shows the best performance boost against median
+     * and min value.
      * */
     ActualPerformanceReport report  = new ActualPerformanceReport();
     report.readFromFile();
     ArrayList<ActualPerformanceReport.DataRecord> dataSet =
         report.getDataSet();
     Assert.assertEquals(dataSet.size(), 2952);
-    String[] models = {"alexnet", "resnet50", "vgg16", "inception3"};
+    String[] allModels = {"alexnet", "resnet50", "vgg16", "inception3"};
     int[] batchSizes = {32, 64, 128};
     int[] gpuCounts = {2, 3, 4, 5, 6, 7};
-    float totalBoostAgainstAverage = 0;
+    float totalBoostAgainstMedian = 0;
     int count = 0;
-    float maxBoostAgainstAverage = 0;
+    float maxBoostAgainstMedian = 0;
     float totalBoostAgainstMin = 0;
     float maxBoostAgainstMin = 0;
-    for (String model : models) {
+    for (String model : allModels) {
+      float totalBoostAgainstMinCertainModel = 0;
+      float totalBoostAgainstMedianCertainModel = 0;
+      float maxBoostAgainstMinCertainModel = 0;
+      float maxBoostAgainstMedianCertainModel = 0;
+      int count_each_model = 0;
       for (int bs : batchSizes) {
         for (int gpuCount: gpuCounts) {
-          float bstAgainstAverage = calculatePerformanceBoostAgainstAverage(
+          float bstAgainstMedian = calculatePerformanceBoostAgainstMedian(
               report, model, bs, gpuCount, plugin, allDevices, env);
-          float fpsAgainstMinimum = calculatePerformanceBoostAgainstMinimum(
+          float bstAgainstMinimum = calculatePerformanceBoostAgainstMinimum(
               report, model, bs, gpuCount, plugin, allDevices, env);
-          totalBoostAgainstAverage += bstAgainstAverage;
-          totalBoostAgainstMin += fpsAgainstMinimum;
+          totalBoostAgainstMedian += bstAgainstMedian;
+          totalBoostAgainstMin += bstAgainstMinimum;
           count++;
-          if (maxBoostAgainstAverage < bstAgainstAverage) {
-            maxBoostAgainstAverage = bstAgainstAverage;
+          if (maxBoostAgainstMedian < bstAgainstMedian) {
+            maxBoostAgainstMedian = bstAgainstMedian;
           }
-          if (maxBoostAgainstMin < fpsAgainstMinimum) {
-            maxBoostAgainstMin = fpsAgainstMinimum;
+          if (maxBoostAgainstMin < bstAgainstMinimum) {
+            maxBoostAgainstMin = bstAgainstMinimum;
           }
+          totalBoostAgainstMinCertainModel += bstAgainstMinimum;
+          totalBoostAgainstMedianCertainModel += bstAgainstMedian;
+          if (maxBoostAgainstMinCertainModel < bstAgainstMinimum) {
+            maxBoostAgainstMinCertainModel = bstAgainstMinimum;
+          }
+          if (maxBoostAgainstMedianCertainModel < bstAgainstMedian) {
+            maxBoostAgainstMedianCertainModel = bstAgainstMedian;
+          }
+          count_each_model++;
         }
       }
+      LOG.info("Model:{}, The best performance boost against median value is "
+              + "{}", model, maxBoostAgainstMedianCertainModel);
+      LOG.info("Model:{}, The aggregated average performance boost against "
+          + "median value is {}",
+          model, totalBoostAgainstMedianCertainModel/count_each_model);
+      LOG.info("Model:{}, The best performance boost against min value is {}",
+          model, maxBoostAgainstMinCertainModel);
+      LOG.info("Model:{}, The aggregated average performance boost against "
+              + "min value is {}",
+          model, totalBoostAgainstMinCertainModel/count_each_model);
     }
-    LOG.info("The best performance boost against mean value is "
-        + maxBoostAgainstAverage);
-    LOG.info("The aggregated average performance boost against mean value is "
-        + totalBoostAgainstAverage/count);
-    LOG.info("The best performance boost against min value is "
+    LOG.info("For all, the best performance boost against median value is "
+        + maxBoostAgainstMedian);
+    LOG.info("For all, the aggregated average performance boost against median "
+        + "value is " + totalBoostAgainstMedian/count);
+    LOG.info("For all, the best performance boost against min value is "
         + maxBoostAgainstMin);
-    LOG.info("The aggregated average performance boost against min value is "
-        + totalBoostAgainstMin/count);
+    LOG.info("For all, the aggregated average performance boost against min "
+        + "value is " + totalBoostAgainstMin/count);
   }
 
   /**
    * For <code>gpuCount</code> GPUs allocated by the topology algorithm, return
-   * its performance boost against the average value.
+   * its performance boost against the median value.
    *
    * */
-  private float calculatePerformanceBoostAgainstAverage(
+  private float calculatePerformanceBoostAgainstMedian(
       ActualPerformanceReport report,
       String model, int bs, int gpuCount,
       NvidiaGPUPluginForRuntimeV2 plugin, Set<Device> allDevice,
@@ -617,9 +653,7 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     String gpuAllocationString = convertAllocationToGpuString(allocation);
     float[] metrics = report.getVariousImagePerSecond(model, bs,
         gpuCount, gpuAllocationString);
-    float average = metrics[2];
-    float theImagePerSecond = metrics[3];
-    return theImagePerSecond/average - 1;
+    return metrics[7];
   }
 
   /**
@@ -636,9 +670,7 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     String gpuAllocationString = convertAllocationToGpuString(allocation);
     float[] metrics = report.getVariousImagePerSecond(model, bs,
         gpuCount, gpuAllocationString);
-    float min = metrics[1];
-    float theImagePerSecond = metrics[3];
-    return theImagePerSecond/min - 1;
+    return metrics[5];
   }
 
   private String convertAllocationToGpuString(Set<Device> allocation) {
@@ -719,6 +751,10 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
         float imagePerSecond;
         int gpuCount;
         while ((line = br.readLine()) != null) {
+          // skip the licence content
+          if (line.startsWith("#")) {
+            continue;
+          }
           String[] tokens = line.replaceAll("\"", "").split(",");
           if (tokens.length != 4) {
             LOG.error("unexpected performance data format!");
@@ -746,19 +782,21 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
     }
 
     /**
-     * Return the maximum, minimum, average performance for model & bs &
-     * gpuCount. And the imagePerSecond for model & bs & gpuCount &
-     * gpuCombinations
+     * Return the maximum, minimum, mean and median performance for model &
+     * bs & gpuCount. And the imagePerSecond for model & bs & gpuCount &
+     * gpuCombinations. And imagePerSecond performance boost comparing to
+     * minimum, mean and media value.
      * */
     private float[] getVariousImagePerSecond(String model, int bs,
         int gpuCount, String gpuCombinations) {
-      float[] result = new float[4];
+      float[] result = new float[8];
       float max = 0;
       float min = Float.MAX_VALUE;
       float sum = 0;
       int count = 0;
       float wantedImagePerSecond = 0;
       float currentImagePerSecond;
+      ArrayList<Float> allFps = new ArrayList<>();
       for (DataRecord dr : getDataSet()) {
         currentImagePerSecond = dr.getImagePerSecond();
         if (dr.batchSize == bs
@@ -775,13 +813,33 @@ public class TestNvidiaGPUPluginForRuntimeV2 {
           if (gpuCombinations.equals(dr.getGpuCombination())) {
             wantedImagePerSecond = dr.getImagePerSecond();
           }
+          allFps.add(dr.getImagePerSecond());
         }
       }
+      float median = getMedian(allFps);
+      float mean = sum/count;
       result[0] = max;
       result[1] = min;
-      result[2] = sum/count;
-      result[3] = wantedImagePerSecond;
+      result[2] = mean;
+      result[3] = median;
+      result[4] = wantedImagePerSecond;
+      result[5] = wantedImagePerSecond/min - 1;
+      result[6] = wantedImagePerSecond/mean - 1;
+      result[7] = wantedImagePerSecond/median - 1;
       return result;
+    }
+
+    private float getMedian(ArrayList<Float> allFps) {
+      float[] all = ArrayUtils.toPrimitive(allFps.toArray(new Float[0]), 0);
+      Arrays.sort(all);
+      float median;
+      int size = all.length;
+      if (allFps.size() % 2 == 0) {
+        median = (all[size/2] + all[size/2 - 1])/2;
+      } else {
+        median = all[size/2];
+      }
+      return median;
     }
 
     private int getGpuCount(String gpuCombination) {
