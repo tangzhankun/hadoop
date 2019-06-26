@@ -140,6 +140,9 @@ public interface RMWebServiceProtocol {
    */
   NodesInfo getNodes(String states);
 
+
+
+
   /**
    * This method retrieves a specific node information, and it is reachable by
    * using {@link RMWSConsts#NODES_NODEID}.

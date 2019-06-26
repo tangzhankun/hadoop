@@ -23,9 +23,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.server.resourcemanager.NodeManager;
+import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
 import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerApp;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.NodeUpdateSchedulerEvent;
+import org.apache.hadoop.yarn.util.resource.Resources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -139,24 +144,40 @@ public class TestCapacitySchedulerMultiNodes extends CapacitySchedulerTestBase {
     SchedulerNodeReport reportNm2 =
         rm.getResourceScheduler().getNodeReport(nm2.getNodeId());
 
+    heartbeat(rm, nm2);
     // check node report
-    Assert.assertEquals(1 * GB, reportNm2.getUsedResource().getMemorySize());
-    Assert.assertEquals(9 * GB,
+    Assert.assertEquals(0 * GB, reportNm2.getUsedResource().getMemorySize());
+    Assert.assertEquals(10 * GB,
         reportNm2.getAvailableResource().getMemorySize());
+
+    // check node report
+    Assert.assertEquals(3 * GB, reportNm1.getUsedResource().getMemorySize());
+    Assert.assertEquals(7 * GB,
+        reportNm1.getAvailableResource().getMemorySize());
+
+    // am request containers
+    Resource cResource = Resources.createResource(6 * GB, 1);
+    am1.allocate("*", cResource, 1,
+        new ArrayList<ContainerId>(), null);
+
+    heartbeat(rm, nm1);
+    // the above resource request should be allocated to nm1
+    Assert.assertEquals(9 * GB, reportNm1.getUsedResource().getMemorySize());
+    Assert.assertEquals(1 * GB,
+        reportNm1.getAvailableResource().getMemorySize());
+
 
     // Ideally thread will invoke this, but thread operates every 1sec.
     // Hence forcefully recompute nodes.
     sorter.reSortClusterNodes();
 
-    // Node1 and Node2 are now having used resources. Hence ensure these 2 comes
-    // latter in the list.
     nodes = sorter.getMultiNodeLookupPolicy()
         .getNodesPerPartition("");
     List<NodeId> currentNodes = new ArrayList<>();
+    currentNodes.add(nm1.getNodeId());
+    currentNodes.add(nm2.getNodeId());
     currentNodes.add(nm3.getNodeId());
     currentNodes.add(nm4.getNodeId());
-    currentNodes.add(nm2.getNodeId());
-    currentNodes.add(nm1.getNodeId());
     Iterator<SchedulerNode> it = nodes.iterator();
     SchedulerNode current;
     int i = 0;
@@ -165,6 +186,14 @@ public class TestCapacitySchedulerMultiNodes extends CapacitySchedulerTestBase {
       Assert.assertEquals(current.getNodeID(), currentNodes.get(i++));
     }
     rm.stop();
+  }
+
+
+  private void heartbeat(MockRM rm, MockNM nm) {
+    RMNode node = rm.getRMContext().getRMNodes().get(nm.getNodeId());
+    // Send a heartbeat to kick the tires on the Scheduler
+    NodeUpdateSchedulerEvent nodeUpdate = new NodeUpdateSchedulerEvent(node);
+    rm.getResourceScheduler().handle(nodeUpdate);
   }
 
   @Test (timeout=30000)

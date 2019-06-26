@@ -1434,7 +1434,7 @@ public class CapacityScheduler extends
             || assignedContainers < maxAssignPerHeartbeat);
   }
 
-  private CandidateNodeSet<FiCaSchedulerNode> getCandidateNodeSet(
+  public CandidateNodeSet<FiCaSchedulerNode> getCandidateNodeSet(
       FiCaSchedulerNode node) {
     CandidateNodeSet<FiCaSchedulerNode> candidates = null;
     candidates = new SimpleCandidateNodeSet<>(node);

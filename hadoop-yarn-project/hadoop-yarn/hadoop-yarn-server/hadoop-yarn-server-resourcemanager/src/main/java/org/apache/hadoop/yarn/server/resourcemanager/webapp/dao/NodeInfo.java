@@ -66,6 +66,16 @@ public class NodeInfo {
   protected NodeAttributesInfo nodeAttributesInfo;
   private ResourceInfo totalResource;
 
+  public boolean isDecommissioningCandidates() {
+    return isDecommissioningCandidates;
+  }
+
+  public void setDecommissioningCandidates(boolean decommissioningCandidates) {
+    isDecommissioningCandidates = decommissioningCandidates;
+  }
+
+  private boolean isDecommissioningCandidates;
+
   public NodeInfo() {
   } // JAXB needs this
 

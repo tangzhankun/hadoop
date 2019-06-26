@@ -19,6 +19,7 @@
 package org.apache.hadoop.yarn.server.resourcemanager.webapp;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -31,6 +32,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -142,6 +144,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.AbstractYarnScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.MutableConfScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.MutableConfigurationProvider;
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.activities.ActivitiesManager;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.YarnScheduler;
@@ -150,6 +153,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.Capacity
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler;
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.CandidateNodeSet;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ActivitiesInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppActivitiesInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppAttemptInfo;
@@ -454,9 +458,37 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
       if (rmNode.getState().isInactiveState()) {
         nodeInfo.setNodeHTTPAddress(RMWSConsts.EMPTY);
       }
+      // Zhankun TEST
       nodesInfo.add(nodeInfo);
     }
-
+    // Zhankun TEST
+    NodeInfo nodeElement = nodesInfo.getNodes().get(0);
+    this.rm.getResourceScheduler().getNumClusterNodes();
+    FiCaSchedulerNode ficaNode = ((CapacityScheduler)sched)
+        .getNode(NodeId.fromString(nodeElement.getNodeId()));
+    CandidateNodeSet<FiCaSchedulerNode> candidateNodeSet =
+        ((CapacityScheduler)sched).getCandidateNodeSet(ficaNode);
+    ArrayList<SchedulerNode> nodelist = new ArrayList<>();
+    candidateNodeSet.getAllNodes().values().forEach(node -> nodelist.add((node)));
+    Iterator<SchedulerNode> it = this.rm.getRMContext().getMultiNodeSortingManager()
+        .getMultiNodeSortIterator(nodelist,
+            "", "default");
+    int decommissionCandidatesCount = 1;
+    int total = nodesInfo.getNodes().size();
+    int skip = total - decommissionCandidatesCount;
+    while (it.hasNext()) {
+      if (skip != 0) {
+        skip--;
+        continue;
+      }
+    }
+    while (it.hasNext()) {
+      nodesInfo.getNodes().forEach(node -> {
+        if (node.getNodeId().equals(it.next().getNodeID().toString())) {
+          node.setDecommissioningCandidates(true);
+        }
+      });
+    }
     return nodesInfo;
   }
 
