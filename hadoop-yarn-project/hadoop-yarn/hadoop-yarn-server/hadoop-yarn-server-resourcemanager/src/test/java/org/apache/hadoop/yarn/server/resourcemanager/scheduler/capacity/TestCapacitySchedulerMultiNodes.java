@@ -108,10 +108,17 @@ public class TestCapacitySchedulerMultiNodes extends CapacitySchedulerTestBase {
   public void testMultiNodeSorterForSchedulingWithOrdering() throws Exception {
     MockRM rm = new MockRM(conf);
     rm.start();
-    MockNM nm1 = rm.registerNode("127.0.0.1:1234", 10 * GB, 10);
-    MockNM nm2 = rm.registerNode("127.0.0.2:1235", 10 * GB, 10);
-    MockNM nm3 = rm.registerNode("127.0.0.3:1236", 10 * GB, 10);
-    MockNM nm4 = rm.registerNode("127.0.0.4:1237", 10 * GB, 10);
+    MockNM[] nms = new MockNM[4];
+    MockNM nm1 = rm.registerNode("127.0.0.1:1234", 100 * GB, 100);
+    MockNM nm2 = rm.registerNode("127.0.0.2:1235", 100 * GB, 100);
+    MockNM nm3 = rm.registerNode("127.0.0.3:1236", 100 * GB, 100);
+    MockNM nm4 = rm.registerNode("127.0.0.4:1237", 100 * GB, 100);
+
+    nms[0] = nm4;
+    nms[1] = nm3;
+    nms[2] = nm2;
+    nms[3] = nm1;
+
     ResourceScheduler scheduler = rm.getRMContext().getScheduler();
     waitforNMRegistered(scheduler, 4, 5);
 
@@ -126,13 +133,13 @@ public class TestCapacitySchedulerMultiNodes extends CapacitySchedulerTestBase {
     Assert.assertEquals(4, nodes.size());
 
     RMApp app1 = rm.submitApp(2048, "app-1", "user1", null, "default");
-    MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
+    MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nms);
     SchedulerNodeReport reportNm1 =
         rm.getResourceScheduler().getNodeReport(nm1.getNodeId());
 
     // check node report
     Assert.assertEquals(2 * GB, reportNm1.getUsedResource().getMemorySize());
-    Assert.assertEquals(8 * GB,
+    Assert.assertEquals((100-2) * GB,
         reportNm1.getAvailableResource().getMemorySize());
 
     // Ideally thread will invoke this, but thread operates every 1sec.
@@ -140,32 +147,47 @@ public class TestCapacitySchedulerMultiNodes extends CapacitySchedulerTestBase {
     sorter.reSortClusterNodes();
 
     RMApp app2 = rm.submitApp(1024, "app-2", "user2", null, "default");
-    MockAM am2 = MockRM.launchAndRegisterAM(app2, rm, nm2);
+    MockAM am2 = MockRM.launchAndRegisterAM(app2, rm, nms);
     SchedulerNodeReport reportNm2 =
         rm.getResourceScheduler().getNodeReport(nm2.getNodeId());
-
+    Resource cResource = Resources.createResource(5 * GB, 1);
+    am2.allocate("*", cResource, 1,
+        new ArrayList<ContainerId>(), null);
     heartbeat(rm, nm2);
     // check node report
     Assert.assertEquals(0 * GB, reportNm2.getUsedResource().getMemorySize());
-    Assert.assertEquals(10 * GB,
+    Assert.assertEquals(100 * GB,
         reportNm2.getAvailableResource().getMemorySize());
 
     // check node report
-    Assert.assertEquals(3 * GB, reportNm1.getUsedResource().getMemorySize());
-    Assert.assertEquals(7 * GB,
+    Assert.assertEquals(8 * GB, reportNm1.getUsedResource().getMemorySize());
+    Assert.assertEquals((100 - 8) * GB,
         reportNm1.getAvailableResource().getMemorySize());
 
     // am request containers
-    Resource cResource = Resources.createResource(6 * GB, 1);
+    cResource = Resources.createResource(6 * GB, 1);
     am1.allocate("*", cResource, 1,
         new ArrayList<ContainerId>(), null);
 
     heartbeat(rm, nm1);
     // the above resource request should be allocated to nm1
-    Assert.assertEquals(9 * GB, reportNm1.getUsedResource().getMemorySize());
-    Assert.assertEquals(1 * GB,
+    Assert.assertEquals(14 * GB, reportNm1.getUsedResource().getMemorySize());
+    Assert.assertEquals((100 - 14) * GB,
         reportNm1.getAvailableResource().getMemorySize());
 
+    // check node report
+    reportNm2 =
+        rm.getResourceScheduler().getNodeReport(nm3.getNodeId());
+    Assert.assertEquals(0 * GB, reportNm2.getUsedResource().getMemorySize());
+    Assert.assertEquals(100 * GB,
+        reportNm2.getAvailableResource().getMemorySize());
+
+    SchedulerNodeReport reportNm3 =
+        rm.getResourceScheduler().getNodeReport(nm3.getNodeId());
+    // check node report
+    Assert.assertEquals(0 * GB, reportNm3.getUsedResource().getMemorySize());
+    Assert.assertEquals(100 * GB,
+        reportNm3.getAvailableResource().getMemorySize());
 
     // Ideally thread will invoke this, but thread operates every 1sec.
     // Hence forcefully recompute nodes.
