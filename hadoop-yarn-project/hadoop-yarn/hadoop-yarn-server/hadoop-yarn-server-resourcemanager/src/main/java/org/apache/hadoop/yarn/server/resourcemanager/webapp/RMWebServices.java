@@ -470,24 +470,25 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
         ((CapacityScheduler)sched).getCandidateNodeSet(ficaNode);
     ArrayList<SchedulerNode> nodelist = new ArrayList<>();
     candidateNodeSet.getAllNodes().values().forEach(node -> nodelist.add((node)));
+    String POLICY_CLASS_NAME =
+        "org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.ResourceUsageMultiNodeLookupPolicy";
     Iterator<SchedulerNode> it = this.rm.getRMContext().getMultiNodeSortingManager()
         .getMultiNodeSortIterator(nodelist,
-            "", "default");
+            "", POLICY_CLASS_NAME);
     int decommissionCandidatesCount = 1;
     int total = nodesInfo.getNodes().size();
     int skip = total - decommissionCandidatesCount;
-    while (it.hasNext()) {
-      if (skip != 0) {
+    while (it.hasNext() && skip != 0) {
         skip--;
-        continue;
-      }
+        it.next();
     }
     while (it.hasNext()) {
-      nodesInfo.getNodes().forEach(node -> {
-        if (node.getNodeId().equals(it.next().getNodeID().toString())) {
-          node.setDecommissioningCandidates(true);
+      SchedulerNode e = it.next();
+      for (NodeInfo ni : nodesInfo.getNodes()) {
+        if (ni.getNodeId().equals(e.getNodeID().toString())) {
+          ni.setDecommissioningCandidates(true);
         }
-      });
+      }
     }
     return nodesInfo;
   }

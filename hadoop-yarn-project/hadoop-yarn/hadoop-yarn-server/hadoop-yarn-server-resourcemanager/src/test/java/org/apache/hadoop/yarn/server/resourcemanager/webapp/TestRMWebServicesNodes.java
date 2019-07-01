@@ -57,6 +57,9 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceOption;
 import org.apache.hadoop.yarn.api.records.ResourceUtilization;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler;
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacitySchedulerConfiguration;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
 import org.apache.hadoop.yarn.server.api.records.NodeHealthStatus;
 import org.apache.hadoop.yarn.server.api.records.NodeStatus;
@@ -82,6 +85,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ResourceOptionIn
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.YarnVersionInfo;
+import org.apache.hadoop.yarn.util.resource.DominantResourceCalculator;
 import org.apache.hadoop.yarn.webapp.GenericExceptionHandler;
 import org.apache.hadoop.yarn.webapp.GuiceServletConfig;
 import org.apache.hadoop.yarn.webapp.JerseyTestBase;
@@ -109,6 +113,8 @@ import com.sun.jersey.test.framework.WebAppDescriptor;
 
 public class TestRMWebServicesNodes extends JerseyTestBase {
 
+  protected final int GB = 1024;
+
   private static MockRM rm;
   private static YarnConfiguration conf;
 
@@ -124,7 +130,8 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
         throw new RuntimeException("Unable to get current user name "
             + ioe.getMessage(), ioe);
       }
-      conf = new YarnConfiguration();
+
+      conf = new YarnConfiguration(setupMultiNodeLookupConfiguration());
       conf.set(YarnConfiguration.YARN_ADMIN_ACL, userName);
       bind(RMWebServices.class);
       bind(GenericExceptionHandler.class);
@@ -136,6 +143,36 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
       filter("/*").through(TestRMCustomAuthFilter.class);
       serve("/*").with(GuiceContainer.class);
     }
+
+    private CapacitySchedulerConfiguration setupMultiNodeLookupConfiguration() {
+      String POLICY_CLASS_NAME =
+          "org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.ResourceUsageMultiNodeLookupPolicy";
+
+      CapacitySchedulerConfiguration csConfig =
+          new CapacitySchedulerConfiguration();
+      csConfig.set(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
+          DominantResourceCalculator.class.getName());
+      CapacitySchedulerConfiguration csConf = new CapacitySchedulerConfiguration(csConfig);
+      csConf.set(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS,
+          DominantResourceCalculator.class.getName());
+      csConf.set(CapacitySchedulerConfiguration.MULTI_NODE_PLACEMENT_ENABLED, "true");
+      csConf.setClass(YarnConfiguration.RM_SCHEDULER, CapacityScheduler.class,
+          ResourceScheduler.class);
+      csConf.set(CapacitySchedulerConfiguration.MULTI_NODE_SORTING_POLICIES,
+          "resource-based");
+      csConf.set(CapacitySchedulerConfiguration.MULTI_NODE_SORTING_POLICY_NAME,
+          "resource-based");
+      String policyName =
+          CapacitySchedulerConfiguration.MULTI_NODE_SORTING_POLICY_NAME
+              + ".resource-based" + ".class";
+      csConf.set(policyName, POLICY_CLASS_NAME);
+      csConf.setBoolean(CapacitySchedulerConfiguration.MULTI_NODE_PLACEMENT_ENABLED,
+          true);
+      csConf.setInt("yarn.scheduler.minimum-allocation-mb", 512);
+      csConf.setInt("yarn.scheduler.minimum-allocation-vcores", 1);
+      return csConf;
+    }
+
   }
 
   /**
@@ -186,6 +223,45 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
   @Test
   public void testNodes() throws JSONException, Exception {
     testNodesHelper("nodes", MediaType.APPLICATION_JSON);
+  }
+
+
+  //Zhankun
+  protected void waitforNMRegistered(ResourceScheduler scheduler, int nodecount,
+      int timesec) throws InterruptedException {
+    long start = System.currentTimeMillis();
+    while (System.currentTimeMillis() - start < timesec * 1000) {
+      if (scheduler.getNumClusterNodes() < nodecount) {
+        Thread.sleep(100);
+      } else {
+        break;
+      }
+    }
+  }
+
+  //Zhankun
+  @Test
+  public void testNodesForDecommission() throws JSONException, Exception {
+    rm.start();
+    ResourceScheduler scheduler = rm.getRMContext().getScheduler();
+    MockNM nm1 = rm.registerNode("127.0.0.1:1234", 100 * GB, 100);
+    MockNM nm2 = rm.registerNode("127.0.0.2:1235", 100 * GB, 100);
+    MockNM nm3 = rm.registerNode("127.0.0.3:1236", 100 * GB, 100);
+    MockNM nm4 = rm.registerNode("127.0.0.4:1237", 100 * GB, 100);
+    waitforNMRegistered(scheduler, 4, 5);
+    assertEquals(scheduler.getNumClusterNodes(), 4);
+
+    WebResource r = resource();
+    ClientResponse response = r.path("ws").path("v1").path("cluster")
+        .path("nodes").accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+    assertEquals(MediaType.APPLICATION_JSON_TYPE + "; " + JettyUtils.UTF_8,
+        response.getType().toString());
+    JSONObject json = response.getEntity(JSONObject.class);
+    assertEquals("incorrect number of elements", 1, json.length());
+    JSONObject nodes = json.getJSONObject("nodes");
+    assertEquals("incorrect number of elements", 1, nodes.length());
+    JSONArray nodeArray = nodes.getJSONArray("node");
+    assertEquals("incorrect number of elements", 4, nodeArray.length());
   }
 
   @Test
@@ -443,7 +519,6 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     WebResource r = resource();
     RMNode rmnode1 = getRunningRMNode("h1", 1234, 5120);
     RMNode rmnode2 = getRunningRMNode("h2", 1235, 5121);
-
     ClientResponse response = r.path("ws").path("v1").path("cluster")
         .path(path).accept(media).get(ClientResponse.class);
     assertEquals(MediaType.APPLICATION_JSON_TYPE + "; " + JettyUtils.UTF_8,
