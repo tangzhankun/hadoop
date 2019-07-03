@@ -140,6 +140,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.NodeLabelsUtils;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttempt;
+import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainer;
 import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.AbstractYarnScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.MutableConfScheduler;
@@ -471,21 +472,23 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
           .getNode(NodeId.fromString(nodeElement.getNodeId()));
       CandidateNodeSet<FiCaSchedulerNode> candidateNodeSet =
           ((CapacityScheduler) sched).getCandidateNodeSet(ficaNode);
-      ArrayList<SchedulerNode> nodelist = new ArrayList<>();
-      candidateNodeSet.getAllNodes().values().forEach(node -> {
-        node.getCopiedListOfRunningContainers().forEach(container -> {
+      //ArrayList<SchedulerNode> nodelist = new ArrayList<>();
+      for (SchedulerNode node : candidateNodeSet.getAllNodes().values()) {
+        int amCount = 0;
+        for (RMContainer rmContainer : node.getCopiedListOfRunningContainers() ) {
           // calculate AM count
-          if (container.isAMContainer()) {
-            int currentCount = nodeToAMRunningCount.getOrDefault(
-                node.getNodeID().toString(), 0);
-            nodeToAMRunningCount.putIfAbsent(node.getNodeID().toString(), currentCount++);
+          if (rmContainer.isAMContainer()) {
+            amCount++;
           }
-        });
+        }
+        // calculate am count
+        nodeToAMRunningCount.put(node.getNodeID().toString(), amCount);
         // calculate app running count
-        nodeToAppsRunningCount.putIfAbsent(node.getNodeID().toString(),
+        nodeToAppsRunningCount.put(node.getNodeID().toString(),
             node.getRMNode().getRunningApps().size());
         //build list used for get iterator from multiNodeSortingManager
-        nodelist.add((node)); });
+        //nodelist.add((node));
+      }
 
       for (NodeInfo ni : nodesInfo.getNodes()) {
         int amCount = nodeToAMRunningCount.getOrDefault(

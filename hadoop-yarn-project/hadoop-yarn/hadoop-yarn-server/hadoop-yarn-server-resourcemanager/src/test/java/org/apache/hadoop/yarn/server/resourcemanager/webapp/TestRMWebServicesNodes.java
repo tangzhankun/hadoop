@@ -295,7 +295,8 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
       JSONObject info = nodeArray.getJSONObject(i);
       String nodeId = info.getString("id");
       String status = info.getString("decommissioningCandidateStatus");
-      if (nodeId.contains("127.0.0.1") && status.contains("False")) {
+      if (nodeId.contains("127.0.0.1") &&
+          status.contains("False") && status.contains("1")) {
         match++;
       }
     }
