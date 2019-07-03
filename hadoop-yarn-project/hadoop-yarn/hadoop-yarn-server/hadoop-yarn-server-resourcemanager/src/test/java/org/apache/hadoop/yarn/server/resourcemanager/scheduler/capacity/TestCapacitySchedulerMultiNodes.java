@@ -104,6 +104,7 @@ public class TestCapacitySchedulerMultiNodes extends CapacitySchedulerTestBase {
     rm.stop();
   }
 
+  // Zhankun
   @Test
   public void testMultiNodeSorterForSchedulingWithOrdering() throws Exception {
     MockRM rm = new MockRM(conf);

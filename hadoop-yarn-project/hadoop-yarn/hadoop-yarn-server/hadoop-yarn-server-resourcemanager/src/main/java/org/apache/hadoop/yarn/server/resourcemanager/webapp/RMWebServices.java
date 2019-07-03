@@ -462,35 +462,77 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
       nodesInfo.add(nodeInfo);
     }
     // Zhankun TEST
-    NodeInfo nodeElement = nodesInfo.getNodes().get(0);
-    this.rm.getResourceScheduler().getNumClusterNodes();
-    FiCaSchedulerNode ficaNode = ((CapacityScheduler)sched)
-        .getNode(NodeId.fromString(nodeElement.getNodeId()));
-    CandidateNodeSet<FiCaSchedulerNode> candidateNodeSet =
-        ((CapacityScheduler)sched).getCandidateNodeSet(ficaNode);
-    ArrayList<SchedulerNode> nodelist = new ArrayList<>();
-    candidateNodeSet.getAllNodes().values().forEach(node -> nodelist.add((node)));
-    String POLICY_CLASS_NAME =
-        "org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.ResourceUsageMultiNodeLookupPolicy";
-    Iterator<SchedulerNode> it = this.rm.getRMContext().getMultiNodeSortingManager()
-        .getMultiNodeSortIterator(nodelist,
-            "", POLICY_CLASS_NAME);
-    int decommissionCandidatesCount = 1;
-    int total = nodesInfo.getNodes().size();
-    int skip = total - decommissionCandidatesCount;
-    while (it.hasNext() && skip != 0) {
-        skip--;
-        it.next();
-    }
-    while (it.hasNext()) {
-      SchedulerNode e = it.next();
+    if (nodesInfo.getNodes().size() > 0) {
+      Map<String, Integer> nodeToAppsRunningCount = new HashMap<>();
+      Map<String, Integer> nodeToAMRunningCount = new HashMap<>();
+      NodeInfo nodeElement = nodesInfo.getNodes().get(0);
+      this.rm.getResourceScheduler().getNumClusterNodes();
+      FiCaSchedulerNode ficaNode = ((CapacityScheduler) sched)
+          .getNode(NodeId.fromString(nodeElement.getNodeId()));
+      CandidateNodeSet<FiCaSchedulerNode> candidateNodeSet =
+          ((CapacityScheduler) sched).getCandidateNodeSet(ficaNode);
+      ArrayList<SchedulerNode> nodelist = new ArrayList<>();
+      candidateNodeSet.getAllNodes().values().forEach(node -> {
+        node.getCopiedListOfRunningContainers().forEach(container -> {
+          // calculate AM count
+          if (container.isAMContainer()) {
+            int currentCount = nodeToAMRunningCount.getOrDefault(
+                node.getNodeID().toString(), 0);
+            nodeToAMRunningCount.putIfAbsent(node.getNodeID().toString(), currentCount++);
+          }
+        });
+        // calculate app running count
+        nodeToAppsRunningCount.putIfAbsent(node.getNodeID().toString(),
+            node.getRMNode().getRunningApps().size());
+        //build list used for get iterator from multiNodeSortingManager
+        nodelist.add((node)); });
+
       for (NodeInfo ni : nodesInfo.getNodes()) {
-        if (ni.getNodeId().equals(e.getNodeID().toString())) {
-          ni.setDecommissioningCandidates(true);
+        int amCount = nodeToAMRunningCount.getOrDefault(
+            ni.getNodeId(), 0);
+        int runningAppCount = nodeToAppsRunningCount.getOrDefault(
+            ni.getNodeId(), 0);
+        boolean recommendFlag = true;
+        if (amCount != 0 || runningAppCount != 0) {
+          recommendFlag = false;
         }
+
+        ni.setDecommissioningCandidateStatus(buildDecommissionStr(
+            amCount,
+            runningAppCount,
+            recommendFlag));
       }
+
+//      String POLICY_CLASS_NAME =
+//          "org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.ResourceUsageMultiNodeLookupPolicy";
+//      Iterator<SchedulerNode> it = this.rm.getRMContext().getMultiNodeSortingManager()
+//          .getMultiNodeSortIterator(nodelist,
+//              "", POLICY_CLASS_NAME);
+//      int decommissionCandidatesCount = 1;
+//      int total = nodesInfo.getNodes().size();
+//      int skip = total - decommissionCandidatesCount;
+//      while (it.hasNext() && skip != 0) {
+//        skip--;
+//        it.next();
+//      }
+//      while (it.hasNext()) {
+//        SchedulerNode e = it.next();
+//        for (NodeInfo ni : nodesInfo.getNodes()) {
+//          if (ni.getNodeId().equals(e.getNodeID().toString())) {
+//            ni.setDecommissioningCandidates(true);
+//          }
+//        }
+//      }
     }
     return nodesInfo;
+  }
+
+  private String buildDecommissionStr(int amCount, int appCount, boolean isRecommendedDecommissionCandidate) {
+    String flag = isRecommendedDecommissionCandidate == true ? "True" : "False";
+    return "isRecommendedDecommissionCandidate: " +
+        flag + ", AM count:" + amCount + ", " +
+        "Running application count: " + appCount;
+
   }
 
   @GET

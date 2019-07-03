@@ -29,8 +29,10 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -48,6 +50,9 @@ import org.apache.hadoop.http.JettyUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.server.AuthenticationFilter;
 import org.apache.hadoop.security.authentication.server.PseudoAuthenticationHandler;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.NodeAttribute;
 import org.apache.hadoop.yarn.api.records.NodeAttributeType;
@@ -57,7 +62,9 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceOption;
 import org.apache.hadoop.yarn.api.records.ResourceUtilization;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
+import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacitySchedulerConfiguration;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
@@ -93,6 +100,7 @@ import org.apache.hadoop.yarn.webapp.WebServicesTestUtils;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
@@ -251,6 +259,26 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     waitforNMRegistered(scheduler, 4, 5);
     assertEquals(scheduler.getNumClusterNodes(), 4);
 
+    RMApp app1 = rm.submitApp(2048, "app-1", "user1", null, "default");
+    MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
+    SchedulerNodeReport reportNm1 =
+        rm.getResourceScheduler().getNodeReport(nm1.getNodeId());
+    // check node report
+    Assert.assertEquals(2 * GB, reportNm1.getUsedResource().getMemorySize());
+    Assert.assertEquals((100-2) * GB,
+        reportNm1.getAvailableResource().getMemorySize());
+    // report nm1 status
+    RMNodeImpl node1 =
+        (RMNodeImpl) rm.getRMContext().getRMNodes().get(nm1.getNodeId());
+    NodeId id1 = nm1.getNodeId();
+
+    rm.waitForState(id1, NodeState.RUNNING);
+
+    NodeStatus nodeStatus = createNodeStatus(id1, app1, 1);
+    node1.handle(new RMNodeStatusEvent(nm1.getNodeId(), nodeStatus));
+    Assert.assertEquals(1, node1.getRunningApps().size());
+
+    // Query REST API for node status
     WebResource r = resource();
     ClientResponse response = r.path("ws").path("v1").path("cluster")
         .path("nodes").accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
@@ -262,6 +290,45 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     assertEquals("incorrect number of elements", 1, nodes.length());
     JSONArray nodeArray = nodes.getJSONArray("node");
     assertEquals("incorrect number of elements", 4, nodeArray.length());
+    int match = 0;
+    for (int i = 0; i < nodeArray.length(); i++) {
+      JSONObject info = nodeArray.getJSONObject(i);
+      String nodeId = info.getString("id");
+      String status = info.getString("decommissioningCandidateStatus");
+      if (nodeId.contains("127.0.0.1") && status.contains("False")) {
+        match++;
+      }
+    }
+    assertEquals(1, match);
+  }
+
+  private NodeStatus createNodeStatus(
+      NodeId nodeId, RMApp app, int numRunningContainers) {
+    return NodeStatus.newInstance(
+        nodeId, 0, getContainerStatuses(app, numRunningContainers),
+        Collections.emptyList(),
+        NodeHealthStatus.newInstance(
+            true,  "", System.currentTimeMillis() - 1000),
+        null, null, null);
+  }
+
+  // Get mocked ContainerStatus for bunch of containers,
+  // where numRunningContainers are RUNNING.
+  private List<ContainerStatus> getContainerStatuses(
+      RMApp app, int numRunningContainers) {
+    // Total 3 containers
+    final int total = 3;
+    numRunningContainers = Math.min(total, numRunningContainers);
+    List<ContainerStatus> output = new ArrayList<ContainerStatus>();
+    for (int i = 0; i < total; i++) {
+      ContainerState cstate = (i >= numRunningContainers)?
+          ContainerState.COMPLETE : ContainerState.RUNNING;
+      output.add(ContainerStatus.newInstance(
+          ContainerId.newContainerId(
+              ApplicationAttemptId.newInstance(app.getApplicationId(), 0), i),
+          cstate, "", 0));
+    }
+    return output;
   }
 
   @Test
