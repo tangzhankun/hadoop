@@ -544,6 +544,11 @@ public class RegularContainerAllocator extends AbstractContainerAllocator {
     boolean reservationsContinueLooking =
         application.getCSLeafQueue().getReservationContinueLooking();
 
+    //Zhankun WORKAROUND for reservation
+    if (availableContainers == 0) {
+      return ContainerAllocation.LOCALITY_SKIPPED;
+    }
+
     // Check if we need to kill some containers to allocate this one
     List<RMContainer> toKillContainers = null;
     if (availableContainers == 0 && currentResoureLimits.isAllowPreemption()) {

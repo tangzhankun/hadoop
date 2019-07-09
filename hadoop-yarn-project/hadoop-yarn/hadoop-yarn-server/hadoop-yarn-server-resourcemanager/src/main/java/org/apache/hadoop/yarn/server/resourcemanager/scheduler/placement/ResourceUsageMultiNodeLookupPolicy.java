@@ -132,7 +132,8 @@ public class ResourceUsageMultiNodeLookupPolicy<N extends SchedulerNode>
 
   // The score ranges from 0 to 1
   private float scoreNodeAMStatics(N node) {
-    return nodeToAMContainerPercentage.getOrDefault(node.getNodeID().toString(), Float.valueOf(0));
+    return nodeToAMContainerPercentage.getOrDefault(node.getNodeID().toString(),
+        (float)0);
   }
 
   @Override
@@ -153,19 +154,21 @@ public class ResourceUsageMultiNodeLookupPolicy<N extends SchedulerNode>
         if (rmContainer.isAMContainer()) {
           amCountInNode++;
           totalAMsInPartition++;
-          nodeToAMContainerPercentage.putIfAbsent(node.getNodeID().toString(),
-              amCountInNode);
         }
       }
+      nodeToAMContainerPercentage.put(node.getNodeID().toString(),
+          amCountInNode);
     }
     partitionTotalClusterResource.put(partition, totalResourceInPartition);
     // Update the value from am count to am percentage
-    Iterator<Map.Entry<String, Float>> it =
-        nodeToAMContainerPercentage.entrySet().iterator();
-    while (it.hasNext()) {
-      Map.Entry<String, Float> element = it.next();
-      float amCount = element.getValue();
-      element.setValue(amCount/totalAMsInPartition);
+    if (totalAMsInPartition != 0) {
+      Iterator<Map.Entry<String, Float>> it =
+          nodeToAMContainerPercentage.entrySet().iterator();
+      while (it.hasNext()) {
+        Map.Entry<String, Float> element = it.next();
+        float amCount = element.getValue();
+        element.setValue(amCount / totalAMsInPartition);
+      }
     }
     // Compute node's score
     for (N node : nodes) {
@@ -174,6 +177,14 @@ public class ResourceUsageMultiNodeLookupPolicy<N extends SchedulerNode>
 
     Set<N> nodeList = new ConcurrentSkipListSet<N>(comparator);
     nodeList.addAll(nodes);
+    /**
+     * Assume nodes are uniform.
+     * Pick three partition points as 5, 3, 2 percentage of the list
+     * 50% should be high usage, 30% should be medium, 20% should be low
+     * shuffle each partition
+     * */
+    //TODO Zhankun:
+
     nodesPerPartition.put(partition, Collections.unmodifiableSet(nodeList));
   }
 
