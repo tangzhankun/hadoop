@@ -69,16 +69,11 @@ public class ClusterScalingInfo {
     return availableVcore;
   }
 
-  public int getSubmittedAppCount() {
-    return submittedAppCount;
-  }
-
   public int getPendingAppCount() {
     return pendingAppCount;
   }
 
   protected int pendingAppCount;
-  protected int submittedAppCount;
   protected long pendingMB;
   protected long pendingVcore;
   protected int pendingContainersCount;
@@ -107,7 +102,6 @@ public class ClusterScalingInfo {
     this.pendingMB = metrics.getPendingMB();
     this.pendingVcore = metrics.getPendingVirtualCores();
     this.pendingAppCount = metrics.getAppsPending();
-    this.submittedAppCount = metrics.getAppsSubmitted();
     this.pendingContainersCount = metrics.getPendingContainers();
     this.availableMB = metrics.getAvailableMB();
     this.availableVcore = metrics.getAvailableVirtualCores();
@@ -163,7 +157,7 @@ public class ClusterScalingInfo {
         }
         int deTimeout = nodeToDecommissioningTimeoutSecs.getOrDefault(rmNode.getNodeID().toString(),
             -1);
-        if (recommendFlag == true) {
+        if (recommendFlag == true && rmNode.getState() != NodeState.DECOMMISSIONED) {
           DecommissionCandidateNodeInfo dcni = new DecommissionCandidateNodeInfo(
               amCount,
               runningAppCount,
@@ -185,7 +179,7 @@ public class ClusterScalingInfo {
         // Assume uniform instance
         long instanceMB = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getMemorySize();
         long instanceVcore = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getVirtualCores();
-        recommendedExtraNMCount = (int)Math.max(pendingMB/instanceMB, pendingVcore/instanceVcore);
+        recommendedExtraNMCount = (int)Math.max(Math.ceil(pendingMB/instanceMB), Math.ceil(pendingVcore/instanceVcore));
       }
 
 //      String POLICY_CLASS_NAME =

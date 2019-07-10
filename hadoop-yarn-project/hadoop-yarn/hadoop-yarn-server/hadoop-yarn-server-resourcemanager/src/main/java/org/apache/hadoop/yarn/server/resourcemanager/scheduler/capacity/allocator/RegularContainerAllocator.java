@@ -546,6 +546,7 @@ public class RegularContainerAllocator extends AbstractContainerAllocator {
 
     //Zhankun WORKAROUND for reservation
     if (availableContainers == 0) {
+      LOG.info("Zhankun: cannot allocate on this node, skip reservation.");
       return ContainerAllocation.LOCALITY_SKIPPED;
     }
 
