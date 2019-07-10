@@ -1180,6 +1180,11 @@ public class CapacityScheduler extends
       return EMPTY_ALLOCATION;
     }
 
+    // Zhankun
+    // Record first time an ask happens
+    if (ask.size() > 0) {
+      application.recordContainerRequestTime(getClock().getTime());
+    }
     // The allocate may be the leftover from previous attempt, and it will
     // impact current attempt, such as confuse the request and allocation for
     // current attempt's AM container.

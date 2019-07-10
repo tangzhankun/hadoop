@@ -75,6 +75,13 @@ public class QueueMetrics implements MetricsSource {
       aggregateVcoreSecondsPreempted;
   @Metric("# of active users") MutableGaugeInt activeUsers;
   @Metric("# of active applications") MutableGaugeInt activeApplications;
+
+
+  // Zhankun
+  public int getAppAttemptFirstContainerAllocationDelay() {
+    return (int)appAttemptFirstContainerAllocationDelay.lastStat().min();
+  }
+
   @Metric("App Attempt First Container Allocation Delay")
     MutableRate appAttemptFirstContainerAllocationDelay;
 

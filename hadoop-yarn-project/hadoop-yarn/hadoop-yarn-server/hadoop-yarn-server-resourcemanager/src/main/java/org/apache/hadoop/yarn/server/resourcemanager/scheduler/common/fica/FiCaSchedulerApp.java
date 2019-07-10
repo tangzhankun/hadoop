@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.AbstractYarnScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -817,6 +818,13 @@ public class FiCaSchedulerApp extends SchedulerApplicationAttempt {
       List<NMToken> updatedNMTokens = pullUpdatedNMTokens();
       Resource headroom = getHeadroom();
       setApplicationHeadroomForMetrics(headroom);
+      // Zhankun
+      // Record first container allocation time
+      if (!(newlyAllocatedContainers.isEmpty())) {
+        this.recordContainerAllocationTime(
+            ((AbstractYarnScheduler)(this.rmContext.getScheduler()))
+            .getClock().getTime());
+      }
       return new Allocation(newlyAllocatedContainers, headroom, null,
           currentContPreemption, Collections.singletonList(rr), updatedNMTokens,
           newlyIncreasedContainers, newlyDecreasedContainers,

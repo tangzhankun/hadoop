@@ -60,6 +60,8 @@ public final class RMWSConsts {
   /** Path for {@code RMWebServiceProtocol#updateNodeResource}. */
   public static final String NODE_RESOURCE = "/nodes/{nodeId}/resource";
 
+  public static final String AUTOSCALE = "/scaling";
+
   /**
    * Path for {@code RMWebServiceProtocol#getApps} and
    * {@code RMWebServiceProtocol#getApp}.

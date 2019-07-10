@@ -19,7 +19,6 @@
 package org.apache.hadoop.yarn.server.resourcemanager.webapp;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.AccessControlException;
 import java.security.Principal;
@@ -32,7 +31,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -169,6 +167,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ApplicationStati
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ApplicationSubmissionContextInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppsInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.CapacitySchedulerInfo;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterScalingInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterMetricsInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterUserInfo;
@@ -374,6 +373,16 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
   }
 
   @GET
+  @Path(RMWSConsts.AUTOSCALE)
+  @Produces({ MediaType.APPLICATION_JSON + "; " + JettyUtils.UTF_8,
+      MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8 })
+  @Override
+  public ClusterScalingInfo getClusterScalingInfo() {
+    initForReadableEndpoints();
+    return new ClusterScalingInfo(this.rm);
+  }
+
+  @GET
   @Path(RMWSConsts.SCHEDULER)
   @Produces({ MediaType.APPLICATION_JSON + "; " + JettyUtils.UTF_8,
       MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8 })
@@ -454,6 +463,9 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
     Collection<RMNode> rmNodes =
         RMServerUtils.queryRMNodes(this.rm.getRMContext(), acceptedStates);
     NodesInfo nodesInfo = new NodesInfo();
+
+    Map<String, Integer> nodeToDecommissioningTimeoutSecs = new HashMap<>();
+
     for (RMNode rmNode : rmNodes) {
       NodeInfo nodeInfo = new NodeInfo(rmNode, sched);
       if (rmNode.getState().isInactiveState()) {
@@ -461,6 +473,12 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
       }
       // Zhankun TEST
       nodesInfo.add(nodeInfo);
+      // get remaining timeout
+      Integer timeout = rmNode.getDecommissioningTimeout();
+      if (timeout == null) {
+        timeout = -1;
+        nodeToDecommissioningTimeoutSecs.put(rmNode.getNodeID().toString(), timeout);
+      }
     }
     // Zhankun TEST
     if (nodesInfo.getNodes().size() > 0) {
@@ -499,11 +517,13 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
         if (amCount != 0 || runningAppCount != 0) {
           recommendFlag = false;
         }
-
+        int deTimeout = nodeToDecommissioningTimeoutSecs.getOrDefault(ni.getNodeId(),
+            -1);
         ni.setDecommissioningCandidateStatus(buildDecommissionStr(
             amCount,
             runningAppCount,
-            recommendFlag));
+            recommendFlag,
+            deTimeout));
       }
 
 //      String POLICY_CLASS_NAME =
@@ -530,12 +550,17 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
     return nodesInfo;
   }
 
-  private String buildDecommissionStr(int amCount, int appCount, boolean isRecommendedDecommissionCandidate) {
+  private String buildDecommissionStr(int amCount, int appCount,
+      boolean isRecommendedDecommissionCandidate, int decommissioningRemainingTimeoutSecs) {
     String flag = isRecommendedDecommissionCandidate == true ? "True" : "False";
-    return "isRecommendedDecommissionCandidate: " +
+    String result =  "isRecommendedDecommissionCandidate: " +
         flag + ", AM count:" + amCount + ", " +
         "Running application count: " + appCount;
-
+    if (decommissioningRemainingTimeoutSecs != -1) {
+      result += ", " +
+          "Remaining decommissioning timeout seconds: " + decommissioningRemainingTimeoutSecs;
+    }
+    return result;
   }
 
   @GET

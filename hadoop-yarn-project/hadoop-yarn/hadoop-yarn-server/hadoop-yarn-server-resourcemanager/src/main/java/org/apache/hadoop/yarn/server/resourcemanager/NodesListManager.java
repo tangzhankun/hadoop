@@ -645,6 +645,9 @@ public class NodesListManager extends CompositeService implements
     } catch (Exception e) {
       LOG.warn("Error readDecommissioningTimeout " + e.getMessage());
     }
+    // Zhankun
+    LOG.info("Use decommissioningTimeoutSecs: "
+        + defaultDecTimeoutSecs);
     return defaultDecTimeoutSecs;
   }
 

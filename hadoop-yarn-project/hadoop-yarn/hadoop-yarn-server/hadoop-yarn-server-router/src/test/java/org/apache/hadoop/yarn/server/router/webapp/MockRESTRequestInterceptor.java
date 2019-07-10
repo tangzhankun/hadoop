@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppTimeoutsInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ApplicationStatisticsInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ApplicationSubmissionContextInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppsInfo;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterScalingInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterMetricsInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterUserInfo;
@@ -93,6 +94,11 @@ public class MockRESTRequestInterceptor extends AbstractRESTRequestInterceptor {
   @Override
   public ClusterMetricsInfo getClusterMetricsInfo() {
     return new ClusterMetricsInfo();
+  }
+
+  @Override
+  public ClusterScalingInfo getClusterScalingInfo() {
+    return new ClusterScalingInfo();
   }
 
   @Override
