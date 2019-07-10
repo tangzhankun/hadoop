@@ -84,6 +84,7 @@ public class ClusterScalingInfo {
   protected int pendingContainersCount;
   protected long availableMB;
   protected long availableVcore;
+  protected int recommendedExtraNMCount;
 
   public DecommissionCandidates getDecommissionCandidates() {
     return decommissionCandidates;
@@ -167,10 +168,24 @@ public class ClusterScalingInfo {
               amCount,
               runningAppCount,
               deTimeout,
-              rmNode.getState()
+              rmNode.getState(),
+              rmNode.getNodeID().toString()
           );
           decommissionCandidates.add(dcni);
         }
+      }
+
+      int downScalingCount = decommissionCandidates.getCandidates().size();
+      if (!decommissionCandidates.getCandidates().isEmpty()) {
+        recommendedExtraNMCount = -downScalingCount;
+      }
+      if (downScalingCount == 0 &&
+          pendingAppCount > 0 &&
+          pendingContainersCount > 0) {
+        // Assume uniform instance
+        long instanceMB = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getMemorySize();
+        long instanceVcore = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getVirtualCores();
+        recommendedExtraNMCount = (int)Math.max(pendingMB/instanceMB, pendingVcore/instanceVcore);
       }
 
 //      String POLICY_CLASS_NAME =

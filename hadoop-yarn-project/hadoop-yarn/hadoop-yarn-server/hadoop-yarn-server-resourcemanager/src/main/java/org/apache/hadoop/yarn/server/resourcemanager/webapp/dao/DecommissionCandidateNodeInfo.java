@@ -44,6 +44,11 @@ public class DecommissionCandidateNodeInfo {
   protected int amCount;
   protected int runningAppCount;
   protected int decommissionedRemainingSecs;
+  protected String nodeId;
+
+  public String getNodeId() {
+    return nodeId;
+  }
 
   public NodeState getNodeState() {
     return nodeState;
@@ -52,11 +57,13 @@ public class DecommissionCandidateNodeInfo {
   protected NodeState nodeState;
   public DecommissionCandidateNodeInfo() {}
 
-  public DecommissionCandidateNodeInfo(int a, int r, int de, NodeState s) {
+  public DecommissionCandidateNodeInfo(int a, int r, int de, NodeState s,
+      String n) {
     this.amCount = a;
     this.decommissionedRemainingSecs = de;
     this.runningAppCount = r;
     this.nodeState = s;
+    this.nodeId = n;
   }
 
 }
