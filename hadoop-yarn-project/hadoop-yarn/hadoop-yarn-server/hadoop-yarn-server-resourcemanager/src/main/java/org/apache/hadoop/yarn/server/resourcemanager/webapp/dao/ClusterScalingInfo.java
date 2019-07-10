@@ -146,40 +146,45 @@ public class ClusterScalingInfo {
         //nodelist.add((node));
       }
 
+      recommendedExtraNMCount = 0;
       for (RMNode rmNode : rmNodes){
         int amCount = nodeToAMRunningCount.getOrDefault(
             rmNode.getNodeID().toString(), 0);
         int runningAppCount = nodeToAppsRunningCount.getOrDefault(
             rmNode.getNodeID().toString(), 0);
         boolean recommendFlag = true;
-        if (amCount != 0 || runningAppCount != 0) {
+        int keepNMCount = 0;
+        if (amCount != 0 || runningAppCount != 0 ||
+            rmNode.getState() == NodeState.DECOMMISSIONED ||
+            rmNode.getState() == NodeState.DECOMMISSIONING ||
+            rmNode.getState() == NodeState.SHUTDOWN) {
           recommendFlag = false;
+          keepNMCount++;
         }
         int deTimeout = nodeToDecommissioningTimeoutSecs.getOrDefault(rmNode.getNodeID().toString(),
             -1);
-        if (recommendFlag == true && rmNode.getState() != NodeState.DECOMMISSIONED) {
-          DecommissionCandidateNodeInfo dcni = new DecommissionCandidateNodeInfo(
-              amCount,
-              runningAppCount,
-              deTimeout,
-              rmNode.getState(),
-              rmNode.getNodeID().toString()
-          );
-          decommissionCandidates.add(dcni);
-        }
-      }
+        DecommissionCandidateNodeInfo dcni = new DecommissionCandidateNodeInfo(
+            amCount,
+            runningAppCount,
+            deTimeout,
+            rmNode.getState(),
+            rmNode.getNodeID().toString(),
+            recommendFlag
+        );
+        decommissionCandidates.add(dcni);
+        // negative value to indicate scale down NM count
+        recommendedExtraNMCount = keepNMCount - rmNodes.size();
+      } // end for
 
-      int downScalingCount = decommissionCandidates.getCandidates().size();
-      if (!decommissionCandidates.getCandidates().isEmpty()) {
-        recommendedExtraNMCount = -downScalingCount;
-      }
-      if (downScalingCount == 0 &&
+      // if no scale down requirement, check scale up
+      if (recommendedExtraNMCount == 0 &&
           pendingAppCount > 0 &&
           pendingContainersCount > 0) {
         // Assume uniform instance
         long instanceMB = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getMemorySize();
         long instanceVcore = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getVirtualCores();
         recommendedExtraNMCount = (int)Math.max(Math.ceil(pendingMB/instanceMB), Math.ceil(pendingVcore/instanceVcore));
+        recommendedExtraNMCount = Math.max(1, recommendedExtraNMCount);
       }
 
 //      String POLICY_CLASS_NAME =

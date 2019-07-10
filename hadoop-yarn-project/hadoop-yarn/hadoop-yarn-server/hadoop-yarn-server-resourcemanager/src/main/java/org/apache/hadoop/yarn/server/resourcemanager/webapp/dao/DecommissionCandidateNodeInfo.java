@@ -45,6 +45,7 @@ public class DecommissionCandidateNodeInfo {
   protected int runningAppCount;
   protected int decommissionedRemainingSecs;
   protected String nodeId;
+  protected boolean recommendFlag;
 
   public String getNodeId() {
     return nodeId;
@@ -58,12 +59,13 @@ public class DecommissionCandidateNodeInfo {
   public DecommissionCandidateNodeInfo() {}
 
   public DecommissionCandidateNodeInfo(int a, int r, int de, NodeState s,
-      String n) {
+      String n, boolean recommend) {
     this.amCount = a;
     this.decommissionedRemainingSecs = de;
     this.runningAppCount = r;
     this.nodeState = s;
     this.nodeId = n;
+    this.recommendFlag = recommend;
   }
 
 }
