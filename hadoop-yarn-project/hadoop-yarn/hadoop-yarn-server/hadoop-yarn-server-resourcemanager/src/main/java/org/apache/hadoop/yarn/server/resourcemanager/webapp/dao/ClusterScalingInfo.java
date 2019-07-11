@@ -79,7 +79,7 @@ public class ClusterScalingInfo {
   protected int pendingContainersCount;
   protected long availableMB;
   protected long availableVcore;
-  protected int recommendedExtraNMCount;
+  protected int recommendedDeltaNMCount;
 
   public DecommissionCandidates getDecommissionCandidates() {
     return decommissionCandidates;
@@ -146,7 +146,7 @@ public class ClusterScalingInfo {
         //nodelist.add((node));
       }
 
-      recommendedExtraNMCount = 0;
+      recommendedDeltaNMCount = 0;
       int keepNMCount = 0;
       for (RMNode rmNode : rmNodes){
         int amCount = nodeToAMRunningCount.getOrDefault(
@@ -172,19 +172,18 @@ public class ClusterScalingInfo {
             recommendFlag
         );
         decommissionCandidates.add(dcni);
-        // negative value to indicate scale down NM count
-        recommendedExtraNMCount = keepNMCount - rmNodes.size();
       } // end for
-
+      // negative value to indicate scale down NM count
+      recommendedDeltaNMCount = keepNMCount - rmNodes.size();
       // if no scale down requirement, check scale up
-      if (recommendedExtraNMCount == 0 &&
+      if (recommendedDeltaNMCount == 0 &&
           pendingAppCount > 0 &&
           pendingContainersCount > 0) {
         // Assume uniform instance
         long instanceMB = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getMemorySize();
         long instanceVcore = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getVirtualCores();
-        recommendedExtraNMCount = (int)Math.max(Math.ceil(pendingMB/instanceMB), Math.ceil(pendingVcore/instanceVcore));
-        recommendedExtraNMCount = Math.max(1, recommendedExtraNMCount);
+        recommendedDeltaNMCount = (int)Math.max(Math.ceil(pendingMB/instanceMB), Math.ceil(pendingVcore/instanceVcore));
+        recommendedDeltaNMCount = Math.max(1, recommendedDeltaNMCount);
       }
 
 //      String POLICY_CLASS_NAME =
