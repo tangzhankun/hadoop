@@ -59,6 +59,9 @@ public class NewNMCandidates {
   }
 
   public void put(NodeInstanceType type, int count) {
+    if (newNMCandidates == null) {
+      newNMCandidates = new HashMap<>();
+    }
     newNMCandidates.put(type.getModelName(), count);
   }
 

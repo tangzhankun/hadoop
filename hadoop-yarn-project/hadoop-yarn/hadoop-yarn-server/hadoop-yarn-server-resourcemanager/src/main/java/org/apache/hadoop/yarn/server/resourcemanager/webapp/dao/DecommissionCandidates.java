@@ -42,6 +42,9 @@ public class DecommissionCandidates {
       new ArrayList<DecommissionCandidateNodeInfo>();
 
   public void add(DecommissionCandidateNodeInfo nodeinfo) {
+    if (candidates == null) {
+      candidates = new ArrayList<>();
+    }
     candidates.add(nodeinfo);
   }
 }
