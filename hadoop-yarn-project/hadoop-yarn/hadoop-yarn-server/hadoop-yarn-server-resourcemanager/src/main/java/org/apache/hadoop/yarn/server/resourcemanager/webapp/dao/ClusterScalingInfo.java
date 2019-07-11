@@ -83,6 +83,11 @@ public class ClusterScalingInfo {
   protected long availableMB;
   protected long availableVcore;
   protected ResourceInfo pendingResource;
+  protected NodeInstanceType[] instanceTypes = NodeInstanceType.getAllNodeInstanceType();
+
+  public NodeInstanceType[] getInstanceTypes() {
+    return instanceTypes;
+  }
 
   public DecommissionCandidates getDecommissionCandidates() {
     return decommissionCandidates;
@@ -197,7 +202,7 @@ public class ClusterScalingInfo {
         Map<Resource, Integer> containerAskToCount = metrics.getContainerAskToCount();
         for (Map.Entry<Resource, Integer> entry : containerAskToCount.entrySet()) {
           NodeInstanceType t = NodeInstanceType.getSuitableInstanceType(
-              entry.getKey(), newNMCandidates.getInstanceTypes(), rc);
+              entry.getKey(), getInstanceTypes(), rc);
           if (t == null) {
             tip.append(String.format(
                 "No capable instance type for container resource: %s, count: %d",

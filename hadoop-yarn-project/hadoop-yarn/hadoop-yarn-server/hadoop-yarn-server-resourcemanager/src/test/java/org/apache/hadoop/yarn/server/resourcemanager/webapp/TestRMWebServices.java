@@ -407,6 +407,8 @@ public class TestRMWebServices extends JerseyTestBase {
     verifyClusterMetricsXML(xml);
   }
 
+
+  //Zhankun
   @Test
   public void testClusterAutoScaleInfoXML() throws JSONException, Exception {
     WebResource r = resource();

@@ -40,29 +40,24 @@ public class NewNMCandidates {
 
   protected String tip;
 
-  protected Map<String, Integer> getNewNMCandidates() {
+  protected ArrayList<String> getNewNMCandidates() {
     return newNMCandidates;
   }
 
-  public NodeInstanceType[] getInstanceTypes() {
-    return instanceTypes;
-  }
-
-  protected NodeInstanceType[] instanceTypes = NodeInstanceType.getAllNodeInstanceType();
-  protected Map<String, Integer> newNMCandidates =
-      new HashMap<>();
+  protected ArrayList<String> newNMCandidates =
+      new ArrayList<>();
 
   public NewNMCandidates() {}
 
-  public NewNMCandidates(Map<String, Integer> m) {
+  public NewNMCandidates(ArrayList<String> m) {
     this.newNMCandidates = m;
   }
 
   public void put(NodeInstanceType type, int count) {
     if (newNMCandidates == null) {
-      newNMCandidates = new HashMap<>();
+      newNMCandidates = new ArrayList<String>();
     }
-    newNMCandidates.put(type.getModelName(), count);
+    newNMCandidates.add(type.toStr(count));
   }
 
 }

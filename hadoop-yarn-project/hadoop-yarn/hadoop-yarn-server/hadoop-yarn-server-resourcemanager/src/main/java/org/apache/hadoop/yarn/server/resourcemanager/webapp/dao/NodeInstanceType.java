@@ -94,4 +94,8 @@ public class NodeInstanceType {
     return bestInstanceIndex == -1 ? null : allType[bestInstanceIndex];
   }
 
+  public String toStr(int count) {
+    return "name:" + this.modelName + "; count:" + count;
+  }
+
 }
