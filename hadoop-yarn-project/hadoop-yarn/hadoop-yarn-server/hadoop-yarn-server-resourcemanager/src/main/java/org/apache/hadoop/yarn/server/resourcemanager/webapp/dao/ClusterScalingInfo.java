@@ -115,8 +115,8 @@ public class ClusterScalingInfo {
       Integer timeout = rmNode.getDecommissioningTimeout();
       if (timeout == null) {
         timeout = -1;
-        nodeToDecommissioningTimeoutSecs.put(rmNode.getNodeID().toString(), timeout);
       }
+      nodeToDecommissioningTimeoutSecs.put(rmNode.getNodeID().toString(), timeout);
     }
     // Zhankun TEST
     if (rmNodes.size() > 0) {
