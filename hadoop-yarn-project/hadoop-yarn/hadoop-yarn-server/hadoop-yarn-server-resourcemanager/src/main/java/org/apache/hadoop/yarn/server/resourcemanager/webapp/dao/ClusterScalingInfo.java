@@ -147,13 +147,13 @@ public class ClusterScalingInfo {
       }
 
       recommendedExtraNMCount = 0;
+      int keepNMCount = 0;
       for (RMNode rmNode : rmNodes){
         int amCount = nodeToAMRunningCount.getOrDefault(
             rmNode.getNodeID().toString(), 0);
         int runningAppCount = nodeToAppsRunningCount.getOrDefault(
             rmNode.getNodeID().toString(), 0);
         boolean recommendFlag = true;
-        int keepNMCount = 0;
         if (amCount != 0 || runningAppCount != 0 ||
             rmNode.getState() == NodeState.DECOMMISSIONED ||
             rmNode.getState() == NodeState.DECOMMISSIONING ||
