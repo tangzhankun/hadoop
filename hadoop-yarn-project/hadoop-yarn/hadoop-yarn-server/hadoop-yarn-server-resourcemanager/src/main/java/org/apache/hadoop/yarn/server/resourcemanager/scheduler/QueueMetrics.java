@@ -77,6 +77,12 @@ public class QueueMetrics implements MetricsSource {
   @Metric("# of active applications") MutableGaugeInt activeApplications;
 
 
+  public Map<Resource, Integer> getContainerAskToCount() {
+    return containerAskToCount;
+  }
+
+  protected Map<Resource, Integer> containerAskToCount = new HashMap<>();
+
   // Zhankun
   public int getAppAttemptFirstContainerAllocationDelay() {
     return (int)appAttemptFirstContainerAllocationDelay.lastStat().min();
@@ -410,6 +416,17 @@ public class QueueMetrics implements MetricsSource {
   public void incrPendingResources(String partition, String user,
       int containers, Resource res) {
     if (partition == null || partition.equals(RMNodeLabelsManager.NO_LABEL)) {
+
+      //Zhankun
+      Integer c = containerAskToCount.get(res);
+      if (c == null) {
+        c = 0;
+      } else {
+        c += containers;
+      }
+
+      containerAskToCount.put(res, c);
+
       _incrPendingResources(containers, res);
       QueueMetrics userMetrics = getUserMetrics(user);
       if (userMetrics != null) {

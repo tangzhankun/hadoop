@@ -21,6 +21,7 @@ package org.apache.hadoop.yarn.server.resourcemanager.webapp.dao;
 
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.NodeState;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.server.resourcemanager.ClusterMetrics;
 import org.apache.hadoop.yarn.server.resourcemanager.RMServerUtils;
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
@@ -32,6 +33,8 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.CandidateNodeSet;
+import org.apache.hadoop.yarn.util.resource.DefaultResourceCalculator;
+import org.apache.hadoop.yarn.util.resource.ResourceCalculator;
 import org.apache.hadoop.yarn.webapp.NotFoundException;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -79,11 +82,17 @@ public class ClusterScalingInfo {
   protected int pendingContainersCount;
   protected long availableMB;
   protected long availableVcore;
-  protected int recommendedDeltaNMCount;
+  protected ResourceInfo pendingResource;
 
   public DecommissionCandidates getDecommissionCandidates() {
     return decommissionCandidates;
   }
+
+  public NewNMCandidates getNewNMCandidates() {
+    return newNMCandidates;
+  }
+
+  protected NewNMCandidates newNMCandidates = new NewNMCandidates();
 
   protected DecommissionCandidates decommissionCandidates =
       new DecommissionCandidates();
@@ -103,6 +112,7 @@ public class ClusterScalingInfo {
     this.pendingVcore = metrics.getPendingVirtualCores();
     this.pendingAppCount = metrics.getAppsPending();
     this.pendingContainersCount = metrics.getPendingContainers();
+    this.pendingResource = new ResourceInfo(metrics.getPendingResources());
     this.availableMB = metrics.getAvailableMB();
     this.availableVcore = metrics.getAvailableVirtualCores();
     Collection<RMNode> rmNodes =
@@ -150,7 +160,6 @@ public class ClusterScalingInfo {
         //nodelist.add((node));
       }
 
-      recommendedDeltaNMCount = 0;
       int keepNMCount = 0;
       for (RMNode rmNode : rmNodes){
         int amCount = nodeToAMRunningCount.getOrDefault(
@@ -177,18 +186,27 @@ public class ClusterScalingInfo {
         );
         decommissionCandidates.add(dcni);
       } // end for
-      // negative value to indicate scale down NM count
-      recommendedDeltaNMCount = keepNMCount - rmNodes.size();
       // if no scale down requirement, check scale up
-      if (recommendedDeltaNMCount == 0 &&
-          pendingAppCount > 0 &&
+      if (pendingAppCount > 0 &&
           pendingContainersCount > 0) {
-        // Assume uniform instance
-        long instanceMB = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getMemorySize();
-        long instanceVcore = ((List<RMNode>) rmNodes).get(0).getTotalCapability().getVirtualCores();
-        recommendedDeltaNMCount = (int)Math.max(Math.ceil(pendingMB/instanceMB), Math.ceil(pendingVcore/instanceVcore));
-        recommendedDeltaNMCount = Math.max(1, recommendedDeltaNMCount);
+        // given existing node types, found the maximum count of instance
+        // that can serve the pending resource. Generally, the more instance,
+        // the more opportunity to scale down
+        StringBuilder tip = new StringBuilder();
+        ResourceCalculator rc = new DefaultResourceCalculator();
+        Map<Resource, Integer> containerAskToCount = metrics.getContainerAskToCount();
+        for (Map.Entry<Resource, Integer> entry : containerAskToCount.entrySet()) {
+          NodeInstanceType t = NodeInstanceType.getSuitableInstanceType(
+              entry.getKey(), newNMCandidates.getInstanceTypes(), rc);
+          if (t == null) {
+            tip.append(String.format(
+                "No capable instance type for container resource: %s, count: %d",
+                entry.getKey(), entry.getValue()));
+          }
+          newNMCandidates.put(t, entry.getValue());
+        }
       }
+
 
 //      String POLICY_CLASS_NAME =
 //          "org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.ResourceUsageMultiNodeLookupPolicy";

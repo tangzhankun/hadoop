@@ -440,7 +440,6 @@ public class TestRMWebServices extends JerseyTestBase {
     for (int i = 0; i < nodes.getLength(); i++) {
       Element element = (Element) nodes.item(i);
       WebServicesTestUtils.getXmlInt(element, "pendingAppCount");
-      WebServicesTestUtils.getXmlInt(element, "submittedAppCount");
       WebServicesTestUtils.getXmlInt(element, "pendingMB");
       WebServicesTestUtils.getXmlInt(element, "pendingVcore");
       WebServicesTestUtils.getXmlInt(element, "pendingContainersCount");
