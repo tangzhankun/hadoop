@@ -53,9 +53,9 @@ public class NewNMCandidates {
     this.newNMCandidates = m;
   }
 
-  public void put(NodeInstanceType type, int count) {
+  public void add(NodeInstanceType type, int count) {
     if (newNMCandidates == null) {
-      newNMCandidates = new ArrayList<String>();
+      newNMCandidates = new ArrayList<>();
     }
     newNMCandidates.add(type.toStr(count));
   }

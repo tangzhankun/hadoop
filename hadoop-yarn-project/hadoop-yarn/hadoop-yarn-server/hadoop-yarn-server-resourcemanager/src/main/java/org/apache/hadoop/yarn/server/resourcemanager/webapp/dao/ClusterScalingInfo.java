@@ -208,7 +208,7 @@ public class ClusterScalingInfo {
                 "No capable instance type for container resource: %s, count: %d",
                 entry.getKey(), entry.getValue()));
           }
-          newNMCandidates.put(t, entry.getValue());
+          newNMCandidates.add(t, entry.getValue());
         }
       }
 
