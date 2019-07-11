@@ -52,6 +52,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.QueueACL;
 import org.apache.hadoop.yarn.api.records.QueueState;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.*;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.RMNodeLabelsManager;
@@ -405,49 +406,6 @@ public class TestRMWebServices extends JerseyTestBase {
         response.getType().toString());
     String xml = response.getEntity(String.class);
     verifyClusterMetricsXML(xml);
-  }
-
-
-  //Zhankun
-  @Test
-  public void testClusterAutoScaleInfoXML() throws JSONException, Exception {
-    WebResource r = resource();
-    ClientResponse response = r.path("ws").path("v1").path("cluster")
-        .path("scaling").accept("application/xml").get(ClientResponse.class);
-    assertEquals(MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8,
-        response.getType().toString());
-    String xml = response.getEntity(String.class);
-    verifyClusterScalingInfoXML(xml);
-  }
-
-  public void verifyClusterScalingInfoXML(String xml) throws JSONException,
-      Exception {
-    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    DocumentBuilder db = dbf.newDocumentBuilder();
-    InputSource is = new InputSource();
-    is.setCharacterStream(new StringReader(xml));
-    verifyClusterScalingXML(xml);
-  }
-
-  public void verifyClusterScalingXML(String xml) throws JSONException,
-      Exception {
-    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    DocumentBuilder db = dbf.newDocumentBuilder();
-    InputSource is = new InputSource();
-    is.setCharacterStream(new StringReader(xml));
-    Document dom = db.parse(is);
-    NodeList nodes = dom.getElementsByTagName("clusterScaling");
-    assertEquals("incorrect number of elements", 1, nodes.getLength());
-
-    for (int i = 0; i < nodes.getLength(); i++) {
-      Element element = (Element) nodes.item(i);
-      WebServicesTestUtils.getXmlInt(element, "pendingAppCount");
-      WebServicesTestUtils.getXmlInt(element, "pendingMB");
-      WebServicesTestUtils.getXmlInt(element, "pendingVcore");
-      WebServicesTestUtils.getXmlInt(element, "pendingContainersCount");
-      WebServicesTestUtils.getXmlInt(element, "availableMB");
-      WebServicesTestUtils.getXmlInt(element, "availableVcore");
-    }
   }
 
   public void verifyClusterMetricsXML(String xml) throws JSONException,

@@ -192,7 +192,7 @@ public class ClusterScalingInfo {
         decommissionCandidates.add(dcni);
       } // end for
       // if no scale down requirement, check scale up
-      if (pendingAppCount > 0 &&
+      if (pendingAppCount > 0 ||
           pendingContainersCount > 0) {
         // given existing node types, found the maximum count of instance
         // that can serve the pending resource. Generally, the more instance,
@@ -207,8 +207,9 @@ public class ClusterScalingInfo {
             tip.append(String.format(
                 "No capable instance type for container resource: %s, count: %d",
                 entry.getKey(), entry.getValue()));
+          } else {
+            newNMCandidates.add(t, entry.getValue());
           }
-          newNMCandidates.add(t, entry.getValue());
         }
       }
 

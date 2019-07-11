@@ -93,6 +93,7 @@ import org.apache.hadoop.yarn.util.Records;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.YarnVersionInfo;
 import org.apache.hadoop.yarn.util.resource.DominantResourceCalculator;
+import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.hadoop.yarn.webapp.GenericExceptionHandler;
 import org.apache.hadoop.yarn.webapp.GuiceServletConfig;
 import org.apache.hadoop.yarn.webapp.JerseyTestBase;
@@ -301,6 +302,83 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
       }
     }
     assertEquals(1, match);
+  }
+
+  //Zhankun
+  @Test
+  public void testClusterAutoScaleInfoXML() throws JSONException, Exception {
+    rm.start();
+    ResourceScheduler scheduler = rm.getRMContext().getScheduler();
+    MockNM nm1 = rm.registerNode("127.0.0.1:1234", 2 * GB, 8);
+    MockNM nm2 = rm.registerNode("127.0.0.2:1235", 2 * GB, 8);
+    waitforNMRegistered(scheduler, 2, 5);
+    assertEquals(scheduler.getNumClusterNodes(), 2);
+
+    RMApp app1 = rm.submitApp(2048, "app-1", "user1", null, "default");
+    MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
+    Resource cResource = Resources.createResource(2 * GB, 4);
+    am1.allocate("*", cResource, 8,
+        new ArrayList<ContainerId>(), null);
+    SchedulerNodeReport reportNm1 =
+        rm.getResourceScheduler().getNodeReport(nm1.getNodeId());
+    // check node report
+    Assert.assertEquals(2 * GB, reportNm1.getUsedResource().getMemorySize());
+    Assert.assertEquals((2 - 2) * GB,
+        reportNm1.getAvailableResource().getMemorySize());
+    // report nm1 status
+    RMNodeImpl node1 =
+        (RMNodeImpl) rm.getRMContext().getRMNodes().get(nm1.getNodeId());
+    NodeId id1 = nm1.getNodeId();
+    NodeId id2 = nm2.getNodeId();
+    rm.waitForState(id1, NodeState.RUNNING);
+    rm.waitForState(id2, NodeState.RUNNING);
+
+    NodeStatus nodeStatus = createNodeStatus(id1, app1, 1);
+    node1.handle(new RMNodeStatusEvent(nm1.getNodeId(), nodeStatus));
+    Assert.assertEquals(1, node1.getRunningApps().size());
+
+    nodeStatus = createNodeStatus(id2, app1, 1);
+    node1.handle(new RMNodeStatusEvent(nm1.getNodeId(), nodeStatus));
+    Assert.assertEquals(1, node1.getRunningApps().size());
+
+    WebResource r = resource();
+    Resource res = Resource.newInstance(2, 8);
+    ClientResponse response = r.path("ws").path("v1").path("cluster")
+        .path("scaling").accept("application/xml").get(ClientResponse.class);
+    assertEquals(MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8,
+        response.getType().toString());
+    String xml = response.getEntity(String.class);
+    verifyClusterScalingInfoXML(xml);
+  }
+
+  public void verifyClusterScalingInfoXML(String xml) throws JSONException,
+      Exception {
+    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+    DocumentBuilder db = dbf.newDocumentBuilder();
+    InputSource is = new InputSource();
+    is.setCharacterStream(new StringReader(xml));
+    verifyClusterScalingXML(xml);
+  }
+
+  public void verifyClusterScalingXML(String xml) throws JSONException,
+      Exception {
+    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+    DocumentBuilder db = dbf.newDocumentBuilder();
+    InputSource is = new InputSource();
+    is.setCharacterStream(new StringReader(xml));
+    Document dom = db.parse(is);
+    NodeList nodes = dom.getElementsByTagName("clusterScaling");
+    assertEquals("incorrect number of elements", 1, nodes.getLength());
+
+    for (int i = 0; i < nodes.getLength(); i++) {
+      Element element = (Element) nodes.item(i);
+      WebServicesTestUtils.getXmlInt(element, "pendingAppCount");
+      WebServicesTestUtils.getXmlInt(element, "pendingMB");
+      WebServicesTestUtils.getXmlInt(element, "pendingVcore");
+      WebServicesTestUtils.getXmlInt(element, "pendingContainersCount");
+      WebServicesTestUtils.getXmlInt(element, "availableMB");
+      WebServicesTestUtils.getXmlInt(element, "availableVcore");
+    }
   }
 
   private NodeStatus createNodeStatus(

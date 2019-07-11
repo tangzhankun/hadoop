@@ -67,10 +67,10 @@ public class NodeInstanceType {
 
   public static NodeInstanceType[] getAllNodeInstanceType() {
     NodeInstanceType[] types = new NodeInstanceType[2];
-    Resource r1 = Resource.newInstance(64, 4);
+    Resource r1 = Resource.newInstance(64 * 1024, 4);
     types[0] = new NodeInstanceType("p2.xlarge", r1, ModelType.ONDEMAND, 3.06);
 
-    Resource r2 = Resource.newInstance(2, 8);
+    Resource r2 = Resource.newInstance(2 * 1024, 8);
     types[1] = new NodeInstanceType("a1.medium", r2, ModelType.ONDEMAND, 0.025);
     return types;
   }

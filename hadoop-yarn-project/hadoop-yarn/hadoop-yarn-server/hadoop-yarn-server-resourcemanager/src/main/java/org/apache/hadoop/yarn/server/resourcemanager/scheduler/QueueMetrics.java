@@ -420,7 +420,7 @@ public class QueueMetrics implements MetricsSource {
       //Zhankun
       Integer c = containerAskToCount.get(res);
       if (c == null) {
-        c = 0;
+        c = containers;
       } else {
         c += containers;
       }
