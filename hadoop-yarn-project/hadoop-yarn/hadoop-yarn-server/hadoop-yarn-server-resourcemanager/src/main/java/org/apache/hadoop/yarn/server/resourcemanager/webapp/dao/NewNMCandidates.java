@@ -40,16 +40,16 @@ public class NewNMCandidates {
 
   protected String tip;
 
-  protected ArrayList<String> getNewNMCandidates() {
+  protected ArrayList<NewSingleNMCandidate> getNewNMCandidates() {
     return newNMCandidates;
   }
 
-  protected ArrayList<String> newNMCandidates =
+  protected ArrayList<NewSingleNMCandidate> newNMCandidates =
       new ArrayList<>();
 
   public NewNMCandidates() {}
 
-  public NewNMCandidates(ArrayList<String> m) {
+  public NewNMCandidates(ArrayList<NewSingleNMCandidate> m) {
     this.newNMCandidates = m;
   }
 
@@ -57,7 +57,19 @@ public class NewNMCandidates {
     if (newNMCandidates == null) {
       newNMCandidates = new ArrayList<>();
     }
-    newNMCandidates.add(type.toStr(count));
+    NewSingleNMCandidate e = null;
+    for (int i = 0; i < newNMCandidates.size(); i++) {
+      e = newNMCandidates.get(i);
+      if (type.modelName.equals(e.modelName)) {
+        break;
+      }
+    }
+    if (e == null) {
+      NewSingleNMCandidate newNM = new NewSingleNMCandidate(type.modelName, count);
+      newNMCandidates.add(newNM);
+    } else {
+      e.count = e.count + count;
+    }
   }
 
 }
