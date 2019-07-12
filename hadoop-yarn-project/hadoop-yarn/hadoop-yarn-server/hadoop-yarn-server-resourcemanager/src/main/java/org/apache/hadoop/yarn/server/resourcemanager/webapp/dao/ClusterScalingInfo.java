@@ -82,7 +82,7 @@ public class ClusterScalingInfo {
   protected int pendingContainersCount;
   protected long availableMB;
   protected long availableVcore;
-  protected ResourceInfo pendingResource;
+  protected CustomResourceInfo pendingResource;
   protected NodeInstanceType[] instanceTypes = NodeInstanceType.getAllNodeInstanceType();
 
   public NodeInstanceType[] getInstanceTypes() {
@@ -117,7 +117,7 @@ public class ClusterScalingInfo {
     this.pendingVcore = metrics.getPendingVirtualCores();
     this.pendingAppCount = metrics.getAppsPending();
     this.pendingContainersCount = metrics.getPendingContainers();
-    this.pendingResource = new ResourceInfo(metrics.getPendingResources());
+    this.pendingResource = new CustomResourceInfo(metrics.getPendingResources());
     this.availableMB = metrics.getAvailableMB();
     this.availableVcore = metrics.getAvailableVirtualCores();
     Collection<RMNode> rmNodes =

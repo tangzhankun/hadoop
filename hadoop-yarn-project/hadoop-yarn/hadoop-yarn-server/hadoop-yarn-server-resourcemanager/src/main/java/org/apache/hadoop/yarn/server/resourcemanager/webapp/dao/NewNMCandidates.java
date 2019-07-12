@@ -38,6 +38,11 @@ public class NewNMCandidates {
     this.tip = tip;
   }
 
+  public double getCostPerHour() {
+    return costPerHour;
+  }
+
+  protected double costPerHour;
   protected String tip;
 
   protected ArrayList<NewSingleNMCandidate> getNewNMCandidates() {
@@ -70,6 +75,7 @@ public class NewNMCandidates {
     } else {
       e.count = e.count + count;
     }
+    costPerHour += type.costPerHour * count;
   }
 
 }
