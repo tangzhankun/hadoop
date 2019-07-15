@@ -57,7 +57,8 @@ public class CustomResourceInfo {
       this.customResourceTypeList = new ArrayList<>();
     }
     for (ResourceInformation ri : r.getResources()) {
-      if (ri == ResourceInformation.MEMORY_MB || ri == ResourceInformation.VCORES) {
+      if (ri.getName().equals(ResourceInformation.MEMORY_MB.getName()) ||
+          ri.getName().equals(ResourceInformation.VCORES.getName())) {
         continue;
       }
       this.customResourceTypeList.add(new CustomResourceType(ri.getName(), ri.getValue()));

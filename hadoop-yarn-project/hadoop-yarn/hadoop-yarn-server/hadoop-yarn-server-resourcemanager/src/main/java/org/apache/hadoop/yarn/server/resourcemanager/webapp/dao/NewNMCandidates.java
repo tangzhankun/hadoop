@@ -45,6 +45,12 @@ public class NewNMCandidates {
   protected double costPerHour;
   protected String tip;
 
+  public String getRecommendActionTime() {
+    return recommendActionTime;
+  }
+
+  protected String recommendActionTime = "Now";
+
   protected ArrayList<NewSingleNMCandidate> getNewNMCandidates() {
     return newNMCandidates;
   }

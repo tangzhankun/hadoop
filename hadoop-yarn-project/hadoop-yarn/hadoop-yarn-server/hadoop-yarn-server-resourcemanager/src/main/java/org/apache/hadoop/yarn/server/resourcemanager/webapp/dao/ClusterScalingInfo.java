@@ -52,14 +52,6 @@ public class ClusterScalingInfo {
 
   public ClusterScalingInfo(){}
 
-  public long getPendingMB() {
-    return pendingMB;
-  }
-
-  public long getPendingVcore() {
-    return pendingVcore;
-  }
-
   public int getPendingContainersCount() {
     return pendingContainersCount;
   }
@@ -77,16 +69,14 @@ public class ClusterScalingInfo {
   }
 
   protected int pendingAppCount;
-  protected long pendingMB;
-  protected long pendingVcore;
   protected int pendingContainersCount;
   protected long availableMB;
   protected long availableVcore;
   protected CustomResourceInfo pendingResource;
-  protected NodeInstanceType[] instanceTypes = NodeInstanceType.getAllNodeInstanceType();
+  protected NodeInstanceType[] DefinedInstanceTypes = NodeInstanceType.getAllNodeInstanceType();
 
-  public NodeInstanceType[] getInstanceTypes() {
-    return instanceTypes;
+  public NodeInstanceType[] getDefinedInstanceTypes() {
+    return DefinedInstanceTypes;
   }
 
   public DecommissionCandidates getDecommissionCandidates() {
@@ -113,8 +103,6 @@ public class ClusterScalingInfo {
 
     QueueMetrics metrics = rs.getRootQueueMetrics();
     ClusterMetrics clusterMetrics = ClusterMetrics.getMetrics();
-    this.pendingMB = metrics.getPendingMB();
-    this.pendingVcore = metrics.getPendingVirtualCores();
     this.pendingAppCount = metrics.getAppsPending();
     this.pendingContainersCount = metrics.getPendingContainers();
     this.pendingResource = new CustomResourceInfo(metrics.getPendingResources());
@@ -202,7 +190,7 @@ public class ClusterScalingInfo {
         Map<Resource, Integer> containerAskToCount = metrics.getContainerAskToCount();
         for (Map.Entry<Resource, Integer> entry : containerAskToCount.entrySet()) {
           NodeInstanceType t = NodeInstanceType.getSuitableInstanceType(
-              entry.getKey(), getInstanceTypes(), rc);
+              entry.getKey(), getDefinedInstanceTypes(), rc);
           if (t == null) {
             tip.append(String.format(
                 "No capable instance type for container resource: %s, count: %d",

@@ -372,6 +372,7 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
     return new ClusterMetricsInfo(this.rm);
   }
 
+  // Zhankun
   @GET
   @Path(RMWSConsts.AUTOSCALE)
   @Produces({ MediaType.APPLICATION_JSON + "; " + JettyUtils.UTF_8,

@@ -342,13 +342,20 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     Assert.assertEquals(1, node1.getRunningApps().size());
 
     WebResource r = resource();
-    Resource res = Resource.newInstance(2, 8);
     ClientResponse response = r.path("ws").path("v1").path("cluster")
         .path("scaling").accept("application/xml").get(ClientResponse.class);
     assertEquals(MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8,
         response.getType().toString());
     String xml = response.getEntity(String.class);
     verifyClusterScalingInfoXML(xml);
+
+    response = r.path("ws").path("v1").path("cluster")
+        .path("scaling").accept("application/xml").get(ClientResponse.class);
+    assertEquals(MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8,
+        response.getType().toString());
+    xml = response.getEntity(String.class);
+    verifyClusterScalingInfoXML(xml);
+
   }
 
   public void verifyClusterScalingInfoXML(String xml) throws JSONException,
@@ -373,8 +380,6 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     for (int i = 0; i < nodes.getLength(); i++) {
       Element element = (Element) nodes.item(i);
       WebServicesTestUtils.getXmlInt(element, "pendingAppCount");
-      WebServicesTestUtils.getXmlInt(element, "pendingMB");
-      WebServicesTestUtils.getXmlInt(element, "pendingVcore");
       WebServicesTestUtils.getXmlInt(element, "pendingContainersCount");
       WebServicesTestUtils.getXmlInt(element, "availableMB");
       WebServicesTestUtils.getXmlInt(element, "availableVcore");
