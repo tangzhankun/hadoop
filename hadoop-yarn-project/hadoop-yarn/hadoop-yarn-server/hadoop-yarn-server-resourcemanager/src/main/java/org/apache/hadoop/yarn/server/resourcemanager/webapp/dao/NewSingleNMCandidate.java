@@ -30,6 +30,16 @@ public class NewSingleNMCandidate {
     return modelName;
   }
 
+  public double getCostPerHour() {
+    return costPerHour;
+  }
+
+  public void setCostPerHour(double costPerHour) {
+    this.costPerHour = costPerHour;
+  }
+
+  protected double costPerHour;
+
   public int getCount() {
     return count;
   }
@@ -38,8 +48,9 @@ public class NewSingleNMCandidate {
   protected int count;
   public NewSingleNMCandidate() { }
 
-  public NewSingleNMCandidate(String n, int c) {
+  public NewSingleNMCandidate(String n, int c, double d) {
     this.modelName = n;
     this.count = c;
+    this.costPerHour = d;
   }
 }

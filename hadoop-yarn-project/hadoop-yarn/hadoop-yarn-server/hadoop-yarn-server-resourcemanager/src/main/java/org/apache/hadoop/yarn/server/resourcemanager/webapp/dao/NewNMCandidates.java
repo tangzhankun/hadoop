@@ -65,8 +65,7 @@ public class NewNMCandidates {
   }
 
   public void add(NodeInstanceType type, int count) {
-    tip = tip + "Before add method: (" + type;
-    tip = tip + ", count:" + count + ")";
+    tip = tip + "Before add method: (" + type.toStr(count) + ")";
     tip = tip + ", costPerHour:" + costPerHour;
     if (newNMCandidates == null) {
       newNMCandidates = new ArrayList<>();
@@ -79,15 +78,23 @@ public class NewNMCandidates {
       }
     }
     if (e == null) {
-      NewSingleNMCandidate newNM = new NewSingleNMCandidate(type.modelName, count);
+      NewSingleNMCandidate newNM = new NewSingleNMCandidate(type.modelName, count, type.costPerHour);
       newNMCandidates.add(newNM);
     } else {
       e.count = e.count + count;
     }
-    costPerHour += type.costPerHour * count;
+    costPerHour = calculateCost();
     tip = tip + ", After add method: (" + type + ")";
     tip = tip + ". costPerHour:" + costPerHour;
     tip = tip + "\n\r";
+  }
+
+  private double calculateCost() {
+    double r = 0;
+    for (int i = 0; i < newNMCandidates.size(); i++) {
+      r += newNMCandidates.get(i).getCostPerHour() * newNMCandidates.get(i).getCount();
+    }
+    return r;
   }
 
 }

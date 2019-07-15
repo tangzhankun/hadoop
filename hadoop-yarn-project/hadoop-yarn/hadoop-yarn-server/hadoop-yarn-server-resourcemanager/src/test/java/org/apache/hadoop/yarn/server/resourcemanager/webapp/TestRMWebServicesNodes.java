@@ -59,6 +59,7 @@ import org.apache.hadoop.yarn.api.records.NodeAttributeType;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.NodeState;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.api.records.ResourceOption;
 import org.apache.hadoop.yarn.api.records.ResourceUtilization;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -67,6 +68,9 @@ import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacitySchedulerConfiguration;
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.NodeUpdateSchedulerEvent;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NewNMCandidates;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NodeInstanceType;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
 import org.apache.hadoop.yarn.server.api.records.NodeHealthStatus;
 import org.apache.hadoop.yarn.server.api.records.NodeStatus;
@@ -92,6 +96,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ResourceOptionIn
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.YarnVersionInfo;
+import org.apache.hadoop.yarn.util.resource.CustomResourceTypesConfigurationProvider;
 import org.apache.hadoop.yarn.util.resource.DominantResourceCalculator;
 import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.hadoop.yarn.webapp.GenericExceptionHandler;
@@ -306,12 +311,18 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
 
   //Zhankun
   @Test
-  public void testClusterAutoScaleInfoXML() throws JSONException, Exception {
+  public void testClusterAutoScaleInfoJson() throws JSONException, Exception {
     rm.start();
     ResourceScheduler scheduler = rm.getRMContext().getScheduler();
     MockNM nm1 = rm.registerNode("127.0.0.1:1234", 2 * GB, 8);
     MockNM nm2 = rm.registerNode("127.0.0.2:1235", 2 * GB, 8);
     waitforNMRegistered(scheduler, 2, 5);
+
+    NodeId id1 = nm1.getNodeId();
+    NodeId id2 = nm2.getNodeId();
+    rm.waitForState(id1, NodeState.RUNNING);
+    rm.waitForState(id2, NodeState.RUNNING);
+
     assertEquals(scheduler.getNumClusterNodes(), 2);
 
     RMApp app1 = rm.submitApp(2048, "app-1", "user1", null, "default");
@@ -319,19 +330,26 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     Resource cResource = Resources.createResource(2 * GB, 4);
     am1.allocate("*", cResource, 8,
         new ArrayList<ContainerId>(), null);
+
+    heartbeat(rm, nm1);
+    heartbeat(rm, nm2);
     SchedulerNodeReport reportNm1 =
         rm.getResourceScheduler().getNodeReport(nm1.getNodeId());
     // check node report
     Assert.assertEquals(2 * GB, reportNm1.getUsedResource().getMemorySize());
     Assert.assertEquals((2 - 2) * GB,
         reportNm1.getAvailableResource().getMemorySize());
+
+    SchedulerNodeReport reportNm2 =
+        rm.getResourceScheduler().getNodeReport(nm1.getNodeId());
+    // check node report
+    Assert.assertEquals(2 * GB, reportNm1.getUsedResource().getMemorySize());
+    Assert.assertEquals((2 - 2) * GB,
+        reportNm1.getAvailableResource().getMemorySize());
+
     // report nm1 status
     RMNodeImpl node1 =
         (RMNodeImpl) rm.getRMContext().getRMNodes().get(nm1.getNodeId());
-    NodeId id1 = nm1.getNodeId();
-    NodeId id2 = nm2.getNodeId();
-    rm.waitForState(id1, NodeState.RUNNING);
-    rm.waitForState(id2, NodeState.RUNNING);
 
     NodeStatus nodeStatus = createNodeStatus(id1, app1, 1);
     node1.handle(new RMNodeStatusEvent(nm1.getNodeId(), nodeStatus));
@@ -343,49 +361,25 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
 
     WebResource r = resource();
     ClientResponse response = r.path("ws").path("v1").path("cluster")
-        .path("scaling").accept("application/xml").get(ClientResponse.class);
-    assertEquals(MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8,
+        .path("scaling").accept("application/json").get(ClientResponse.class);
+    assertEquals(MediaType.APPLICATION_JSON_TYPE + "; " + JettyUtils.UTF_8,
         response.getType().toString());
-    String xml = response.getEntity(String.class);
-    verifyClusterScalingInfoXML(xml);
 
-    response = r.path("ws").path("v1").path("cluster")
-        .path("scaling").accept("application/xml").get(ClientResponse.class);
-    assertEquals(MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8,
-        response.getType().toString());
-    xml = response.getEntity(String.class);
-    verifyClusterScalingInfoXML(xml);
-
+    JSONObject json = response.getEntity(JSONObject.class);
+    assertEquals("incorrect number of elements", 8, json.length());
+    JSONObject nodes = json.getJSONObject("newNMCandidates");
+    assertEquals("incorrect number of elements", 4, nodes.length());
+    double cost = nodes.getDouble("costPerHour");
+    Assert.assertEquals("incorrect total cost per hour",0.175, cost, 0.0001);
+    rm.stop();
   }
 
-  public void verifyClusterScalingInfoXML(String xml) throws JSONException,
-      Exception {
-    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    DocumentBuilder db = dbf.newDocumentBuilder();
-    InputSource is = new InputSource();
-    is.setCharacterStream(new StringReader(xml));
-    verifyClusterScalingXML(xml);
+  private void heartbeat(MockRM rm, MockNM nm) {
+    RMNode node = rm.getRMContext().getRMNodes().get(nm.getNodeId());
+    // Send a heartbeat to kick the tires on the Scheduler
+    NodeUpdateSchedulerEvent nodeUpdate = new NodeUpdateSchedulerEvent(node);
+    rm.getResourceScheduler().handle(nodeUpdate);
   }
-
-  public void verifyClusterScalingXML(String xml) throws JSONException,
-      Exception {
-    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    DocumentBuilder db = dbf.newDocumentBuilder();
-    InputSource is = new InputSource();
-    is.setCharacterStream(new StringReader(xml));
-    Document dom = db.parse(is);
-    NodeList nodes = dom.getElementsByTagName("clusterScaling");
-    assertEquals("incorrect number of elements", 1, nodes.getLength());
-
-    for (int i = 0; i < nodes.getLength(); i++) {
-      Element element = (Element) nodes.item(i);
-      WebServicesTestUtils.getXmlInt(element, "pendingAppCount");
-      WebServicesTestUtils.getXmlInt(element, "pendingContainersCount");
-      WebServicesTestUtils.getXmlInt(element, "availableMB");
-      WebServicesTestUtils.getXmlInt(element, "availableVcore");
-    }
-  }
-
   private NodeStatus createNodeStatus(
       NodeId nodeId, RMApp app, int numRunningContainers) {
     return NodeStatus.newInstance(

@@ -416,17 +416,6 @@ public class QueueMetrics implements MetricsSource {
   public void incrPendingResources(String partition, String user,
       int containers, Resource res) {
     if (partition == null || partition.equals(RMNodeLabelsManager.NO_LABEL)) {
-
-      //Zhankun
-      Integer c = containerAskToCount.get(res);
-      if (c == null) {
-        c = containers;
-      } else {
-        c += containers;
-      }
-
-      containerAskToCount.put(res, c);
-
       _incrPendingResources(containers, res);
       QueueMetrics userMetrics = getUserMetrics(user);
       if (userMetrics != null) {
@@ -445,6 +434,15 @@ public class QueueMetrics implements MetricsSource {
     if (queueMetricsForCustomResources != null) {
       queueMetricsForCustomResources.increasePending(res, containers);
     }
+    //Zhankun
+    Integer c = containerAskToCount.get(res);
+    if (c == null) {
+      c = containers;
+    } else {
+      c += containers;
+    }
+
+    containerAskToCount.put(res, c);
   }
 
 
@@ -468,6 +466,16 @@ public class QueueMetrics implements MetricsSource {
     pendingVCores.decr(res.getVirtualCores() * containers);
     if (queueMetricsForCustomResources != null) {
       queueMetricsForCustomResources.decreasePending(res, containers);
+    }
+    //Zhankun
+    Integer c = containerAskToCount.get(res);
+    if (c != null) {
+      c -= containers;
+    }
+    if (c != 0) {
+      containerAskToCount.put(res, c);
+    } else {
+      containerAskToCount.remove(res);
     }
   }
 
