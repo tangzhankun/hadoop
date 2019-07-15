@@ -65,6 +65,9 @@ public class NewNMCandidates {
   }
 
   public void add(NodeInstanceType type, int count) {
+    tip = tip + "Before add method: (" + type;
+    tip = tip + ", count:" + count + ")";
+    tip = tip + ", costPerHour:" + costPerHour;
     if (newNMCandidates == null) {
       newNMCandidates = new ArrayList<>();
     }
@@ -82,6 +85,9 @@ public class NewNMCandidates {
       e.count = e.count + count;
     }
     costPerHour += type.costPerHour * count;
+    tip = tip + ", After add method: (" + type + ")";
+    tip = tip + ". costPerHour:" + costPerHour;
+    tip = tip + "\n\r";
   }
 
 }

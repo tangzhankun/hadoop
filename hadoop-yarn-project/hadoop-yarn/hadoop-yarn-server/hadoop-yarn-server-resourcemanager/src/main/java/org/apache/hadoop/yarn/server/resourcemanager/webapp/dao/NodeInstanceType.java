@@ -39,7 +39,7 @@ public class NodeInstanceType {
     return modelName;
   }
 
-  public ResourceInfo getCapacity() {
+  public CustomResourceInfo getCapacity() {
     return capacity;
   }
 
@@ -52,14 +52,14 @@ public class NodeInstanceType {
   }
 
   protected String modelName;
-  protected ResourceInfo capacity;
+  protected CustomResourceInfo capacity;
   protected ModelType type;
   protected double costPerHour;
 
   public NodeInstanceType() {}
 
   public NodeInstanceType(String name, Resource res, ModelType t, double c) {
-    this.capacity = new ResourceInfo(res);
+    this.capacity = new CustomResourceInfo(res);
     this.type = t;
     this.costPerHour = c;
     this.modelName = name;
@@ -75,10 +75,13 @@ public class NodeInstanceType {
     return types;
   }
 
-  public static NodeInstanceType getSuitableInstanceType(Resource res,
+  // Return int array. First element is the index of instance type. Second is
+  // the minimumBuckets
+  public static int[] getSuitableInstanceType(Resource res,
       NodeInstanceType[] allType, ResourceCalculator rc) {
     // assume it's better that a instance with resource approximate
     // to the requested container resource
+    int[] ret = new int[2];
     int buckets = 0;
     int minimumBuckets = Integer.MAX_VALUE;
     int bestInstanceIndex = -1;
@@ -91,7 +94,9 @@ public class NodeInstanceType {
         }
       }
     }
-    return bestInstanceIndex == -1 ? null : allType[bestInstanceIndex];
+    ret[0] = bestInstanceIndex;
+    ret[1] = minimumBuckets;
+    return ret;
   }
 
   public String toStr(int count) {

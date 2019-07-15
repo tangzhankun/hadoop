@@ -100,7 +100,7 @@ public class ClusterScalingInfo {
     if (rs == null) {
       throw new NotFoundException("Null ResourceScheduler instance");
     }
-
+    newNMCandidates = new NewNMCandidates();
     QueueMetrics metrics = rs.getRootQueueMetrics();
     ClusterMetrics clusterMetrics = ClusterMetrics.getMetrics();
     this.pendingAppCount = metrics.getAppsPending();
@@ -188,15 +188,20 @@ public class ClusterScalingInfo {
         StringBuilder tip = new StringBuilder();
         ResourceCalculator rc = new DefaultResourceCalculator();
         Map<Resource, Integer> containerAskToCount = metrics.getContainerAskToCount();
+        int[] suitableInstanceRet = null;
+        NodeInstanceType[] allTypes = getDefinedInstanceTypes();
         for (Map.Entry<Resource, Integer> entry : containerAskToCount.entrySet()) {
-          NodeInstanceType t = NodeInstanceType.getSuitableInstanceType(
+          suitableInstanceRet = NodeInstanceType.getSuitableInstanceType(
               entry.getKey(), getDefinedInstanceTypes(), rc);
-          if (t == null) {
+          int ti = suitableInstanceRet[0];
+          if (ti == -1) {
             tip.append(String.format(
                 "No capable instance type for container resource: %s, count: %d",
                 entry.getKey(), entry.getValue()));
           } else {
-            newNMCandidates.add(t, entry.getValue());
+            NodeInstanceType t = allTypes[ti];
+            int containerBuckets = suitableInstanceRet[1];
+            newNMCandidates.add(t, (int)Math.ceil((double)entry.getValue()/(double)containerBuckets));
           }
         }
       }

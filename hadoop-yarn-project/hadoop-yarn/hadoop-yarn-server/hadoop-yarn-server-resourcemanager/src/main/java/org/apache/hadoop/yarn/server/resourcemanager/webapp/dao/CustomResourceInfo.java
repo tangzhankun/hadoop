@@ -24,13 +24,16 @@ import org.apache.hadoop.yarn.api.records.ResourceInformation;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import java.util.ArrayList;
 
 @XmlRootElement(name = "CustomResourceInfo")
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType(XmlAccessType.PUBLIC_MEMBER)
 public class CustomResourceInfo {
-  protected long mem;
+  @XmlElement
+  public long mem;
 
   public long getMem() {
     return mem;
@@ -40,19 +43,29 @@ public class CustomResourceInfo {
     return vcore;
   }
 
-  protected long vcore;
+  @XmlElement
+  public long vcore;
+
+  public Resource getResource() {
+    return resource;
+  }
+
+  @XmlTransient
+  private Resource resource;
 
   public ArrayList<CustomResourceType> getCustomResourceTypeList() {
     return customResourceTypeList;
   }
 
-  protected ArrayList<CustomResourceType> customResourceTypeList = new ArrayList();
+  @XmlElement
+  public ArrayList<CustomResourceType> customResourceTypeList = new ArrayList();
 
   public CustomResourceInfo() {}
 
   public CustomResourceInfo(Resource r) {
     this.mem = r.getMemorySize();
     this.vcore = r.getVirtualCores();
+    this.resource = r;
     if (this.customResourceTypeList == null) {
       this.customResourceTypeList = new ArrayList<>();
     }
