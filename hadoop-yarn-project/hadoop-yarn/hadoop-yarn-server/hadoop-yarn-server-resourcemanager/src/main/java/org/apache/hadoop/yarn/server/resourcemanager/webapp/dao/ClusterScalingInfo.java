@@ -73,7 +73,7 @@ public class ClusterScalingInfo {
   protected long availableMB;
   protected long availableVcore;
   protected CustomResourceInfo pendingResource;
-  protected NodeInstanceType[] DefinedInstanceTypes = NodeInstanceType.getAllNodeInstanceType();
+  protected NodeInstanceType[] DefinedInstanceTypes = NodeInstanceType.getAllNodeInstanceType();;
 
   public NodeInstanceType[] getDefinedInstanceTypes() {
     return DefinedInstanceTypes;
@@ -192,7 +192,7 @@ public class ClusterScalingInfo {
         NodeInstanceType[] allTypes = getDefinedInstanceTypes();
         for (Map.Entry<Resource, Integer> entry : containerAskToCount.entrySet()) {
           suitableInstanceRet = NodeInstanceType.getSuitableInstanceType(
-              entry.getKey(), getDefinedInstanceTypes(), rc);
+              entry.getKey(), allTypes, rc);
           int ti = suitableInstanceRet[0];
           if (ti == -1) {
             tip.append(String.format(
