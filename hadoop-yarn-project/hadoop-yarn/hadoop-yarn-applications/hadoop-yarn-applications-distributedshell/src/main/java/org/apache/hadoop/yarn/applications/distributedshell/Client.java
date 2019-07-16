@@ -242,6 +242,9 @@ public class Client {
   // Docker client configuration
   private String dockerClientConfig = null;
 
+  // Zhankun
+  private Path stagingDir = null;
+
   // Application tags
   private Set<String> applicationTags = new HashSet<>();
 
@@ -257,6 +260,7 @@ public class Client {
   private static final String log4jPath = "log4j.properties";
 
   public static final String SCRIPT_PATH = "ExecScript";
+
 
   /**
    * @param args Command line arguments 
@@ -410,6 +414,7 @@ public class Client {
     opts.addOption("application_tags", true, "Application tags.");
     opts.addOption("localize_files", true, "List of files, separated by comma"
         + " to be localized for the command");
+    opts.addOption("staging_dir", true, "staging dir for localized resource");
   }
 
   /**
@@ -657,6 +662,17 @@ public class Client {
       }
     }
 
+    if (cliParser.hasOption("staging_dir")) {
+      stagingDir = new Path(cliParser.getOptionValue("staging_dir"));
+      LOG.info("Zhankun debug: staging dir is " + stagingDir.toUri().toString());
+    } else {
+      try {
+        stagingDir = FileSystem.get(conf).getHomeDirectory();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
     return true;
   }
 
@@ -812,12 +828,12 @@ public class Client {
     // Create a local resource to point to the destination jar path 
     FileSystem fs = FileSystem.get(conf);
     addToLocalResources(fs, appMasterJar, appMasterJarPath,
-        applicationId.toString(), localResources, null);
+        applicationId.toString(), localResources, null, stagingDir);
 
     // Set the log4j properties if needed 
     if (!log4jPropFile.isEmpty()) {
       addToLocalResources(fs, log4jPropFile, log4jPath,
-          applicationId.toString(), localResources, null);
+          applicationId.toString(), localResources, null, stagingDir);
     }
 
     // Process local files for localization
@@ -881,12 +897,12 @@ public class Client {
 
     if (!shellCommand.isEmpty()) {
       addToLocalResources(fs, null, shellCommandPath, applicationId.toString(),
-          localResources, shellCommand);
+          localResources, shellCommand, stagingDir);
     }
 
     if (shellArgs.length > 0) {
       addToLocalResources(fs, null, shellArgsPath, applicationId.toString(),
-          localResources, StringUtils.join(shellArgs, " "));
+          localResources, StringUtils.join(shellArgs, " "), stagingDir);
     }
 
     // Set the necessary security tokens as needed
@@ -1188,11 +1204,11 @@ public class Client {
 
   private void addToLocalResources(FileSystem fs, String fileSrcPath,
       String fileDstPath, String appId, Map<String, LocalResource> localResources,
-      String resources) throws IOException {
+      String resources, Path stagingDir) throws IOException {
     String suffix =
         ApplicationMaster.getRelativePath(appName, appId, fileDstPath);
     Path dst =
-        new Path(fs.getHomeDirectory(), suffix);
+        new Path(stagingDir, suffix);
     if (fileSrcPath == null) {
       FSDataOutputStream ostream = null;
       try {
