@@ -74,7 +74,9 @@ public class CustomResourceInfo {
           ri.getName().equals(ResourceInformation.VCORES.getName())) {
         continue;
       }
-      this.customResourceTypeList.add(new CustomResourceType(ri.getName(), ri.getValue()));
+      if (ri.getValue() != 0) {
+        this.customResourceTypeList.add(new CustomResourceType(ri.getName(), ri.getValue()));
+      }
     }
   }
 }
