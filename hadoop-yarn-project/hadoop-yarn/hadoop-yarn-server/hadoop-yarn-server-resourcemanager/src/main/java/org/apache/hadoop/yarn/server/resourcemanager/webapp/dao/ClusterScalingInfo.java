@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.Capacity
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.CandidateNodeSet;
 import org.apache.hadoop.yarn.util.resource.DefaultResourceCalculator;
+import org.apache.hadoop.yarn.util.resource.DominantResourceCalculator;
 import org.apache.hadoop.yarn.util.resource.ResourceCalculator;
 import org.apache.hadoop.yarn.webapp.NotFoundException;
 
@@ -186,7 +187,7 @@ public class ClusterScalingInfo {
         // that can serve the pending resource. Generally, the more instance,
         // the more opportunity to scale down
         StringBuilder tip = new StringBuilder();
-        ResourceCalculator rc = new DefaultResourceCalculator();
+        ResourceCalculator rc = new DominantResourceCalculator();
         Map<Resource, Integer> containerAskToCount = metrics.getContainerAskToCount();
         int[] suitableInstanceRet = null;
         NodeInstanceType[] allTypes = getDefinedInstanceTypes();
