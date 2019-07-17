@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -69,6 +70,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacitySchedulerConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.NodeUpdateSchedulerEvent;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterScalingInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NewNMCandidates;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NodeInstanceType;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
@@ -98,6 +100,7 @@ import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.YarnVersionInfo;
 import org.apache.hadoop.yarn.util.resource.CustomResourceTypesConfigurationProvider;
 import org.apache.hadoop.yarn.util.resource.DominantResourceCalculator;
+import org.apache.hadoop.yarn.util.resource.ResourceCalculator;
 import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.hadoop.yarn.webapp.GenericExceptionHandler;
 import org.apache.hadoop.yarn.webapp.GuiceServletConfig;
@@ -309,38 +312,49 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     assertEquals(1, match);
   }
 
+  // Zhankun
+  @Test
+  public void testClusterAutoScaleRecommendation() {
+    String customResource = "nvidia.com/gpu";
+    CustomResourceTypesConfigurationProvider.
+        initResourceTypes(customResource);
+    ResourceCalculator rc = new DominantResourceCalculator();
+    Resource cResource = Resources.createResource(2 * GB, 4);
+    cResource.setResourceValue(customResource, 1);
+    Resource cResource2 = Resources.createResource(8 * GB, 16);
+    Map<Resource, Integer> containerAskToCount = new HashMap<>();
+    containerAskToCount.put(cResource, 2);
+    containerAskToCount.put(cResource2, 2);
+    NodeInstanceType[] allTypes = NodeInstanceType.getAllNodeInstanceType();
+    NewNMCandidates newNMCandidates = new NewNMCandidates();
+    ClusterScalingInfo.recommendNewInstances(containerAskToCount,
+        newNMCandidates, allTypes, new DominantResourceCalculator());
+    assertEquals("incorrect cost per hour", 3.06 * 2, newNMCandidates.getCostPerHour(), 0.001);
+  }
+
   //Zhankun
   @Test
   public void testClusterAutoScaleInfoJson() throws JSONException, Exception {
     rm.start();
     ResourceScheduler scheduler = rm.getRMContext().getScheduler();
-    MockNM nm1 = rm.registerNode("127.0.0.1:1234", 2 * GB, 8);
-    MockNM nm2 = rm.registerNode("127.0.0.2:1235", 2 * GB, 8);
+    MockNM nm1 = rm.registerNode("127.0.0.1:1234", 2 * GB, 4);
     waitforNMRegistered(scheduler, 2, 5);
 
     NodeId id1 = nm1.getNodeId();
-    NodeId id2 = nm2.getNodeId();
     rm.waitForState(id1, NodeState.RUNNING);
-    rm.waitForState(id2, NodeState.RUNNING);
 
-    assertEquals(scheduler.getNumClusterNodes(), 2);
+    assertEquals(scheduler.getNumClusterNodes(), 1);
 
-    RMApp app1 = rm.submitApp(2048, "app-1", "user1", null, "default");
+    RMApp app1 = rm.submitApp(2 * GB, "app-1", "user1", null, "default");
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
+
     Resource cResource = Resources.createResource(2 * GB, 4);
     am1.allocate("*", cResource, 8,
         new ArrayList<ContainerId>(), null);
 
     heartbeat(rm, nm1);
-    heartbeat(rm, nm2);
-    SchedulerNodeReport reportNm1 =
-        rm.getResourceScheduler().getNodeReport(nm1.getNodeId());
-    // check node report
-    Assert.assertEquals(2 * GB, reportNm1.getUsedResource().getMemorySize());
-    Assert.assertEquals((2 - 2) * GB,
-        reportNm1.getAvailableResource().getMemorySize());
 
-    SchedulerNodeReport reportNm2 =
+    SchedulerNodeReport reportNm1 =
         rm.getResourceScheduler().getNodeReport(nm1.getNodeId());
     // check node report
     Assert.assertEquals(2 * GB, reportNm1.getUsedResource().getMemorySize());
@@ -355,10 +369,6 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     node1.handle(new RMNodeStatusEvent(nm1.getNodeId(), nodeStatus));
     Assert.assertEquals(1, node1.getRunningApps().size());
 
-    nodeStatus = createNodeStatus(id2, app1, 1);
-    node1.handle(new RMNodeStatusEvent(nm1.getNodeId(), nodeStatus));
-    Assert.assertEquals(1, node1.getRunningApps().size());
-
     WebResource r = resource();
     ClientResponse response = r.path("ws").path("v1").path("cluster")
         .path("scaling").accept("application/json").get(ClientResponse.class);
@@ -366,11 +376,11 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
         response.getType().toString());
 
     JSONObject json = response.getEntity(JSONObject.class);
-    assertEquals("incorrect number of elements", 8, json.length());
+    assertEquals("incorrect number of elements", 7, json.length());
     JSONObject nodes = json.getJSONObject("newNMCandidates");
-    assertEquals("incorrect number of elements", 4, nodes.length());
+    assertEquals("incorrect number of elements", 3, nodes.length());
     double cost = nodes.getDouble("costPerHour");
-    Assert.assertEquals("incorrect total cost per hour",0.175, cost, 0.0001);
+    Assert.assertEquals("incorrect total cost per hour",3.06, cost, 0.0001);
     rm.stop();
   }
 

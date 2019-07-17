@@ -19,13 +19,16 @@
 package org.apache.hadoop.yarn.server.resourcemanager.webapp.dao;
 
 
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.util.resource.Resources;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "NewSingleNMCandidate")
+@XmlRootElement(name = "NewSingleTypeNMCandidate")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class NewSingleNMCandidate {
+public class NewSingleTypeNMCandidate {
   public String getModelName() {
     return modelName;
   }
@@ -45,12 +48,51 @@ public class NewSingleNMCandidate {
   }
 
   protected String modelName;
+  // instance count of this type
   protected int count;
-  public NewSingleNMCandidate() { }
 
-  public NewSingleNMCandidate(String n, int c, double d) {
+  public CustomResourceInfo getPlanRemaining() {
+    return planRemaining;
+  }
+
+  public void setPlanRemaining(
+      CustomResourceInfo planRemaining) {
+    this.planRemaining = planRemaining;
+  }
+
+  // total remaining
+  protected CustomResourceInfo planRemaining;
+  // total capacity
+  protected CustomResourceInfo capacity;
+
+  public CustomResourceInfo getPlanToUse() {
+    return planToUse;
+  }
+
+  public void setPlanToUse(
+      CustomResourceInfo planToUse) {
+    this.planToUse = planToUse;
+    this.planRemaining.setResource(
+        Resources.subtract(capacity.getResource(), planToUse.getResource()));
+  }
+
+  public void addPlanToUse(Resource more) {
+    Resource newRes = Resources.addTo(this.planToUse.getResource(), more);
+    this.planToUse.setResource(newRes);
+    this.planRemaining.setResource(
+        Resources.subtract(capacity.getResource(), planToUse.getResource()));
+  }
+
+  // total plan to use
+  protected CustomResourceInfo planToUse;
+
+  public NewSingleTypeNMCandidate() { }
+
+  public NewSingleTypeNMCandidate(String n, int c, double d, CustomResourceInfo ca) {
     this.modelName = n;
     this.count = c;
     this.costPerHour = d;
+    this.capacity = ca;
+    this.planRemaining = ca;
   }
 }

@@ -50,6 +50,10 @@ public class CustomResourceInfo {
     return resource;
   }
 
+  public void setResource(Resource resource) {
+    this.resource = resource;
+  }
+
   @XmlTransient
   private Resource resource;
 

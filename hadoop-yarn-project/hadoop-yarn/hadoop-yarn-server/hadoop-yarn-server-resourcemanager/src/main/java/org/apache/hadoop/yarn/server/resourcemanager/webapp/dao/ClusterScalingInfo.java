@@ -36,6 +36,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.Candida
 import org.apache.hadoop.yarn.util.resource.DefaultResourceCalculator;
 import org.apache.hadoop.yarn.util.resource.DominantResourceCalculator;
 import org.apache.hadoop.yarn.util.resource.ResourceCalculator;
+import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.hadoop.yarn.webapp.NotFoundException;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -57,24 +58,20 @@ public class ClusterScalingInfo {
     return pendingContainersCount;
   }
 
-  public long getAvailableMB() {
-    return availableMB;
-  }
-
-  public long getAvailableVcore() {
-    return availableVcore;
-  }
-
   public int getPendingAppCount() {
     return pendingAppCount;
   }
 
   protected int pendingAppCount;
   protected int pendingContainersCount;
-  protected long availableMB;
-  protected long availableVcore;
+
+  public CustomResourceInfo getAvailableResource() {
+    return availableResource;
+  }
+
+  protected CustomResourceInfo availableResource;
   protected CustomResourceInfo pendingResource;
-  protected NodeInstanceType[] DefinedInstanceTypes = NodeInstanceType.getAllNodeInstanceType();;
+  protected NodeInstanceType[] DefinedInstanceTypes = NodeInstanceType.getAllNodeInstanceType();
 
   public NodeInstanceType[] getDefinedInstanceTypes() {
     return DefinedInstanceTypes;
@@ -107,8 +104,7 @@ public class ClusterScalingInfo {
     this.pendingAppCount = metrics.getAppsPending();
     this.pendingContainersCount = metrics.getPendingContainers();
     this.pendingResource = new CustomResourceInfo(metrics.getPendingResources());
-    this.availableMB = metrics.getAvailableMB();
-    this.availableVcore = metrics.getAvailableVirtualCores();
+    this.availableResource = new CustomResourceInfo(metrics.getAvailableResources());
     Collection<RMNode> rmNodes =
         RMServerUtils.queryRMNodes(rm.getRMContext(), EnumSet.allOf(NodeState.class));
 
@@ -186,26 +182,11 @@ public class ClusterScalingInfo {
         // given existing node types, found the maximum count of instance
         // that can serve the pending resource. Generally, the more instance,
         // the more opportunity to scale down
-        StringBuilder tip = new StringBuilder();
         ResourceCalculator rc = new DominantResourceCalculator();
         Map<Resource, Integer> containerAskToCount = metrics.getContainerAskToCount();
-        int[] suitableInstanceRet = null;
         NodeInstanceType[] allTypes = getDefinedInstanceTypes();
-        for (Map.Entry<Resource, Integer> entry : containerAskToCount.entrySet()) {
-          suitableInstanceRet = NodeInstanceType.getSuitableInstanceType(
-              entry.getKey(), allTypes, rc);
-          int ti = suitableInstanceRet[0];
-          if (ti == -1) {
-            tip.append(String.format(
-                "No capable instance type for container resource: %s, count: %d",
-                entry.getKey(), entry.getValue()));
-          } else {
-            NodeInstanceType t = allTypes[ti];
-            int containerBuckets = suitableInstanceRet[1];
-            newNMCandidates.add(t, (int)Math.ceil((double)entry.getValue()/(double)containerBuckets));
-          }
-        }
-      }
+        recommendNewInstances(containerAskToCount, newNMCandidates, allTypes, rc);
+      }// end if
 
 
 //      String POLICY_CLASS_NAME =
@@ -228,6 +209,58 @@ public class ClusterScalingInfo {
 //          }
 //        }
 //      }
+    }
+  }
+
+  public static void recommendNewInstances(Map<Resource, Integer> pendingContainers,
+      NewNMCandidates newNMCandidates, NodeInstanceType[] allTypes, ResourceCalculator rc) {
+    int[] suitableInstanceRet = null;
+    StringBuilder tip = new StringBuilder();
+    for (Map.Entry<Resource, Integer> entry : pendingContainers.entrySet()) {
+      // What if the existing new instance have headroom to allocate for some containers?
+      // try allocate on existing nodes' headroom
+      scheduleBasedOnRecommendedNewInstance(entry.getKey(), entry.getValue(),
+          newNMCandidates, entry, rc);
+      if (entry.getValue() == 0) {
+        // this means we can allocate on existing new instance's headroom
+        continue;
+      }
+      suitableInstanceRet = NodeInstanceType.getSuitableInstanceType(
+          entry.getKey(), allTypes, rc);
+      int ti = suitableInstanceRet[0];
+      if (ti == -1) {
+        tip.append(String.format(
+            "No capable instance type for container resource: %s, count: %d",
+            entry.getKey(), entry.getValue()));
+      } else {
+        Resource containerResource = entry.getKey();
+        int containerCount = entry.getValue();
+        NodeInstanceType t = allTypes[ti];
+        int buckets = suitableInstanceRet[1];
+        int instanceCount = (int)Math.ceil((double)containerCount/(double)buckets);
+        Resource planToUseResourceInThisNodeType = Resources.multiplyAndRoundUp(containerResource, containerCount);
+        newNMCandidates.add(t, instanceCount, planToUseResourceInThisNodeType);
+      }
+    }
+  }
+
+  public static void scheduleBasedOnRecommendedNewInstance(Resource containerRes,
+      int count, NewNMCandidates newNMCandidates,
+      Map.Entry<Resource, Integer> entry, ResourceCalculator rc) {
+    for (NewSingleTypeNMCandidate singleTypeNMCandidate : newNMCandidates.getNewNMCandidates()) {
+      Resource headroom = singleTypeNMCandidate.getPlanRemaining().getResource();
+      Resource headroomInEveryNode = rc.divideAndCeil(headroom, singleTypeNMCandidate.getCount());
+      long bucketsInExistingOneNode = rc.computeAvailableContainers(headroomInEveryNode, containerRes);
+      if (bucketsInExistingOneNode > 0) {
+        // we can allocate #buckets such container in existing one node
+        count -= bucketsInExistingOneNode;
+        entry.setValue(count);
+        // update existing node's headroom
+        singleTypeNMCandidate.addPlanToUse(
+            Resources.multiplyAndRoundUp(containerRes, bucketsInExistingOneNode));
+      } else {
+        return;
+      }
     }
   }
 

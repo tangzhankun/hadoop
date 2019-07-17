@@ -19,12 +19,13 @@
 package org.apache.hadoop.yarn.server.resourcemanager.webapp.dao;
 
 
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.util.resource.Resources;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 @XmlRootElement(name = "NewNMCandidates")
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -51,24 +52,25 @@ public class NewNMCandidates {
 
   protected String recommendActionTime = "Now";
 
-  protected ArrayList<NewSingleNMCandidate> getNewNMCandidates() {
+  protected ArrayList<NewSingleTypeNMCandidate> getNewNMCandidates() {
     return newNMCandidates;
   }
 
-  protected ArrayList<NewSingleNMCandidate> newNMCandidates =
+  protected ArrayList<NewSingleTypeNMCandidate> newNMCandidates =
       new ArrayList<>();
 
   public NewNMCandidates() {}
 
-  public NewNMCandidates(ArrayList<NewSingleNMCandidate> m) {
+  public NewNMCandidates(ArrayList<NewSingleTypeNMCandidate> m) {
     this.newNMCandidates = m;
   }
 
-  public void add(NodeInstanceType type, int count) {
+  public void add(NodeInstanceType type, int instanceCount,
+      Resource planToUseInThisNodeType) {
     if (newNMCandidates == null) {
       newNMCandidates = new ArrayList<>();
     }
-    NewSingleNMCandidate e = null;
+    NewSingleTypeNMCandidate e = null;
     for (int i = 0; i < newNMCandidates.size(); i++) {
       e = newNMCandidates.get(i);
       if (type.modelName.equals(e.modelName)) {
@@ -76,10 +78,15 @@ public class NewNMCandidates {
       }
     }
     if (e == null) {
-      NewSingleNMCandidate newNM = new NewSingleNMCandidate(type.modelName, count, type.costPerHour);
+      NewSingleTypeNMCandidate newNM = new NewSingleTypeNMCandidate(type.modelName,
+          instanceCount, type.costPerHour,
+          new CustomResourceInfo(
+              Resources.multiplyAndRoundUp(type.getCapacity().getResource(),instanceCount)));
+      newNM.setPlanToUse(new CustomResourceInfo(planToUseInThisNodeType));
       newNMCandidates.add(newNM);
     } else {
-      e.count = e.count + count;
+      e.addPlanToUse(planToUseInThisNodeType);
+      e.count = e.count + instanceCount;
     }
     costPerHour = calculateCost();
   }
