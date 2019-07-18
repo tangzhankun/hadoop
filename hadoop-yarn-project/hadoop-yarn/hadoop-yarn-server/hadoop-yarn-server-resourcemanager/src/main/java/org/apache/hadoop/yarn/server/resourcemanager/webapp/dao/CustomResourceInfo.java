@@ -30,7 +30,7 @@ import javax.xml.bind.annotation.XmlTransient;
 import java.util.ArrayList;
 
 @XmlRootElement(name = "CustomResourceInfo")
-@XmlAccessorType(XmlAccessType.PUBLIC_MEMBER)
+@XmlAccessorType(XmlAccessType.NONE)
 public class CustomResourceInfo {
   @XmlElement
   public long mem;
@@ -54,7 +54,6 @@ public class CustomResourceInfo {
     this.resource = resource;
   }
 
-  @XmlTransient
   private Resource resource;
 
   public ArrayList<CustomResourceType> getCustomResourceTypeList() {

@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -321,15 +322,20 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     ResourceCalculator rc = new DominantResourceCalculator();
     Resource cResource = Resources.createResource(2 * GB, 4);
     cResource.setResourceValue(customResource, 1);
-    Resource cResource2 = Resources.createResource(8 * GB, 16);
-    Map<Resource, Integer> containerAskToCount = new HashMap<>();
-    containerAskToCount.put(cResource, 2);
+    Resource cResource2 = Resources.createResource(2 * GB, 2);
+    Map<Resource, Integer> containerAskToCount = new TreeMap<>(new Comparator<Resource>() {
+      @Override
+      public int compare(Resource o1, Resource o2) {
+        return o2.compareTo(o1);
+      }
+    });
     containerAskToCount.put(cResource2, 2);
+    containerAskToCount.put(cResource, 1);
     NodeInstanceType[] allTypes = NodeInstanceType.getAllNodeInstanceType();
     NewNMCandidates newNMCandidates = new NewNMCandidates();
     ClusterScalingInfo.recommendNewInstances(containerAskToCount,
         newNMCandidates, allTypes, new DominantResourceCalculator());
-    assertEquals("incorrect cost per hour", 3.06 * 2, newNMCandidates.getCostPerHour(), 0.001);
+    assertEquals("incorrect cost per hour", 3.06, newNMCandidates.getCostPerHour(), 0.001);
   }
 
   //Zhankun

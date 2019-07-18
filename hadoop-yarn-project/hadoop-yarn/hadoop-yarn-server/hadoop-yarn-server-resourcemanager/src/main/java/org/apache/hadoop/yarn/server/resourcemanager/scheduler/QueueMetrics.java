@@ -21,8 +21,10 @@ package org.apache.hadoop.yarn.server.resourcemanager.scheduler;
 import static org.apache.hadoop.metrics2.lib.Interns.info;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -81,7 +83,13 @@ public class QueueMetrics implements MetricsSource {
     return containerAskToCount;
   }
 
-  protected Map<Resource, Integer> containerAskToCount = new HashMap<>();
+  // put bigger capacity ahead
+  protected Map<Resource, Integer> containerAskToCount = new TreeMap<>(new Comparator<Resource>() {
+    @Override
+    public int compare(Resource o1, Resource o2) {
+      return o2.compareTo(o1);
+    }
+  });
 
   // Zhankun
   public int getAppAttemptFirstContainerAllocationDelay() {

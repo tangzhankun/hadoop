@@ -24,11 +24,12 @@ import org.apache.hadoop.yarn.util.resource.Resources;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 
 @XmlRootElement(name = "NewNMCandidates")
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType(XmlAccessType.NONE)
 public class NewNMCandidates {
 
   public String getTip() {
@@ -43,19 +44,23 @@ public class NewNMCandidates {
     return costPerHour;
   }
 
+  @XmlElement
   protected double costPerHour;
+
   protected String tip;
 
   public String getRecommendActionTime() {
     return recommendActionTime;
   }
 
+  @XmlElement
   protected String recommendActionTime = "Now";
 
   protected ArrayList<NewSingleTypeNMCandidate> getNewNMCandidates() {
     return newNMCandidates;
   }
 
+  @XmlElement
   protected ArrayList<NewSingleTypeNMCandidate> newNMCandidates =
       new ArrayList<>();
 
@@ -72,8 +77,8 @@ public class NewNMCandidates {
     }
     NewSingleTypeNMCandidate e = null;
     for (int i = 0; i < newNMCandidates.size(); i++) {
-      e = newNMCandidates.get(i);
-      if (type.modelName.equals(e.modelName)) {
+      if (type.modelName.equals(newNMCandidates.get(i).modelName)) {
+        e = newNMCandidates.get(i);
         break;
       }
     }

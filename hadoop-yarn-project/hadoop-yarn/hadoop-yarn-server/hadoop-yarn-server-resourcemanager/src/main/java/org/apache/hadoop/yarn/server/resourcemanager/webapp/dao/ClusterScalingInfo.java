@@ -45,6 +45,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -216,7 +217,10 @@ public class ClusterScalingInfo {
       NewNMCandidates newNMCandidates, NodeInstanceType[] allTypes, ResourceCalculator rc) {
     int[] suitableInstanceRet = null;
     StringBuilder tip = new StringBuilder();
-    for (Map.Entry<Resource, Integer> entry : pendingContainers.entrySet()) {
+
+    Iterator<Map.Entry<Resource, Integer>> it = pendingContainers.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry<Resource, Integer> entry = it.next();
       // What if the existing new instance have headroom to allocate for some containers?
       // try allocate on existing nodes' headroom
       scheduleBasedOnRecommendedNewInstance(entry.getKey(), entry.getValue(),
@@ -252,12 +256,16 @@ public class ClusterScalingInfo {
       Resource headroomInEveryNode = rc.divideAndCeil(headroom, singleTypeNMCandidate.getCount());
       long bucketsInExistingOneNode = rc.computeAvailableContainers(headroomInEveryNode, containerRes);
       if (bucketsInExistingOneNode > 0) {
+        int prev = count;
         // we can allocate #buckets such container in existing one node
         count -= bucketsInExistingOneNode;
+        if (count < 0) {
+          count = 0;
+        }
         entry.setValue(count);
         // update existing node's headroom
         singleTypeNMCandidate.addPlanToUse(
-            Resources.multiplyAndRoundUp(containerRes, bucketsInExistingOneNode));
+            Resources.multiplyAndRoundUp(containerRes, prev));
       } else {
         return;
       }

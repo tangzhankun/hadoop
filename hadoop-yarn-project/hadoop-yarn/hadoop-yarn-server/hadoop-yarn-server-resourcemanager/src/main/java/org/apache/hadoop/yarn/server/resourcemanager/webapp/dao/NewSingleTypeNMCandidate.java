@@ -24,10 +24,11 @@ import org.apache.hadoop.yarn.util.resource.Resources;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "NewSingleTypeNMCandidate")
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType(XmlAccessType.NONE)
 public class NewSingleTypeNMCandidate {
   public String getModelName() {
     return modelName;
@@ -41,14 +42,17 @@ public class NewSingleTypeNMCandidate {
     this.costPerHour = costPerHour;
   }
 
+  @XmlElement
   protected double costPerHour;
 
   public int getCount() {
     return count;
   }
 
+  @XmlElement
   protected String modelName;
   // instance count of this type
+  @XmlElement
   protected int count;
 
   public CustomResourceInfo getPlanRemaining() {
