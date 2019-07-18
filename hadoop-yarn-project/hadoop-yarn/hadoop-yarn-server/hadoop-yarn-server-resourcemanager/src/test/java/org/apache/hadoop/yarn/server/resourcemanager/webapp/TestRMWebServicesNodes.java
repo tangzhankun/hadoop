@@ -320,15 +320,33 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     CustomResourceTypesConfigurationProvider.
         initResourceTypes(customResource);
     ResourceCalculator rc = new DominantResourceCalculator();
-    Resource cResource = Resources.createResource(2 * GB, 4);
+    Resource cResource = Resources.createResource(1 * GB, 1);
     cResource.setResourceValue(customResource, 1);
     Resource cResource2 = Resources.createResource(2 * GB, 2);
     Map<Resource, Integer> containerAskToCount = new TreeMap<>(new Comparator<Resource>() {
       @Override
       public int compare(Resource o1, Resource o2) {
+        long gpuc1 = o1.getResourceValue("nvidia.com/gpu");
+        long gpuc2 = o2.getResourceValue("nvidia.com/gpu");
+        if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 > gpuc2) {
+          return -1;
+        }
+        if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 < gpuc2) {
+          return 1;
+        }
+
+        if (gpuc1 != 0 && gpuc2 == 0) {
+          return -1;
+        }
+
+        if (gpuc1 == 0 && gpuc2 != 0) {
+          return 1;
+        }
+
         return o2.compareTo(o1);
       }
     });
+
     containerAskToCount.put(cResource2, 2);
     containerAskToCount.put(cResource, 1);
     NodeInstanceType[] allTypes = NodeInstanceType.getAllNodeInstanceType();

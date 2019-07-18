@@ -87,6 +87,23 @@ public class QueueMetrics implements MetricsSource {
   protected Map<Resource, Integer> containerAskToCount = new TreeMap<>(new Comparator<Resource>() {
     @Override
     public int compare(Resource o1, Resource o2) {
+      long gpuc1 = o1.getResourceValue("nvidia.com/gpu");
+      long gpuc2 = o2.getResourceValue("nvidia.com/gpu");
+      if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 > gpuc2) {
+        return -1;
+      }
+      if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 < gpuc2) {
+        return 1;
+      }
+
+      if (gpuc1 != 0 && gpuc2 == 0) {
+        return -1;
+      }
+
+      if (gpuc1 == 0 && gpuc2 != 0) {
+        return 1;
+      }
+
       return o2.compareTo(o1);
     }
   });
