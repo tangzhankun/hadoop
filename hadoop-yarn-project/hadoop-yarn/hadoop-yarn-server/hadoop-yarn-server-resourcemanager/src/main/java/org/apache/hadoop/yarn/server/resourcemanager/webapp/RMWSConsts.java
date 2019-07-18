@@ -62,6 +62,7 @@ public final class RMWSConsts {
 
   public static final String AUTOSCALE = "/scaling";
 
+  public static final String AUTOSCALE_INSTANCE_TYPES = "/scaling/node-types";
   /**
    * Path for {@code RMWebServiceProtocol#getApps} and
    * {@code RMWebServiceProtocol#getApp}.

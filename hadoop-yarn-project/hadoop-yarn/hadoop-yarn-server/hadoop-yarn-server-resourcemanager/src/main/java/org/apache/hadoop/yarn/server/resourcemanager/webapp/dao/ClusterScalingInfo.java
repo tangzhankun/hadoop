@@ -72,11 +72,6 @@ public class ClusterScalingInfo {
 
   protected CustomResourceInfo availableResource;
   protected CustomResourceInfo pendingResource;
-  protected NodeInstanceType[] DefinedInstanceTypes = NodeInstanceType.getAllNodeInstanceType();
-
-  public NodeInstanceType[] getDefinedInstanceTypes() {
-    return DefinedInstanceTypes;
-  }
 
   public DecommissionCandidates getDecommissionCandidates() {
     return decommissionCandidates;
@@ -160,22 +155,23 @@ public class ClusterScalingInfo {
         boolean recommendFlag = true;
         if (amCount != 0 || runningAppCount != 0 ||
             rmNode.getState() == NodeState.DECOMMISSIONED ||
-            rmNode.getState() == NodeState.DECOMMISSIONING ||
             rmNode.getState() == NodeState.SHUTDOWN) {
           recommendFlag = false;
           keepNMCount++;
         }
         int deTimeout = nodeToDecommissioningTimeoutSecs.getOrDefault(rmNode.getNodeID().toString(),
             -1);
-        DecommissionCandidateNodeInfo dcni = new DecommissionCandidateNodeInfo(
-            amCount,
-            runningAppCount,
-            deTimeout,
-            rmNode.getState(),
-            rmNode.getNodeID().toString(),
-            recommendFlag
-        );
-        decommissionCandidates.add(dcni);
+        if (recommendFlag = true) {
+          DecommissionCandidateNodeInfo dcni = new DecommissionCandidateNodeInfo(
+              amCount,
+              runningAppCount,
+              deTimeout,
+              rmNode.getState(),
+              rmNode.getNodeID().toString(),
+              recommendFlag
+          );
+          decommissionCandidates.add(dcni);
+        }
       } // end for
       // if no scale down requirement, check scale up
       if (pendingAppCount > 0 ||
@@ -185,7 +181,7 @@ public class ClusterScalingInfo {
         // the more opportunity to scale down
         ResourceCalculator rc = new DominantResourceCalculator();
         Map<Resource, Integer> containerAskToCount = metrics.getContainerAskToCount();
-        NodeInstanceType[] allTypes = getDefinedInstanceTypes();
+        NodeInstanceType[] allTypes = NodeInstanceType.getAllNodeInstanceType();
         recommendNewInstances(containerAskToCount, newNMCandidates, allTypes, rc);
       }// end if
 

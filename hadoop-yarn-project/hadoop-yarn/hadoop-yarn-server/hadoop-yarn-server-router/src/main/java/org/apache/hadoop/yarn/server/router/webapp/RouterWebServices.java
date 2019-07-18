@@ -56,6 +56,7 @@ import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.RMWSConsts;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.RMWebServiceProtocol;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ActivitiesInfo;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AllNMInstanceTypes;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppActivitiesInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppAttemptsInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppInfo;
@@ -357,6 +358,11 @@ public class RouterWebServices implements RMWebServiceProtocol {
 
   @Override
   public ClusterScalingInfo getClusterScalingInfo() {
+    return null;
+  }
+
+  @Override
+  public AllNMInstanceTypes getClusterInstanceTypes() {
     return null;
   }
 

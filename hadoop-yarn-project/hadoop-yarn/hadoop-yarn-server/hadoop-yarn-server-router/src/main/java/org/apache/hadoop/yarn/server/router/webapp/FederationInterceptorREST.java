@@ -61,6 +61,7 @@ import org.apache.hadoop.yarn.server.federation.store.records.SubClusterInfo;
 import org.apache.hadoop.yarn.server.federation.utils.FederationStateStoreFacade;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.RMWebAppUtil;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ActivitiesInfo;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AllNMInstanceTypes;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppActivitiesInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppAttemptsInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppInfo;
@@ -1068,6 +1069,11 @@ public class FederationInterceptorREST extends AbstractRESTRequestInterceptor {
 
   @Override
   public ClusterScalingInfo getClusterScalingInfo() {
+    return null;
+  }
+
+  @Override
+  public AllNMInstanceTypes getClusterInstanceTypes() {
     return null;
   }
 

@@ -154,6 +154,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairSchedule
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.CandidateNodeSet;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ActivitiesInfo;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AllNMInstanceTypes;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppActivitiesInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppAttemptInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppAttemptsInfo;
@@ -178,6 +179,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.LabelsToNodesInf
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NewApplication;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NewReservation;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NodeInfo;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NodeInstanceType;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NodeLabelInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NodeLabelsInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NodeToLabelsEntry;
@@ -381,6 +383,17 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
   public ClusterScalingInfo getClusterScalingInfo() {
     initForReadableEndpoints();
     return new ClusterScalingInfo(this.rm);
+  }
+
+  // Zhankun
+  @GET
+  @Path(RMWSConsts.AUTOSCALE_INSTANCE_TYPES)
+  @Produces({ MediaType.APPLICATION_JSON + "; " + JettyUtils.UTF_8,
+      MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8 })
+  @Override
+  public AllNMInstanceTypes getClusterInstanceTypes() {
+    initForReadableEndpoints();
+    return new AllNMInstanceTypes(NodeInstanceType.getAllNodeInstanceType());
   }
 
   @GET

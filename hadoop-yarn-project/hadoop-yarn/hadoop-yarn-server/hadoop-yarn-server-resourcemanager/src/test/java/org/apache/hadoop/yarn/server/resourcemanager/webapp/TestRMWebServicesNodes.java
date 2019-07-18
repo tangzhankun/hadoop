@@ -363,6 +363,21 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     assertEquals("incorrect cost per hour", 0.025 * 3, newNMCandidates.getCostPerHour(), 0.001);
   }
 
+  // Zhankun
+  @Test
+  public void testNodeInstances() throws JSONException, Exception {
+    String customResource = "nvidia.com/gpu";
+    CustomResourceTypesConfigurationProvider.
+        initResourceTypes(customResource);
+    WebResource r = resource();
+    ClientResponse response = r.path("ws").path("v1").path("cluster")
+        .path("scaling").path("node-types").accept("application/json").get(ClientResponse.class);
+    assertEquals(MediaType.APPLICATION_JSON_TYPE + "; " + JettyUtils.UTF_8,
+        response.getType().toString());
+
+    JSONObject json = response.getEntity(JSONObject.class);
+  }
+
   //Zhankun
   @Test
   public void testClusterAutoScaleInfoJson() throws JSONException, Exception {

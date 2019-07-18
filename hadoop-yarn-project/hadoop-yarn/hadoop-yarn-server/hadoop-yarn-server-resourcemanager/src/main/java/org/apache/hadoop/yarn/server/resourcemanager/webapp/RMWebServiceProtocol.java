@@ -33,6 +33,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.ReservationDeleteRequest;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.api.ResourceManagerAdministrationProtocol;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ActivitiesInfo;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AllNMInstanceTypes;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppActivitiesInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppAttemptsInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.AppInfo;
@@ -117,6 +118,15 @@ public interface RMWebServiceProtocol {
    * @return the cluster autoscale information
    */
   ClusterScalingInfo getClusterScalingInfo();
+
+
+  /**
+   * This method get the prefefined NM instance type can be used
+   * when doing scaling recommendation
+   *
+   * @return list of types
+   */
+  AllNMInstanceTypes getClusterInstanceTypes();
 
   /**
    * This method retrieves the current scheduler status, and it is reachable by
