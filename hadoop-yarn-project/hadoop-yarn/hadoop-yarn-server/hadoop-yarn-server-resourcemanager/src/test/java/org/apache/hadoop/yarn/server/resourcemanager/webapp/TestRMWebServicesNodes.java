@@ -324,36 +324,43 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     cResource.setResourceValue(customResource, 1);
     Resource cResource2 = Resources.createResource(2 * GB, 2);
     Map<Resource, Integer> containerAskToCount = new TreeMap<>(new Comparator<Resource>() {
+      private int getRealLength(ResourceInformation[] ris) {
+        int ret = 0;
+        for (ResourceInformation ri : ris) {
+          if (ri.getValue() != 0) {
+            ret++;
+          }
+        }
+        return ret;
+      }
       @Override
       public int compare(Resource o1, Resource o2) {
-        long gpuc1 = o1.getResourceValue("nvidia.com/gpu");
-        long gpuc2 = o2.getResourceValue("nvidia.com/gpu");
-        if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 > gpuc2) {
+        int realLength1 = getRealLength(o1.getResources());
+        int realLength2 = getRealLength(o2.getResources());
+        if (realLength1 > realLength2) {
           return -1;
-        }
-        if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 < gpuc2) {
+        } else if (realLength1 < realLength2){
           return 1;
+        } else {
+          return o2.compareTo(o1);
         }
-
-        if (gpuc1 != 0 && gpuc2 == 0) {
-          return -1;
-        }
-
-        if (gpuc1 == 0 && gpuc2 != 0) {
-          return 1;
-        }
-
-        return o2.compareTo(o1);
       }
     });
 
-    containerAskToCount.put(cResource2, 2);
     containerAskToCount.put(cResource, 1);
+    containerAskToCount.put(cResource2, 2);
+
     NodeInstanceType[] allTypes = NodeInstanceType.getAllNodeInstanceType();
     NewNMCandidates newNMCandidates = new NewNMCandidates();
     ClusterScalingInfo.recommendNewInstances(containerAskToCount,
         newNMCandidates, allTypes, new DominantResourceCalculator());
     assertEquals("incorrect cost per hour", 3.06, newNMCandidates.getCostPerHour(), 0.001);
+    containerAskToCount.clear();
+    containerAskToCount.put(cResource2, 3);
+    newNMCandidates = new NewNMCandidates();
+    ClusterScalingInfo.recommendNewInstances(containerAskToCount,
+        newNMCandidates, allTypes, new DominantResourceCalculator());
+    assertEquals("incorrect cost per hour", 0.025 * 3, newNMCandidates.getCostPerHour(), 0.001);
   }
 
   //Zhankun
