@@ -354,13 +354,13 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     NewNMCandidates newNMCandidates = new NewNMCandidates();
     ClusterScalingInfo.recommendNewInstances(containerAskToCount,
         newNMCandidates, allTypes, new DominantResourceCalculator());
-    assertEquals("incorrect cost per hour", 3.06, newNMCandidates.getCostPerHour(), 0.001);
+    assertEquals("incorrect cost per hour", "3.06", newNMCandidates.getTotalCostPerHour());
     containerAskToCount.clear();
     containerAskToCount.put(cResource2, 3);
     newNMCandidates = new NewNMCandidates();
     ClusterScalingInfo.recommendNewInstances(containerAskToCount,
         newNMCandidates, allTypes, new DominantResourceCalculator());
-    assertEquals("incorrect cost per hour", 0.025 * 3, newNMCandidates.getCostPerHour(), 0.001);
+    assertEquals("incorrect cost per hour", "0.08", newNMCandidates.getTotalCostPerHour());
   }
 
   // Zhankun

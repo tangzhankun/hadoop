@@ -26,6 +26,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 
 @XmlRootElement(name = "NewNMCandidates")
@@ -40,12 +41,12 @@ public class NewNMCandidates {
     this.tip = tip;
   }
 
-  public double getCostPerHour() {
-    return costPerHour;
+  public String getTotalCostPerHour() {
+    return totalCostPerHour;
   }
 
   @XmlElement
-  protected double costPerHour;
+  protected String totalCostPerHour;
 
   protected String tip;
 
@@ -93,15 +94,15 @@ public class NewNMCandidates {
       e.addPlanToUse(planToUseInThisNodeType);
       e.count = e.count + instanceCount;
     }
-    costPerHour = calculateCost();
+    totalCostPerHour = calculateCost();
   }
 
-  private double calculateCost() {
+  private String calculateCost() {
     double r = 0;
     for (int i = 0; i < newNMCandidates.size(); i++) {
       r += newNMCandidates.get(i).getCostPerHour() * newNMCandidates.get(i).getCount();
     }
-    return r;
+    return new DecimalFormat("#.##").format(r);
   }
 
 }
