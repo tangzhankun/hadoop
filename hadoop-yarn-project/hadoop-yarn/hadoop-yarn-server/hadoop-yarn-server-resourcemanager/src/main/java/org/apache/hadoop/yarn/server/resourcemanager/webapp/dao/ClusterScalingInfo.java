@@ -146,7 +146,6 @@ public class ClusterScalingInfo {
         //nodelist.add((node));
       }
 
-      int keepNMCount = 0;
       for (RMNode rmNode : rmNodes){
         int amCount = nodeToAMRunningCount.getOrDefault(
             rmNode.getNodeID().toString(), 0);
@@ -157,11 +156,10 @@ public class ClusterScalingInfo {
             rmNode.getState() == NodeState.DECOMMISSIONED ||
             rmNode.getState() == NodeState.SHUTDOWN) {
           recommendFlag = false;
-          keepNMCount++;
         }
         int deTimeout = nodeToDecommissioningTimeoutSecs.getOrDefault(rmNode.getNodeID().toString(),
             -1);
-        if (recommendFlag = true) {
+        if (recommendFlag) {
           DecommissionCandidateNodeInfo dcni = new DecommissionCandidateNodeInfo(
               amCount,
               runningAppCount,
