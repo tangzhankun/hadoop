@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.servlet.http.HttpServletRequest;
@@ -372,6 +373,50 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
   public ClusterMetricsInfo getClusterMetricsInfo() {
     initForReadableEndpoints();
     return new ClusterMetricsInfo(this.rm);
+  }
+
+
+  // Zhankun
+  @POST
+  @Path(RMWSConsts.DECOMMISSION_NODE)
+  @Produces({ MediaType.APPLICATION_JSON + "; " + JettyUtils.UTF_8,
+      MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8 })
+  @Override
+  public boolean decommissionNode(
+      @PathParam("nodeId") String nodeId,
+      @QueryParam(RMWSConsts.TIMEOUT) String timeout,
+        @Context HttpServletRequest hsr) throws Exception {
+      UserGroupInformation callerUGI = getCallerUserGroupInformation(hsr, true);
+      initForWritableEndpoints(callerUGI, false);
+
+    int ti = Integer.parseInt(timeout);
+    boolean g = true;
+    Set<String> ex = new TreeSet<>();
+    ex.add(nodeId);
+    if (ti == 0) {
+      g = false;
+    }
+    rm.getRMContext().getNodesListManager().handleDecommisionOrRecommission(g, ti,
+        new TreeSet<>(), ex);
+    return true;
+  }
+
+  // Zhankun
+  @DELETE
+  @Path(RMWSConsts.DECOMMISSION_NODE)
+  @Produces({ MediaType.APPLICATION_JSON + "; " + JettyUtils.UTF_8,
+      MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8 })
+  @Override
+  public boolean cancelDecommissionNode(
+      @PathParam("nodeId") String nodeId,
+      @Context HttpServletRequest hsr) throws Exception {
+    UserGroupInformation callerUGI = getCallerUserGroupInformation(hsr, true);
+    initForWritableEndpoints(callerUGI, false);
+    Set<String> in = new TreeSet<>();
+    in.add(nodeId);
+    rm.getRMContext().getNodesListManager().handleDecommisionOrRecommission(true, 0,
+        in, new TreeSet<>());
+    return true;
   }
 
   // Zhankun

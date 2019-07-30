@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -30,6 +33,7 @@ import org.apache.hadoop.security.authorize.AuthorizationException;
 import org.apache.hadoop.yarn.api.ApplicationBaseProtocol;
 import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
 import org.apache.hadoop.yarn.api.protocolrecords.ReservationDeleteRequest;
+import org.apache.hadoop.yarn.api.records.NodeState;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.api.ResourceManagerAdministrationProtocol;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ActivitiesInfo;
@@ -111,6 +115,7 @@ public interface RMWebServiceProtocol {
    */
   ClusterMetricsInfo getClusterMetricsInfo();
 
+  // Zhankun
   /**
    * This method retrieves the cluster autoscale information.
    * Autoscaler can do scale up/down based on these recommendation
@@ -120,6 +125,24 @@ public interface RMWebServiceProtocol {
   ClusterScalingInfo getClusterScalingInfo();
 
 
+  // Zhankun
+  /**
+   * This method decommission a node in a graceful way if timeout not equal to 0
+   * */
+  public boolean decommissionNode(
+      String nodeId,
+      String timeout,
+      HttpServletRequest hsr) throws Exception;
+
+  // Zhankun
+  /**
+   * This method cancel decommission a node if it's in decommissioning state
+   * */
+  public boolean cancelDecommissionNode(
+      @PathParam("nodeId") String nodeId,
+      @Context HttpServletRequest hsr) throws Exception;
+
+  // Zhankun
   /**
    * This method get the prefefined NM instance type can be used
    * when doing scaling recommendation

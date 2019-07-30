@@ -1073,6 +1073,18 @@ public class FederationInterceptorREST extends AbstractRESTRequestInterceptor {
   }
 
   @Override
+  public boolean decommissionNode(String nodeId, String timeout,
+      HttpServletRequest hsr) throws Exception {
+    return false;
+  }
+
+  @Override
+  public boolean cancelDecommissionNode(String nodeId,
+      HttpServletRequest hsr) throws Exception {
+    return false;
+  }
+
+  @Override
   public AllNMInstanceTypes getClusterInstanceTypes() {
     return null;
   }

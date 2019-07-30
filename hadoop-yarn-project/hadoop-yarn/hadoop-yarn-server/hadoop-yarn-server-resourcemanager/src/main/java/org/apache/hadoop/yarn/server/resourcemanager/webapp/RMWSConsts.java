@@ -60,9 +60,15 @@ public final class RMWSConsts {
   /** Path for {@code RMWebServiceProtocol#updateNodeResource}. */
   public static final String NODE_RESOURCE = "/nodes/{nodeId}/resource";
 
+  // Zhankun
   public static final String AUTOSCALE = "/scaling";
 
+  // Zhankun
   public static final String AUTOSCALE_INSTANCE_TYPES = "/scaling/node-types";
+
+  // Zhankun
+  public static final String DECOMMISSION_NODE = "/nodes/{nodeId}/decommission";
+
   /**
    * Path for {@code RMWebServiceProtocol#getApps} and
    * {@code RMWebServiceProtocol#getApp}.
@@ -116,7 +122,7 @@ public final class RMWSConsts {
   /** Path for {@code RMWebServiceProtocol#removeFromCluserNodeLabels}. */
   public static final String REMOVE_NODE_LABELS = "/remove-node-labels";
 
-  /** Path for {@code RMWebServiceProtocol#getLabelsOnNode}. */
+  /** Path for {@code RMWebServiceProREMOVE_NODE_LABELStocol#getLabelsOnNode}. */
   public static final String NODES_NODEID_GETLABELS =
       "/nodes/{nodeId}/get-labels";
 

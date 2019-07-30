@@ -20,6 +20,9 @@ package org.apache.hadoop.yarn.server.resourcemanager;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -29,6 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -338,6 +342,84 @@ public class NodesListManager extends CompositeService implements
     updateInactiveNodes();
   }
 
+  public void handleDecommisionOrRecommission(boolean graceful, int timeout,
+      Set<String> includedHosts,
+      Set<String> excludedHosts) {
+    // DECOMMISSIONED/DECOMMISSIONING nodes need to be re-commissioned.
+    List<RMNode> nodesToRecom = new ArrayList<RMNode>();
+
+    // Nodes need to be decommissioned (graceful or forceful);
+    List<RMNode> nodesToDecom = new ArrayList<RMNode>();
+
+    Map<String, Integer> excludes = new HashMap<>();
+    for (String h : excludedHosts) {
+      excludes.put(h, timeout);
+    }
+
+    for (RMNode n : this.rmContext.getRMNodes().values()) {
+      NodeState s = n.getState();
+      // An invalid node (either due to explicit exclude or not include)
+      // should be excluded.
+      boolean isExcluded = isNodeExcluded(
+          n.getHostName(), includedHosts, excludedHosts);
+      String nodeStr = "node " + n.getNodeID() + " with state " + s;
+      if (!isExcluded) {
+        // Note that no action is needed for DECOMMISSIONED node.
+        if (s == NodeState.DECOMMISSIONING) {
+          LOG.info("Recommission " + nodeStr);
+          nodesToRecom.add(n);
+        }
+        // Otherwise no-action needed.
+      } else {
+        // exclude is true.
+        if (graceful) {
+          // Use per node timeout if exist otherwise the request timeout.
+          Integer timeoutToUse = (excludes.get(n.getHostName()) != null)?
+              excludes.get(n.getHostName()) : timeout;
+          if (s != NodeState.DECOMMISSIONED &&
+              s != NodeState.DECOMMISSIONING) {
+            LOG.info("Gracefully decommission " + nodeStr);
+            nodesToDecom.add(n);
+          } else if (s == NodeState.DECOMMISSIONING &&
+              !Objects.equals(n.getDecommissioningTimeout(),
+                  timeoutToUse)) {
+            LOG.info("Update " + nodeStr + " timeout to be " + timeoutToUse);
+            nodesToDecom.add(n);
+          } else {
+            LOG.info("No action for " + nodeStr);
+          }
+        } else {
+          if (s != NodeState.DECOMMISSIONED) {
+            LOG.info("Forcefully decommission " + nodeStr);
+            nodesToDecom.add(n);
+          }
+        }
+      }
+    }
+
+    for (RMNode n : nodesToRecom) {
+      RMNodeEvent e = new RMNodeEvent(
+          n.getNodeID(), RMNodeEventType.RECOMMISSION);
+      this.rmContext.getDispatcher().getEventHandler().handle(e);
+    }
+
+    for (RMNode n : nodesToDecom) {
+      RMNodeEvent e;
+      if (graceful) {
+        Integer timeoutToUse = (excludes.get(n.getHostName()) != null)?
+            excludes.get(n.getHostName()) : timeout;
+        e = new RMNodeDecommissioningEvent(n.getNodeID(), timeoutToUse);
+      } else {
+        RMNodeEventType eventType = isUntrackedNode(n.getHostName())?
+            RMNodeEventType.SHUTDOWN : RMNodeEventType.DECOMMISSION;
+        e = new RMNodeEvent(n.getNodeID(), eventType);
+      }
+      this.rmContext.getDispatcher().getEventHandler().handle(e);
+    }
+
+    updateInactiveNodes();
+  }
+
   @VisibleForTesting
   public int getNodeRemovalCheckInterval() {
     return nodeRemovalCheckInterval;
@@ -472,6 +554,25 @@ public class NodesListManager extends CompositeService implements
     return (hostsList.isEmpty() || hostsList.contains(hostName) || hostsList
         .contains(ip))
         && !(excludeList.contains(hostName) || excludeList.contains(ip));
+  }
+
+  private boolean isNodeExcluded(
+      String hostName, Set<String> includeList, Set<String> excludeList) {
+    String ip = resolver.resolve(hostName);
+
+    boolean excluded = false;
+    for (String ex : excludeList) {
+      if (ex.contains(hostName) || ex.contains(ip)) {
+        return true;
+      }
+    }
+    boolean included = false;
+    for (String in : includeList) {
+      if (in.contains(hostName) || in.contains(ip)) {
+        return true;
+      }
+    }
+    return excluded && !included;
   }
 
   private void sendRMAppNodeUpdateEventToNonFinalizedApps(

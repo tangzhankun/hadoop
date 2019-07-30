@@ -21,6 +21,7 @@ package org.apache.hadoop.yarn.server.resourcemanager.webapp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.apache.hadoop.yarn.webapp.WebServicesTestUtils.assertResponseStatusCode;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -48,6 +49,7 @@ import javax.ws.rs.core.MediaType;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.apache.hadoop.http.JettyUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.server.AuthenticationFilter;
@@ -74,6 +76,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.NodeUpdateS
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.ClusterScalingInfo;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NewNMCandidates;
 import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NodeInstanceType;
+import org.apache.hadoop.yarn.server.resourcemanager.webapp.dao.NodeLabelsInfo;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
 import org.apache.hadoop.yarn.server.api.records.NodeHealthStatus;
 import org.apache.hadoop.yarn.server.api.records.NodeStatus;
@@ -427,6 +430,75 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     assertEquals("incorrect number of elements", 3, nodes.length());
     double cost = nodes.getDouble("costPerHour");
     Assert.assertEquals("incorrect total cost per hour",3.06, cost, 0.0001);
+    rm.stop();
+  }
+
+  @Test
+  public void testClusterNodeDecommisionREST() throws Exception {
+    rm.start();
+    ResourceScheduler scheduler = rm.getRMContext().getScheduler();
+    MockNM nm1 = rm.registerNode("127.0.0.1:1234", 100 * GB, 100);
+    MockNM nm2 = rm.registerNode("127.0.0.2:1235", 100 * GB, 100);
+    waitforNMRegistered(scheduler, 2, 5);
+    assertEquals(scheduler.getNumClusterNodes(), 2);
+    MultivaluedMapImpl params = new MultivaluedMapImpl();
+    params.add("timeout", "600");
+    WebResource r = resource();
+    ClientResponse response =
+        r.path("ws").path("v1").path("cluster").path("nodes").path("127.0.0.1:1234")
+            .path("decommission").queryParam("user.name", userName)
+            .queryParams(params)
+            .accept(MediaType.APPLICATION_JSON)
+            .post(ClientResponse.class);
+    assertEquals(MediaType.APPLICATION_JSON_TYPE + "; " + JettyUtils.UTF_8,
+        response.getType().toString());
+    Thread.sleep(3000);
+    NodeState state = rm.getRMContext().getRMNodes().get(NodeId.fromString("127.0.0.1:1234")).getState();
+    assertNotEquals(NodeState.RUNNING, state);
+    rm.stop();
+  }
+
+  // Zhankun
+  @Test
+  public void testCancelClusterNodeDecommisionREST() throws Exception {
+    rm.start();
+    ResourceScheduler scheduler = rm.getRMContext().getScheduler();
+    MockNM nm1 = rm.registerNode("127.0.0.1:1234", 100 * GB, 100);
+    MockNM nm2 = rm.registerNode("127.0.0.2:1235", 100 * GB, 100);
+    waitforNMRegistered(scheduler, 2, 5);
+    assertEquals(scheduler.getNumClusterNodes(), 2);
+
+    NodeId id1 = nm1.getNodeId();
+    rm.waitForState(id1, NodeState.RUNNING);
+
+    RMApp app1 = rm.submitApp(2 * GB, "app-1", "user1", null, "default");
+    MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
+
+    heartbeat(rm, nm1);
+
+    MultivaluedMapImpl params = new MultivaluedMapImpl();
+    params.add("timeout", "600");
+    WebResource r = resource();
+    ClientResponse response =
+        r.path("ws").path("v1").path("cluster").path("nodes").path("127.0.0.1:1234")
+            .path("decommission").queryParam("user.name", userName)
+            .queryParams(params)
+            .accept(MediaType.APPLICATION_JSON)
+            .post(ClientResponse.class);
+    assertEquals(MediaType.APPLICATION_JSON_TYPE + "; " + JettyUtils.UTF_8,
+        response.getType().toString());
+    Thread.sleep(2000);
+    NodeState state = rm.getRMContext().getRMNodes().get(NodeId.fromString("127.0.0.1:1234")).getState();
+    assertEquals(NodeState.DECOMMISSIONING, state);
+    response =
+        r.path("ws").path("v1").path("cluster").path("nodes").path("127.0.0.1:1234")
+            .path("decommission").queryParam("user.name", userName)
+            .queryParams(params)
+            .accept(MediaType.APPLICATION_JSON)
+            .delete(ClientResponse.class);
+    state = rm.getRMContext().getRMNodes().get(NodeId.fromString("127.0.0.1:1234")).getState();
+    Thread.sleep(2000);
+    assertEquals(NodeState.RUNNING, state);
     rm.stop();
   }
 
