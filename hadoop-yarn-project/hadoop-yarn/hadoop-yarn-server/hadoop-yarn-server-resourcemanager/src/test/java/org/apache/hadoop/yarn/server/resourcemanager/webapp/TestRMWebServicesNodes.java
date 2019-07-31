@@ -476,6 +476,8 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
 
     heartbeat(rm, nm1);
 
+    // give it time to schedule the app on nm1
+    Thread.sleep(3000);
     MultivaluedMapImpl params = new MultivaluedMapImpl();
     params.add("timeout", "600");
     WebResource r = resource();

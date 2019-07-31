@@ -45,6 +45,7 @@ import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
 import org.apache.hadoop.metrics2.lib.MutableRate;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.RMNodeLabelsManager;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMAppState;
@@ -87,23 +88,30 @@ public class QueueMetrics implements MetricsSource {
   protected Map<Resource, Integer> containerAskToCount = new TreeMap<>(new Comparator<Resource>() {
     @Override
     public int compare(Resource o1, Resource o2) {
-      long gpuc1 = o1.getResourceValue("nvidia.com/gpu");
-      long gpuc2 = o2.getResourceValue("nvidia.com/gpu");
-      if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 > gpuc2) {
-        return -1;
+      boolean hasGPU = false;
+      for (ResourceInformation ri : ResourceUtils.getResourceTypesArray()) {
+        if (ri.getName().equals("nvidia.com/gpu")) {
+          hasGPU = true;
+        }
       }
-      if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 < gpuc2) {
-        return 1;
-      }
+      if (hasGPU) {
+        long gpuc1 = o1.getResourceValue("nvidia.com/gpu");
+        long gpuc2 = o2.getResourceValue("nvidia.com/gpu");
+        if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 > gpuc2) {
+          return -1;
+        }
+        if (gpuc1 != 0 && gpuc2 != 0 && gpuc1 < gpuc2) {
+          return 1;
+        }
 
-      if (gpuc1 != 0 && gpuc2 == 0) {
-        return -1;
-      }
+        if (gpuc1 != 0 && gpuc2 == 0) {
+          return -1;
+        }
 
-      if (gpuc1 == 0 && gpuc2 != 0) {
-        return 1;
+        if (gpuc1 == 0 && gpuc2 != 0) {
+          return 1;
+        }
       }
-
       return o2.compareTo(o1);
     }
   });

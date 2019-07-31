@@ -563,13 +563,13 @@ public class NodesListManager extends CompositeService implements
     boolean excluded = false;
     for (String ex : excludeList) {
       if (ex.contains(hostName) || ex.contains(ip)) {
-        return true;
+        excluded = true;
       }
     }
     boolean included = false;
     for (String in : includeList) {
       if (in.contains(hostName) || in.contains(ip)) {
-        return true;
+        included = true;
       }
     }
     return excluded && !included;
