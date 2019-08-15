@@ -469,7 +469,7 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
         response.getType().toString());
 
     JSONObject json = response.getEntity(JSONObject.class);
-    assertEquals("incorrect number of elements", 7, json.length());
+    assertEquals("incorrect number of elements", 2, json.length());
     JSONObject nodes = json.getJSONObject("newNMCandidates");
     assertEquals("incorrect number of elements", 3, nodes.length());
     double cost = nodes.getDouble("costPerHour");

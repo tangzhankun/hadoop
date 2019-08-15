@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.webapp.NotFoundException;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -50,7 +51,7 @@ import java.util.List;
 import java.util.Map;
 
 @XmlRootElement(name = "clusterScaling")
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType(XmlAccessType.NONE)
 public class ClusterScalingInfo {
 
   public ClusterScalingInfo(){}
@@ -81,8 +82,10 @@ public class ClusterScalingInfo {
     return newNMCandidates;
   }
 
+  @XmlElement
   protected NewNMCandidates newNMCandidates = new NewNMCandidates();
 
+  @XmlElement
   protected DecommissionCandidates decommissionCandidates =
       new DecommissionCandidates();
 
