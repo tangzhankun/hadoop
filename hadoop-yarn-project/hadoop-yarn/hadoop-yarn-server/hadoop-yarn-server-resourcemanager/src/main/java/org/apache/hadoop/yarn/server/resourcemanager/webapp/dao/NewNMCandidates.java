@@ -59,7 +59,7 @@ public class NewNMCandidates {
   }
 
   @XmlElement
-  protected String recommendActionTime = "";
+  protected String recommendActionTime = null;
 
   protected ArrayList<NewSingleTypeNMCandidate> getNewNMCandidates() {
     return newNMCandidates;

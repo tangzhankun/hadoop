@@ -438,6 +438,14 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
 
     assertEquals(scheduler.getNumClusterNodes(), 1);
 
+    WebResource r = resource();
+    ClientResponse response = r.path("ws").path("v1").path("cluster")
+        .path("scaling").accept("application/json").get(ClientResponse.class);
+    assertEquals(MediaType.APPLICATION_JSON_TYPE + "; " + JettyUtils.UTF_8,
+        response.getType().toString());
+
+    JSONObject json = response.getEntity(JSONObject.class);
+
     RMApp app1 = rm.submitApp(2 * GB, "app-1", "user1", null, "default");
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
 
@@ -462,13 +470,12 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
     node1.handle(new RMNodeStatusEvent(nm1.getNodeId(), nodeStatus));
     Assert.assertEquals(1, node1.getRunningApps().size());
 
-    WebResource r = resource();
-    ClientResponse response = r.path("ws").path("v1").path("cluster")
+    response = r.path("ws").path("v1").path("cluster")
         .path("scaling").accept("application/json").get(ClientResponse.class);
     assertEquals(MediaType.APPLICATION_JSON_TYPE + "; " + JettyUtils.UTF_8,
         response.getType().toString());
 
-    JSONObject json = response.getEntity(JSONObject.class);
+    json = response.getEntity(JSONObject.class);
     assertEquals("incorrect number of elements", 2, json.length());
     JSONObject nodes = json.getJSONObject("newNMCandidates");
     assertEquals("incorrect number of elements", 3, nodes.length());
