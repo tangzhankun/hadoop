@@ -368,6 +368,50 @@ public class TestRMWebServicesNodes extends JerseyTestBase {
 
   // Zhankun
   @Test
+  public void testClusterAutoScaleRecommendationNoGPURequest() {
+    String customResource = "nvidia.com/gpu";
+    CustomResourceTypesConfigurationProvider.
+        initResourceTypes(customResource);
+    ResourceCalculator rc = new DominantResourceCalculator();
+    Resource cResource = Resources.createResource(1 * GB, 1);
+    Resource cResource2 = Resources.createResource(2 * GB, 2);
+    Map<Resource, Integer> containerAskToCount = new TreeMap<>(new Comparator<Resource>() {
+      private int getRealLength(ResourceInformation[] ris) {
+        int ret = 0;
+        for (ResourceInformation ri : ris) {
+          if (ri.getValue() != 0) {
+            ret++;
+          }
+        }
+        return ret;
+      }
+      @Override
+      public int compare(Resource o1, Resource o2) {
+        int realLength1 = getRealLength(o1.getResources());
+        int realLength2 = getRealLength(o2.getResources());
+        if (realLength1 > realLength2) {
+          return -1;
+        } else if (realLength1 < realLength2){
+          return 1;
+        } else {
+          return o2.compareTo(o1);
+        }
+      }
+    });
+
+    // 5 vcore, 5GB totally
+    containerAskToCount.put(cResource, 1);
+    containerAskToCount.put(cResource2, 2);
+
+    NodeInstanceType[] allTypes = NodeInstanceType.getAllNodeInstanceType();
+    NewNMCandidates newNMCandidates = new NewNMCandidates();
+    ClusterScalingInfo.recommendNewInstances(containerAskToCount,
+        newNMCandidates, allTypes, new DominantResourceCalculator());
+    assertEquals("incorrect cost per hour", "0.08", newNMCandidates.getTotalCostPerHour());
+  }
+
+  // Zhankun
+  @Test
   public void testNodeInstances() throws JSONException, Exception {
     String customResource = "nvidia.com/gpu";
     CustomResourceTypesConfigurationProvider.
