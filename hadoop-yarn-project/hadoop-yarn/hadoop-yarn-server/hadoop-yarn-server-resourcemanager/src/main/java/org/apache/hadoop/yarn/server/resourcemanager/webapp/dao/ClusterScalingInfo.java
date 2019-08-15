@@ -241,6 +241,7 @@ public class ClusterScalingInfo {
         int instanceCount = (int)Math.ceil((double)containerCount/(double)buckets);
         Resource planToUseResourceInThisNodeType = Resources.multiplyAndRoundUp(containerResource, containerCount);
         newNMCandidates.add(t, instanceCount, planToUseResourceInThisNodeType);
+        newNMCandidates.setRecommendActionTime("Now");
       }
     }
   }

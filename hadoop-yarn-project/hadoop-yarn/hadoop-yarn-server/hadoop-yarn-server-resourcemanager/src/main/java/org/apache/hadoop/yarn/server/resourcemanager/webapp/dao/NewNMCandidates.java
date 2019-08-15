@@ -54,8 +54,12 @@ public class NewNMCandidates {
     return recommendActionTime;
   }
 
+  public void setRecommendActionTime(String recommendActionTime) {
+    this.recommendActionTime = recommendActionTime;
+  }
+
   @XmlElement
-  protected String recommendActionTime = "Now";
+  protected String recommendActionTime = "";
 
   protected ArrayList<NewSingleTypeNMCandidate> getNewNMCandidates() {
     return newNMCandidates;
